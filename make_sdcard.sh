@@ -12,7 +12,7 @@
 
 set -euo pipefail
 
-TOOL_VERSION="79.0"
+TOOL_VERSION="1.0.0"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
@@ -174,6 +174,8 @@ generate_install_configs() {
     local conf_sshd="${POMERA_ENABLE_SSHD:-yes}"
     local conf_rootssh="${POMERA_ALLOW_ROOT_SSH:-no}"
     local conf_confirm_install="${POMERA_CONFIRM_INSTALL:-yes}"
+    local conf_lid_interval="${POMERA_LID_INTERVAL:-0.5}"
+    local conf_cpu_policy="${POMERA_CPU_POLICY:-auto}"
 
     # Inject user credentials into _build_cache/install.site.env to guarantee 100% password enforcement without dirtying git configs
     cat << EOF > "${WORK_DIR}/install.site.env"
@@ -182,6 +184,8 @@ export POMERA_HOSTNAME="${conf_host}"
 export POMERA_ROOT_PASSWORD="${conf_rootpass}"
 export POMERA_USER_PASSWORD="${conf_userpass}"
 export POMERA_CONFIRM_INSTALL="${conf_confirm_install}"
+export POMERA_LID_INTERVAL="${conf_lid_interval}"
+export POMERA_CPU_POLICY="${conf_cpu_policy}"
 EOF
 
     # Write dynamic install.conf into _build_cache

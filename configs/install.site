@@ -264,6 +264,29 @@ gpioctl -q gpio1 12 set out green_led
 EOF
 chmod +x /etc/rc.securelevel
 
+# 9. Pomera Power & Lid Daemon (Managed natively via rcctl)
+echo ">> Enabling pomera_lid_watch power daemon via rcctl..."
+conf_cpu_pol="${POMERA_CPU_POLICY:-auto}"
+if [ "$conf_cpu_pol" = "100" ] || [ "$conf_cpu_pol" = "high" ]; then
+    conf_cpu_pol="high"
+else
+    conf_cpu_pol="auto"
+fi
+
+# Ensure default CPU policy in /etc/sysctl.conf
+if [ -f /etc/sysctl.conf ]; then
+    if ! grep -q "hw.perfpolicy=" /etc/sysctl.conf; then
+        echo "hw.perfpolicy=${conf_cpu_pol}" >> /etc/sysctl.conf
+    fi
+fi
+
+if [ -f /etc/rc.d/pomera_lid_watch ]; then
+    chmod 755 /etc/rc.d/pomera_lid_watch
+    rcctl enable pomera_lid_watch
+    conf_lid_int="${POMERA_LID_INTERVAL:-0.5}"
+    rcctl set pomera_lid_watch flags "-i ${conf_lid_int} -p ${conf_cpu_pol}"
+fi
+
 # Add friendly MOTD notice for pomera-setup-desktop
 cat << 'EOF' >> /etc/motd
 

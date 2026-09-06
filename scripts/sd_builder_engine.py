@@ -397,6 +397,23 @@ def package_site_set(work_dir: str, configs_dir: str, scripts_dir: str, res_mgr:
         subprocess.run(["tar", "-xzf", bwfm_tgz, "-C", os.path.join(site_build, "etc/firmware")], check=True)
 
     # 3. System configuration files
+    os.makedirs(os.path.join(site_build, "etc/rc.d"), exist_ok=True)
+    rc_d_lid = os.path.join(site_build, "etc/rc.d/pomera_lid_watch")
+    with open(rc_d_lid, "w") as f:
+        f.write("""#!/bin/ksh
+
+daemon="/usr/local/sbin/pomera-lid-watch"
+
+. /etc/rc.d/rc.subr
+
+pexp="/bin/sh ${daemon}.*"
+rc_bg=YES
+rc_reload=NO
+
+rc_cmd $1
+""")
+    os.chmod(rc_d_lid, 0o755)
+
     with open(os.path.join(site_build, "etc/doas.conf"), "w") as f:
         f.write("permit keepenv :wheel\npermit nopass :wheel cmd reboot\npermit nopass :wheel cmd poweroff\n")
     os.chmod(os.path.join(site_build, "etc/doas.conf"), 0o600)
