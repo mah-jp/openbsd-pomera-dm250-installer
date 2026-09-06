@@ -1,0 +1,26 @@
+# Build cache and generated images
+_build_cache/
+*.img
+*.iso
+*.sock
+
+# Private user configuration (contains plaintext Wi-Fi passwords & account credentials)
+configs/user_config.env
+configs/install.site.env
+
+# Internal development and test tools (not for GitHub distribution)
+dev/
+
+# OS / Editor temporary files
+.DS_Store
+*.swp
+*~
+
+# Local docs / Notes / Memos
+AGENTS.md
+docs/
+
+# Python cache & bytecode
+__pycache__/
+*.py[cod]
+*$py.class

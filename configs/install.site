@@ -1,0 +1,287 @@
+#!/bin/sh
+# install.site - OpenBSD Automated Post-Install Hook for Pomera DM250
+# This script runs automatically inside chroot at the end of OpenBSD installation.
+
+set -e
+
+echo "=========================================================="
+echo ">> [install.site] Configuring Pomera DM250 OpenBSD System"
+echo "=========================================================="
+
+# 0. Normalize system root and essential directory permissions (prevents host umask/UID spillover)
+chmod 755 /
+chown root:wheel /
+for dir in /etc /usr /usr/local /usr/local/bin /usr/local/sbin /home; do
+    if [ -d "$dir" ]; then
+        chmod 755 "$dir"
+        chown root:wheel "$dir"
+    fi
+done
+
+# 0.5 Enforce User & Root Passwords from configuration preset (OpenBSD Native Method)
+if [ -f /install.site.env ]; then
+    . /install.site.env
+fi
+
+TARGET_USER="${POMERA_USERNAME:-pomera}"
+ROOT_PASS="${POMERA_ROOT_PASSWORD:-pomera}"
+USER_PASS="${POMERA_USER_PASSWORD:-pomera}"
+
+echo ">> Enforcing native OpenBSD password hashes for root and user ${TARGET_USER}..."
+
+# Generate Blowfish password hashes using native OpenBSD encrypt(1)
+ROOT_HASH=$(encrypt -b 8 "$ROOT_PASS")
+USER_HASH=$(encrypt -b 8 "$USER_PASS")
+
+# 1. Create target user with guaranteed password hash without duplicate entries
+if ! grep -q "^${TARGET_USER}:" /etc/master.passwd; then
+    if [ -d "/home/$TARGET_USER" ]; then
+        useradd -g staff -G wheel -s /bin/ksh -p "$USER_HASH" -c "$TARGET_USER" "$TARGET_USER"
+    else
+        useradd -m -g staff -G wheel -s /bin/ksh -p "$USER_HASH" -c "$TARGET_USER" "$TARGET_USER"
+    fi
+fi
+
+# 2. Directly and reliably enforce password hashes in /etc/master.passwd for both root and user
+sed -i -e "s@^root:[^:]*:@root:${ROOT_HASH}:@" /etc/master.passwd
+sed -i -e "s@^${TARGET_USER}:[^:]*:@${TARGET_USER}:${USER_HASH}:@" /etc/master.passwd
+
+# 3. Rebuild password databases
+pwd_mkdb -p /etc/master.passwd
+
+# 3.5 Guarantee home directory existence, ownership, and permissions
+mkdir -p "/home/${TARGET_USER}"
+chown -R "${TARGET_USER}:staff" "/home/${TARGET_USER}"
+chmod 755 "/home/${TARGET_USER}"
+if [ ! -f "/home/${TARGET_USER}/.profile" ] && [ -d /etc/skel ]; then
+    cp -R /etc/skel/. "/home/${TARGET_USER}/"
+    chown -R "${TARGET_USER}:staff" "/home/${TARGET_USER}"
+fi
+
+# Configure doas
+echo "permit persist :wheel" > /etc/doas.conf
+chmod 440 /etc/doas.conf
+
+# 1. Clean and complete /etc/fstab and /etc/boot.conf for standalone eMMC boot
+echo ">> [1/8] Configuring complete /etc/fstab and /etc/boot.conf..."
+if grep -q "ffs" /etc/fstab 2>/dev/null && ! grep -q "sd1" /etc/fstab 2>/dev/null; then
+    echo "   -> Preserving installer generated /etc/fstab (softraid DUID / valid layout verified)"
+elif [ -f /tmp/i/fstab.sd1 ]; then
+    sed 's/sd1/sd0/g' /tmp/i/fstab.sd1 > /etc/fstab
+elif [ ! -s /etc/fstab ]; then
+    cat << 'EOF' > /etc/fstab
+/dev/sd0a / ffs rw,noatime 1 1
+/dev/sd0b none swap sw 0 0
+/dev/sd0d /usr ffs rw,nodev,noatime 1 2
+/dev/sd0e /home ffs rw,nodev,nosuid,noatime 1 2
+EOF
+fi
+cat << 'EOF' > /etc/boot.conf
+set tty fb0
+set timeout 5
+boot /bsd
+EOF
+
+# 2. Configure hostname and localhost resolution dynamically to prevent X11 xauth bad display name
+echo ">> [2/8] Configuring dynamic /etc/hosts and /etc/myname..."
+MY_HOST="${POMERA_HOSTNAME:-pomera}"
+CURRENT_FQDN="$(hostname 2>/dev/null || echo "$MY_HOST")"
+echo "$MY_HOST" > /etc/myname
+
+# Automatically map localhost, short hostname, FQDN, and .none to 127.0.0.1
+cat << EOF > /etc/hosts
+127.0.0.1 localhost ${MY_HOST} ${CURRENT_FQDN} ${MY_HOST}.none
+::1 localhost ${MY_HOST} ${CURRENT_FQDN} ${MY_HOST}.none
+EOF
+
+# 3. Ensure custom DM250 kernel is preserved
+echo ">> [3/8] Installing Custom DM250 Kernel..."
+if [ -f /bsd ]; then
+    cp /bsd /bsd.upstream
+fi
+
+# Try to find and copy custom bsd from SD card partition
+mkdir -p /mnt_sd
+for dev in /dev/sd0a /dev/sd1a /dev/sd2a; do
+    if mount "$dev" /mnt_sd 2>/dev/null; then
+        if [ -f /mnt_sd/bsd ]; then
+            cp -f /mnt_sd/bsd /bsd
+            echo "   -> Custom DM250 /bsd kernel installed successfully from $dev!"
+            umount /mnt_sd
+            break
+        fi
+        umount /mnt_sd
+    fi
+done
+rm -rf /mnt_sd
+
+# 4. Disable reorder_kernel (prevents overwriting custom kernel on boot)
+echo ">> [4/8] Disabling reorder_kernel..."
+mkdir -p /usr/share/relink
+if [ -f /usr/libexec/reorder_kernel ]; then
+    mv /usr/libexec/reorder_kernel /usr/libexec/reorder_kernel.disabled
+fi
+printf "#!/bin/sh\nexit 0\n" > /usr/libexec/reorder_kernel
+chmod +x /usr/libexec/reorder_kernel
+
+# 5. Wi-Fi NVRAM File Extraction (from SD EFI partition)
+echo ">> [5/8] Extracting Wi-Fi (bwfm) NVRAM..."
+mkdir -p /etc/firmware
+mkdir -p /mnt_efi
+for dev in /dev/sd0i /dev/sd1i /dev/sd2i; do
+    if mount "$dev" /mnt_efi 2>/dev/null; then
+        if [ -f /mnt_efi/firmware/nvram_ap6212a.txt ]; then
+            cp -f /mnt_efi/firmware/nvram_ap6212a.txt /etc/firmware/brcmfmac43430-sdio.rockchip,pomera-dm250.txt
+            cp -f /mnt_efi/firmware/nvram_ap6212a.txt /etc/firmware/brcmfmac43430-sdio.txt
+            echo "   -> Wi-Fi NVRAM configured (/etc/firmware/brcmfmac43430-sdio.rockchip,pomera-dm250.txt)"
+        fi
+        umount /mnt_efi
+        break
+    fi
+done
+rm -rf /mnt_efi
+
+# 6. Deploy BOOTARM.EFI and DTB to internal eMMC FAT16 boot partition (sd1i / sd0i)
+echo ">> [6/8] Deploying BOOTARM.EFI to internal eMMC EFI Partition..."
+mkdir -p /mnt_emmc_efi
+for dev in /dev/sd1i /dev/sd0i; do
+    if mount "$dev" /mnt_emmc_efi 2>/dev/null; then
+        mkdir -p /mnt_emmc_efi/efi/boot /mnt_emmc_efi/etc
+        if [ -f /usr/mdec/BOOTARM.EFI ]; then
+            cp -f /usr/mdec/BOOTARM.EFI /mnt_emmc_efi/efi/boot/bootarm.efi
+            cp -f /usr/mdec/BOOTARM.EFI /mnt_emmc_efi/efi/boot/BOOTARM.EFI
+        elif [ -f /efi/boot/BOOTARM.EFI ]; then
+            cp -f /efi/boot/BOOTARM.EFI /mnt_emmc_efi/efi/boot/bootarm.efi
+            cp -f /efi/boot/BOOTARM.EFI /mnt_emmc_efi/efi/boot/BOOTARM.EFI
+        elif [ -f /BOOTARM.EFI ]; then
+            cp -f /BOOTARM.EFI /mnt_emmc_efi/efi/boot/bootarm.efi
+            cp -f /BOOTARM.EFI /mnt_emmc_efi/efi/boot/BOOTARM.EFI
+        fi
+        if [ -f /kingjim-dm250.dtb ]; then
+            cp -f /kingjim-dm250.dtb /mnt_emmc_efi/kingjim-dm250.dtb
+        fi
+        cat << 'EOF' > /mnt_emmc_efi/boot.conf
+set timeout 5
+boot /bsd
+EOF
+        mkdir -p /mnt_emmc_efi/efi/boot /mnt_emmc_efi/EFI/BOOT
+        cp -f /mnt_emmc_efi/boot.conf /mnt_emmc_efi/efi/boot/boot.conf
+        cp -f /mnt_emmc_efi/boot.conf /mnt_emmc_efi/EFI/BOOT/boot.conf
+        umount /mnt_emmc_efi
+        break
+    fi
+done
+rm -rf /mnt_emmc_efi
+
+# Ensure Rockchip BootROM bootloader sectors exist on eMMC
+for _p in /usr/mdec/idbloader.img /idbloader.img; do
+    if [ -f "$_p" ] && [ -e /dev/rsd0c ]; then
+        echo ">> Flashing Rockchip idbloader to eMMC sector 64..."
+        dd if="$_p" of=/dev/rsd0c bs=512 seek=64
+        break
+    fi
+done
+for _p in /usr/mdec/uboot.img /uboot.img; do
+    if [ -f "$_p" ] && [ -e /dev/rsd0c ]; then
+        echo ">> Flashing Rockchip U-Boot to eMMC sector 16384..."
+        dd if="$_p" of=/dev/rsd0c bs=512 seek=16384
+        break
+    fi
+done
+
+# 7. Configure USB Ethernet Interfaces with secure permissions (0600)
+echo ">> [7/8] Configuring USB-NIC Plug & Play (DHCP)..."
+for nic in ure0 axe0 axen0 cdce0 urndis0 smsc0 bwfm0; do
+    if [ ! -f "/etc/hostname.${nic}" ]; then
+        echo "dhcp" > "/etc/hostname.${nic}"
+    fi
+    chmod 600 "/etc/hostname.${nic}"
+done
+
+# 8. 4noha Golden Hardware Tuning (JIS Keyboard, 8-Color wsvt25, LED control, Sysctl)
+echo ">> [8/8] Applying 4noha Golden Reference Hardware Settings..."
+cat << 'EOF' >> /etc/sysctl.conf
+ddb.panic=0
+machdep.lidaction=0
+machdep.allowaperture=1
+EOF
+
+# Deploy Xorg configuration for 1024x600 wsfb display (Strictly 16-bit color matching Pomera LVDS)
+mkdir -p /etc/X11
+cat << 'EOF' > /etc/X11/xorg.conf
+Section "Device"
+    Identifier "Card0"
+    Driver     "wsfb"
+EndSection
+
+Section "Screen"
+    Identifier "Screen0"
+    Device     "Card0"
+    Monitor    "Monitor0"
+    DefaultDepth 16
+    SubSection "Display"
+        Depth 16
+        Modes "1024x600"
+    EndSubSection
+EndSection
+
+Section "Monitor"
+    Identifier "Monitor0"
+EndSection
+EOF
+
+# Set SUID root on Xorg binary so regular users can launch startx out-of-the-box
+if [ -f /usr/X11R6/bin/Xorg ]; then
+    chmod 4755 /usr/X11R6/bin/Xorg
+fi
+
+# Disable KARL library reordering to prevent /usr/share/relink missing file errors
+cat << 'EOF' >> /etc/rc.conf.local
+library_aslr=NO
+EOF
+
+# Japanese Keyboard mappings with strict wsconsctl syntax quotes
+cat << 'EOF' > /etc/wsconsctl.conf
+keyboard.encoding=jp
+keyboard.map+="keycode 13 = asciicircum asciitilde"
+keyboard.map+="keycode 58 = Control_L"
+keyboard.map+="keycode 139 = Mode_switch"
+keyboard.map+="keycode 103 = Up Up Prior Prior"
+keyboard.map+="keycode 108 = Down Down Next Next"
+EOF
+
+# 8-color console (wsvt25)
+if [ -f /etc/ttys ]; then
+    sed -i.bak 's|\(^console.*\)vt220|\1wsvt25|' /etc/ttys
+    sed -i 's|\(^ttyC[1-5].*\)vt220|\1wsvt25|' /etc/ttys
+fi
+
+# LED Control initialization
+cat << 'EOF' > /etc/rc.securelevel
+#!/bin/sh
+gpioctl -q gpio1 8  set out red_led
+gpioctl -q gpio1 12 set out green_led
+EOF
+chmod +x /etc/rc.securelevel
+
+# Add friendly MOTD notice for pomera-setup-desktop
+cat << 'EOF' >> /etc/motd
+
+===============================================================
+ Welcome to OpenBSD on Pomera DM250!
+ 💡 Tip: Connect to Wi-Fi/USB-NIC and run:
+    pomera-setup-desktop
+ to set up GUI (cwm), Japanese fonts, vim, and tmux!
+===============================================================
+
+EOF
+
+# Final flush of all buffers to physical media
+sync
+sync
+
+echo "=========================================================="
+echo "✅ [install.site] Pomera DM250 System Configuration Completed!"
+echo "   All disk writes are safely synced. Finalizing installation..."
+echo "=========================================================="
+exit 0
