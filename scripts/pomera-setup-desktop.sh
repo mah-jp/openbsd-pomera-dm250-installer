@@ -124,13 +124,14 @@ echo ">> Configuring $TARGET_HOME/.Xdefaults (Xft Antialiasing & LCD Subpixel)..
 cat << 'EOF' > "$TARGET_HOME/.Xdefaults"
 ! -------------------------------------------------------------
 ! Xft Font Rendering Optimization for Pomera DM250 (1024x600)
+! Grayscale antialiasing (prevents color fringing / dirty dots on dark BG)
 ! -------------------------------------------------------------
 Xft.dpi:        96
 Xft.antialias:  1
 Xft.hinting:    1
 Xft.hintstyle:  hintslight
-Xft.rgba:       rgb
-Xft.lcdfilter:  lcddefault
+Xft.rgba:       none
+Xft.lcdfilter:  none
 
 ! -------------------------------------------------------------
 ! XTerm fallback configuration
@@ -150,6 +151,7 @@ mkdir -p "$TARGET_HOME/.mlterm"
 cat << 'EOF' > "$TARGET_HOME/.mlterm/main"
 use_anti_alias = true
 use_variable_column_width = false
+fade_ratio = 100
 fontsize = 15
 type_engine = xft
 line_space = 2
