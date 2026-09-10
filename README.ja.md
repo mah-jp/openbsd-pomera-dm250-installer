@@ -121,12 +121,13 @@ nano configs/user_config.env
   * `POMERA_CPU_POLICY` : CPU 動作ポリシー（`auto`: 負荷連動可変省電力 / `100` または `high`: 最高性能固定、デフォルト: `auto`）
   * `POMERA_ENABLE_SSHD` / `POMERA_ALLOW_ROOT_SSH` : SSHD 自動起動設定
   * `POMERA_CONFIRM_INSTALL` : インストール開始前の安全確認プロンプト（デフォルト: `yes`。`no` で完全無人化）
+  * `POMERA_SMART_KERNEL` : 不要な他社SoCやPCIドライバを削ぎ落としたDM250特化型カーネル（約25%削減、デフォルト: `no`。`yes` で有効化）
   * `POMERA_PATCH_USB_HUB` : USBハブ使用時の切断・クラッシュ防止パッチ（デフォルト: `no`。`yes` で有効化）
   * `POMERA_PATCH_X11_KEYS` : X11 GUI使用時の右Shiftおよび左Altキー修正パッチ（デフォルト: `no`。`yes` で有効化）
 
 > [!TIP]
 > **💡 スマート・カーネル検査機能**  
-> `POMERA_PATCH_USB_HUB` や `POMERA_PATCH_X11_KEYS` を `yes` に設定した場合、インストーラーは公式カーネル（jcs.org）のバイナリを自動検査します。公式カーネルで既に修正されている場合はリコンパイルを行わず公式バイナリをそのまま採用（待ち時間0秒）し、未修正の場合のみ一時的な QEMU VM で安全にパッチ適用リコンパイルを行います（ビルド結果はキャッシュされるため次回以降も即座に再利用されます）。
+> `POMERA_SMART_KERNEL`、`POMERA_PATCH_USB_HUB`、`POMERA_PATCH_X11_KEYS` を `yes` に設定した場合、インストーラーは公式カーネル（jcs.org）のバイナリを自動検査します。公式カーネルで既に要求機能が満たされている場合はリコンパイルを行わず公式バイナリをそのまま採用（待ち時間0秒）し、未対応の場合のみ一時的な QEMU VM で安全にリコンパイルを行います（ビルド結果はキャッシュされるため次回以降も即座に再利用されます）。
 
 *(※ OpenBSD armv7 EFI ブートローダーの仕様上、ルートディスク暗号化 [softraid CRYPTO] ブートは非対応のため自動的に無効化されます)*
 
@@ -146,7 +147,7 @@ sudo ./make_sdcard.sh /dev/rdisk4
 # ダウンロードとキャッシュのみ行う場合:
 ./make_sdcard.sh --download-only
 
-# Pomera DM250 特化型スマートカーネル（約50%軽量化・高速起動）をビルドして適用する場合:
+# Pomera DM250 特化型スマートカーネル（不要SoC・PCIドライバの削除、約25%削減）を適用する場合:
 ./make_sdcard.sh --smart-kernel
 
 # パッチ適用済みカーネルのQEMUリコンパイルを明示的に実行する場合:

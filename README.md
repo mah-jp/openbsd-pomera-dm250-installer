@@ -120,7 +120,7 @@ nano configs/user_config.env
   * `POMERA_CPU_POLICY` : CPU performance scaling policy (`auto`: dynamic load-based scaling / `100` or `high`: maximum clock lock, Default: `auto`)
   * `POMERA_ENABLE_SSHD` / `POMERA_ALLOW_ROOT_SSH` : SSH daemon enable & root login permission
   * `POMERA_CONFIRM_INSTALL` : Pre-install confirmation prompt before erasing internal storage (Default: `yes`. Set to `no` for unattended zero-touch installation)
-  * `POMERA_SMART_KERNEL` : Optimize & slim down kernel for DM250 (~50% smaller, faster boot) (Default: `no`. Set to `yes` to enable)
+  * `POMERA_SMART_KERNEL` : Optimize kernel by removing unused SoCs and PCI expansion drivers (~25% smaller) (Default: `no`. Set to `yes` to enable)
   * `POMERA_PATCH_USB_HUB` : Fix USB Hub crash & disconnect issues (Default: `no`. Set to `yes` to enable)
   * `POMERA_PATCH_X11_KEYS` : Fix Right-Shift and Left-Alt keys under X11 (Default: `no`. Set to `yes` to enable)
 
@@ -146,7 +146,7 @@ sudo ./make_sdcard.sh /dev/rdisk4
 # Download and cache files only (no formatting):
 ./make_sdcard.sh --download-only
 
-# Build and use DM250 optimized smart kernel (~50% smaller, faster boot):
+# Build and use DM250 tailored smart kernel (removes unused SoC/PCI drivers):
 ./make_sdcard.sh --smart-kernel
 
 # Force QEMU recompilation of the patched kernel:

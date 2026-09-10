@@ -206,7 +206,7 @@ machdep.lidaction=0
 machdep.allowaperture=1
 EOF
 
-# Deploy Xorg configuration for 1024x600 wsfb display (32bpp / Depth 24 matching Pomera rkdrm)
+# Deploy Xorg configuration for wsfb display (Auto-detects framebuffer depth 16/24/32)
 mkdir -p /etc/X11
 cat << 'EOF' > /etc/X11/xorg.conf
 Section "Device"
@@ -218,11 +218,6 @@ Section "Screen"
     Identifier "Screen0"
     Device     "Card0"
     Monitor    "Monitor0"
-    DefaultDepth 24
-    SubSection "Display"
-        Depth 24
-        Modes "1024x600"
-    EndSubSection
 EndSection
 
 Section "Monitor"

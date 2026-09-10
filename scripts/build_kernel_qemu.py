@@ -38,6 +38,10 @@ parser.add_argument("--work-dir", type=str, default=None, help="Working director
 parser.add_argument("--no-clean", action="store_true", help="Keep build disk image and temp files after build")
 parser.add_argument("--config", type=str, default="DM250", choices=["DM250", "GENERIC"],
                     help="Kernel configuration to build (default: DM250)")
+parser.add_argument("--patch-usb", dest="patch_usb", action=argparse.BooleanOptionalAction, default=True,
+                    help="Apply USB hub split transactions fix (PR #3)")
+parser.add_argument("--patch-x11", dest="patch_x11", action=argparse.BooleanOptionalAction, default=True,
+                    help="Apply X11 raw keys fix (PR #4)")
 args, _ = parser.parse_known_args()
 
 if args.work_dir:
@@ -159,8 +163,6 @@ def prepare_patched_sys_archive(mgr: BuildManager) -> str:
     for candidate in [
         os.path.join(CACHE_DIR, "sys_rk3128.tar.gz"),
         os.path.join(WORK_DIR, "sys_rk3128.tar.gz"),
-        os.path.join(CACHE_DIR, "sys_patched.tar.gz"),
-        os.path.join(WORK_DIR, "sys_patched.tar.gz"),
         os.path.join(CACHE_DIR, "sys.tar.gz"),
     ]:
         if os.path.exists(candidate) and os.path.getsize(candidate) > 1000000:
@@ -193,56 +195,72 @@ def prepare_patched_sys_archive(mgr: BuildManager) -> str:
     print(f"   Extracting base source archive {base_archive} -> {stage_dir}...")
     subprocess.run(["tar", "-xzf", base_archive, "-C", stage_dir], check=True)
 
-    # Copy patched dwc2 files if available in CACHE_DIR/sys
-    dwc2_cache_dir = os.path.join(CACHE_DIR, "sys", "dev", "usb", "dwc2")
     target_dwc2 = os.path.join(stage_dir, "sys", "dev", "usb", "dwc2")
-    if os.path.isdir(dwc2_cache_dir):
-        print(f"   Injecting verified dwc2 driver fixes from {dwc2_cache_dir}...")
-        for fname in os.listdir(dwc2_cache_dir):
-            src_f = os.path.join(dwc2_cache_dir, fname)
-            dst_f = os.path.join(target_dwc2, fname)
-            if os.path.isfile(src_f):
-                shutil.copy2(src_f, dst_f)
 
-    # Apply all patches from scripts/patches/
-    patches_dir = os.path.join(SCRIPT_DIR, "patches")
-    if os.path.isdir(patches_dir):
-        for pfile in sorted(os.listdir(patches_dir)):
-            if pfile.endswith(".patch"):
-                full_patch = os.path.join(patches_dir, pfile)
-                print(f"   Applying patch {pfile} to staged tree...")
-                subprocess.run(
-                    ["patch", "-p1", "--forward", "-r", "-"],
-                    input=open(full_patch, "rb").read(),
-                    cwd=stage_dir,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                    check=False
-                )
+    # 1. Apply USB hub split transaction fix (PR #3) if enabled
+    if args.patch_usb:
+        dwc2_cache_dir = os.path.join(CACHE_DIR, "sys", "dev", "usb", "dwc2")
+        if os.path.isdir(dwc2_cache_dir):
+            print(f"   Injecting verified dwc2 driver fixes from {dwc2_cache_dir}...")
+            for fname in os.listdir(dwc2_cache_dir):
+                src_f = os.path.join(dwc2_cache_dir, fname)
+                dst_f = os.path.join(target_dwc2, fname)
+                if os.path.isfile(src_f):
+                    shutil.copy2(src_f, dst_f)
 
-    # Verify dwc2var.h has BITS_PER_LONG 32
-    target_dwc2var = os.path.join(target_dwc2, "dwc2var.h")
-    with open(target_dwc2var, "r") as f:
-        content = f.read()
-        if "BITS_PER_LONG\t\t32" not in content and "BITS_PER_LONG 32" not in content:
-            raise RuntimeError(f"Verification failed: dwc2var.h does not contain BITS_PER_LONG 32 fix!")
-    print("   ✅ Verified BITS_PER_LONG 32 in dwc2var.h")
+        usb_patch = os.path.join(SCRIPT_DIR, "patches", "dwc2_split_order_fix.patch")
+        if os.path.isfile(usb_patch):
+            print("   Applying patch dwc2_split_order_fix.patch to staged tree...")
+            subprocess.run(
+                ["patch", "-p1", "--forward", "-r", "-"],
+                input=open(usb_patch, "rb").read(),
+                cwd=stage_dir,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=False
+            )
 
-    # Verify gpiokeys.c has wskbd_is_raw check
-    target_gpiokeys = os.path.join(stage_dir, "sys", "dev", "fdt", "gpiokeys.c")
-    with open(target_gpiokeys, "r") as f:
-        content = f.read()
-        if "wskbd_is_raw(console_kbd)" not in content:
-            raise RuntimeError("Verification failed: gpiokeys.c does not contain wskbd_is_raw fix!")
-    print("   ✅ Verified wskbd_is_raw in gpiokeys.c")
+        target_dwc2var = os.path.join(target_dwc2, "dwc2var.h")
+        if os.path.isfile(target_dwc2var):
+            with open(target_dwc2var, "r") as f:
+                content = f.read()
+                if "BITS_PER_LONG\t\t32" not in content and "BITS_PER_LONG 32" not in content:
+                    raise RuntimeError("Verification failed: dwc2var.h does not contain BITS_PER_LONG 32 fix!")
+            print("   ✅ Verified BITS_PER_LONG 32 in dwc2var.h")
+    else:
+        print("   ⏩ Skipping USB hub patch (disabled by user configuration)")
 
-    # Verify wskbdvar.h has wskbd_is_raw declaration
-    target_wskbdvar = os.path.join(stage_dir, "sys", "dev", "wscons", "wskbdvar.h")
-    with open(target_wskbdvar, "r") as f:
-        content = f.read()
-        if "wskbd_is_raw(struct device *)" not in content:
-            raise RuntimeError("Verification failed: wskbdvar.h does not contain wskbd_is_raw declaration!")
-    print("   ✅ Verified wskbd_is_raw declaration in wskbdvar.h")
+    # 2. Apply X11 raw keys fix (PR #4) if enabled
+    if args.patch_x11:
+        x11_patch = os.path.join(SCRIPT_DIR, "patches", "gpiokeys_rawkbd_fix.patch")
+        if os.path.isfile(x11_patch):
+            print("   Applying patch gpiokeys_rawkbd_fix.patch to staged tree...")
+            subprocess.run(
+                ["patch", "-p1", "--forward", "-r", "-"],
+                input=open(x11_patch, "rb").read(),
+                cwd=stage_dir,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=False
+            )
+
+        target_gpiokeys = os.path.join(stage_dir, "sys", "dev", "fdt", "gpiokeys.c")
+        if os.path.isfile(target_gpiokeys):
+            with open(target_gpiokeys, "r") as f:
+                content = f.read()
+                if "wskbd_is_raw(console_kbd)" not in content:
+                    raise RuntimeError("Verification failed: gpiokeys.c does not contain wskbd_is_raw fix!")
+            print("   ✅ Verified wskbd_is_raw in gpiokeys.c")
+
+        target_wskbdvar = os.path.join(stage_dir, "sys", "dev", "wscons", "wskbdvar.h")
+        if os.path.isfile(target_wskbdvar):
+            with open(target_wskbdvar, "r") as f:
+                content = f.read()
+                if "wskbd_is_raw(struct device *)" not in content:
+                    raise RuntimeError("Verification failed: wskbdvar.h does not contain wskbd_is_raw declaration!")
+            print("   ✅ Verified wskbd_is_raw declaration in wskbdvar.h")
+    else:
+        print("   ⏩ Skipping X11 keys patch (disabled by user configuration)")
 
     # Inject DM250 optimized kernel configuration if available
     conf_dm250 = os.path.join(SCRIPT_DIR, "conf", "DM250")

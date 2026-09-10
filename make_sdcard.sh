@@ -84,7 +84,7 @@ show_help() {
     echo ""
     echo "Options:"
     echo "  --us                   Build for Pomera DM250US (US model)"
-    echo "  --smart-kernel         Build & use DM250 optimized kernel (~50% smaller, faster boot)"
+    echo "  --smart-kernel         Build & use DM250 tailored kernel (removes unused SoCs/PCI drivers)"
     echo "  --no-smart-kernel      Use standard generic kernel"
     echo "  --build-kernel         Rebuild patched OpenBSD kernel (USB & keyboard fix) via QEMU"
     echo "  --rebuild-uboot        Rebuild custom auto-booting U-Boot binary"
@@ -404,8 +404,8 @@ EOF
     fetch_file "${ARMV7_MIRROR}/SHA256.sig" "${WORK_DIR}/SHA256.sig" "${ARMV7_SNAP_MIRROR}/SHA256.sig"
     fetch_file "${FIRMWARE_MIRROR}/bwfm-firmware-20200316.1.3p5.tgz" "${WORK_DIR}/bwfm-firmware-20200316.1.3p5.tgz" "${FIRMWARE_SNAP_MIRROR}/bwfm-firmware-20200316.1.3p5.tgz"
 
-    # Always fetch upstream official kernel first
-    fetch_file "${JCS_MIRROR}/bsd" "${WORK_DIR}/bsd"
+    # Always fetch upstream official kernel to a protected cache location
+    fetch_file "${JCS_MIRROR}/bsd" "${WORK_DIR}/bsd.official"
 
     # Evaluate whether kernel patches or smart optimization are requested
     local want_kernel_patch=false
@@ -432,22 +432,39 @@ EOF
         check_flags+=("--check-x11")
     fi
 
+    local current_kernel_sig="CONFIG=${target_kconfig}|SMART=${POMERA_SMART_KERNEL}|USB_HUB=${POMERA_PATCH_USB_HUB}|X11_KEYS=${POMERA_PATCH_X11_KEYS}"
+    local tag_file="${WORK_DIR}/bsd.patched.tag"
+    local inspect_script="${SCRIPT_DIR}/scripts/inspect_kernel.py"
+
     if [ "$want_kernel_patch" = "true" ]; then
         echo ""
         echo "=== [Kernel Audit] Verifying Upstream Kernel Status (Config: ${target_kconfig}) ==="
-        local inspect_script="${SCRIPT_DIR}/scripts/inspect_kernel.py"
 
-        if [ -f "$inspect_script" ] && python3 "$inspect_script" "${WORK_DIR}/bsd" "${check_flags[@]}"; then
+        if [ -f "$inspect_script" ] && python3 "$inspect_script" "${WORK_DIR}/bsd.official" "${check_flags[@]}"; then
             echo ">> ✨ Upstream jcs.org kernel already satisfies requested configuration!"
             echo "   Using official binary directly. Skipping QEMU rebuild."
+            cp -f "${WORK_DIR}/bsd.official" "${WORK_DIR}/bsd"
         else
             echo ">> Upstream jcs.org kernel does NOT satisfy requested configuration (${check_flags[*]})."
             local need_compile=false
-            if [ -f "${WORK_DIR}/bsd.patched" ]; then
-                if [ -f "$inspect_script" ] && python3 "$inspect_script" "${WORK_DIR}/bsd.patched" "${check_flags[@]}"; then
-                    echo ">> Reusing verified cached custom kernel (_build_cache/bsd.patched)..."
-                    cp -f "${WORK_DIR}/bsd.patched" "${WORK_DIR}/bsd"
+
+            if [ -f "${WORK_DIR}/bsd.patched" ] && [ -f "$tag_file" ]; then
+                local cached_sig
+                cached_sig="$(cat "$tag_file" 2>/dev/null || echo "")"
+                if [ "$cached_sig" = "$current_kernel_sig" ]; then
+                    if [ -f "$inspect_script" ] && python3 "$inspect_script" "${WORK_DIR}/bsd.patched" "${check_flags[@]}"; then
+                        echo ">> Reusing verified cached custom kernel (_build_cache/bsd.patched)..."
+                        echo "   (Signature match: ${cached_sig})"
+                        cp -f "${WORK_DIR}/bsd.patched" "${WORK_DIR}/bsd"
+                    else
+                        echo ">> Cached custom kernel failed integrity inspection. Rebuilding..."
+                        need_compile=true
+                    fi
                 else
+                    echo ">> Cached custom kernel signature mismatch:"
+                    echo "   Current: ${current_kernel_sig}"
+                    echo "   Cached:  ${cached_sig}"
+                    echo ">> Invalidating outdated kernel cache and rebuilding with new settings..."
                     need_compile=true
                 fi
             else
@@ -457,14 +474,28 @@ EOF
             if [ "$need_compile" = "true" ]; then
                 echo "=== [Kernel Builder] Compiling Custom Kernel via QEMU (Config: ${target_kconfig}) ==="
                 fetch_file "${ARMV7_MIRROR}/bsd" "${WORK_DIR}/bsd_generic" "${ARMV7_SNAP_MIRROR}/bsd"
-                python3 "${SCRIPT_DIR}/scripts/build_kernel_qemu.py" --config "${target_kconfig}"
+                local build_args=("--config" "${target_kconfig}")
+                if [ "$POMERA_PATCH_USB_HUB" = "yes" ]; then
+                    build_args+=("--patch-usb")
+                else
+                    build_args+=("--no-patch-usb")
+                fi
+                if [ "$POMERA_PATCH_X11_KEYS" = "yes" ]; then
+                    build_args+=("--patch-x11")
+                else
+                    build_args+=("--no-patch-x11")
+                fi
+
+                python3 "${SCRIPT_DIR}/scripts/build_kernel_qemu.py" "${build_args[@]}"
                 if [ -f "${WORK_DIR}/bsd.patched" ]; then
                     cp -f "${WORK_DIR}/bsd.patched" "${WORK_DIR}/bsd"
+                    echo "$current_kernel_sig" > "$tag_file"
                 fi
             fi
         fi
     else
         echo ">> Using standard official jcs.org kernel (unpatched GENERIC)."
+        cp -f "${WORK_DIR}/bsd.official" "${WORK_DIR}/bsd"
     fi
 
     # Build helper binaries
