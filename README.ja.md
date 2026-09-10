@@ -247,6 +247,7 @@ pomera-setup-desktop-jp
 | `doas rcctl [start\|stop\|restart\|check] pomera_lid_watch` | 蓋開閉省電力デーモンの起動・停止・再起動・ステータス確認。 |
 | `doas rcctl set pomera_lid_watch flags "-i 0.5 -p auto"` | 蓋検知間隔（秒）や蓋オープン時の CPU ポリシーを変更。 |
 | `wsconsctl display.brightness=0..100` | 画面のバックライト明るさを手動調整（蓋開閉時も前回設定値を記憶・復元）。 |
+| `doas pomera-suspend` | SoC/PLLを休止してディープサスペンドへ移行（電源ボタンや蓋開閉で復帰）。 |
 | `doas gpioctl gpio1 red_led 1` / `green_led 1` | 前面の赤/緑ステータスLEDを点灯・消灯（`0` で消灯）。 |
 
 ### デスクトップ＆ネットワーク

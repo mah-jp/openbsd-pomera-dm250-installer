@@ -386,6 +386,19 @@ def package_site_set(work_dir: str, configs_dir: str, scripts_dir: str, res_mgr:
         if make_exec:
             subprocess.run(["chmod", "+x", dst_path], check=True)
 
+    # Deploy pomera-suspend binary if precompiled in _build_cache
+    suspend_bin = os.path.join(work_dir, "pomera-suspend")
+    if os.path.exists(suspend_bin):
+        dst_suspend = os.path.join(site_build, "usr/local/sbin/pomera-suspend")
+        subprocess.run(["cp", "-f", suspend_bin, dst_suspend], check=True)
+        subprocess.run(["chmod", "+x", dst_suspend], check=True)
+
+    # Also include pomera-suspend.c source for compilation
+    suspend_src = os.path.join(scripts_dir, "pomera-suspend.c")
+    if os.path.exists(suspend_src):
+        os.makedirs(os.path.join(site_build, "usr/local/share/pomera"), exist_ok=True)
+        subprocess.run(["cp", "-f", suspend_src, os.path.join(site_build, "usr/local/share/pomera/pomera-suspend.c")], check=True)
+
     # 2. Firmware NVRAM text
     nvram_src = os.path.join(configs_dir, "brcmfmac43430-sdio.rockchip,pomera-dm250.txt")
     if os.path.exists(nvram_src):

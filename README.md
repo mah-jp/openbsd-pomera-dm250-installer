@@ -249,6 +249,7 @@ pomera-setup-desktop-jp
 | `doas rcctl [start\|stop\|restart\|check] pomera_lid_watch` | Manage the lid power management daemon via native OpenBSD `rcctl`. |
 | `doas rcctl set pomera_lid_watch flags "-i 0.5 -p auto"` | Adjust lid polling interval (seconds) or CPU scaling policy. |
 | `wsconsctl display.brightness=0..100` | Adjust screen backlight brightness manually (restored automatically on lid open). |
+| `doas pomera-suspend` | Suspend SoC and clocks to deep idle power state (wake via Power button or lid switch). |
 | `doas gpioctl gpio1 red_led 1` / `green_led 1` | Control front status LEDs (`0` to turn off). |
 
 ### Desktop & Connectivity

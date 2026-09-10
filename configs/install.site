@@ -333,6 +333,16 @@ if [ -f /etc/rc.d/pomera_lid_watch ]; then
     rcctl set pomera_lid_watch flags "-i ${conf_lid_int} -p ${conf_cpu_pol}"
 fi
 
+# 10. Compile pomera-suspend utility if source is present and binary missing
+if [ ! -x /usr/local/sbin/pomera-suspend ] && [ -f /usr/local/share/pomera/pomera-suspend.c ]; then
+    if which cc >/dev/null 2>&1; then
+        echo ">> Compiling pomera-suspend hardware power utility..."
+        if cc -O2 -o /usr/local/sbin/pomera-suspend /usr/local/share/pomera/pomera-suspend.c; then
+            chmod 755 /usr/local/sbin/pomera-suspend
+        fi
+    fi
+fi
+
 # Set simple MOTD welcome message
 cat << 'EOF' >> /etc/motd
 Welcome to OpenBSD on Pomera DM250!
