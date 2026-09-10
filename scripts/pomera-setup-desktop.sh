@@ -103,18 +103,20 @@ echo ">> Configuring $TARGET_HOME/.cwmrc (cwm window manager for Pomera)..."
 cat << 'EOF' > "$TARGET_HOME/.cwmrc"
 # Pomera DM250 1024x600 Optimized cwmrc
 fontname "sans-serif:pixelsize=14:antialias=true"
-color activeborder "#7aa2f7"
-color inactiveborder "#24283b"
+color activeborder "#729fcf"
+color inactiveborder "#2e3436"
 borderwidth 2
 gap 0 0 0 0
 command terminal "mlterm"
-command dmenu "dmenu_run -fn 'sans-serif:pixelsize=14' -nb '#1a1b26' -nf '#c0caf5' -sb '#7aa2f7' -sf '#1a1b26'"
-command brightup "wsconsctl display.brightness=+10"
-command brightdown "wsconsctl display.brightness=-10"
+command dmenu "dmenu_run -fn 'sans-serif:pixelsize=14' -nb '#000000' -nf '#ffffff' -sb '#729fcf' -sf '#000000'"
+command brightdown "/usr/local/bin/pomera-brightness down"
+command brightup "/usr/local/bin/pomera-brightness up"
 bind-key M-Return terminal
 bind-key M-p dmenu
-bind-key M-Up brightup
+bind-key M-F1 brightdown
+bind-key M-F2 brightup
 bind-key M-Down brightdown
+bind-key M-Up brightup
 EOF
 chown "$TARGET_USER" "$TARGET_HOME/.cwmrc"
 chmod 0644 "$TARGET_HOME/.cwmrc"
@@ -139,14 +141,14 @@ Xft.lcdfilter:  none
 XTerm*loginShell:        true
 XTerm*faceName:          monospace
 XTerm*faceSize:          11
-XTerm*background:        #1a1b26
-XTerm*foreground:        #c0caf5
+XTerm*background:        #000000
+XTerm*foreground:        #ffffff
 EOF
 chown "$TARGET_USER" "$TARGET_HOME/.Xdefaults"
 chmod 0644 "$TARGET_HOME/.Xdefaults"
 
-# 4.5 mlterm Configuration (~/.mlterm/main & ~/.mlterm/aafont)
-echo ">> Configuring $TARGET_HOME/.mlterm (Smooth Japanese font rendering)..."
+# 4.5 mlterm Configuration (Tango Dark palette, Smooth Japanese fonts)
+echo ">> Configuring $TARGET_HOME/.mlterm (Tango Dark & Japanese font rendering)..."
 mkdir -p "$TARGET_HOME/.mlterm"
 cat << 'EOF' > "$TARGET_HOME/.mlterm/main"
 use_anti_alias = true
@@ -155,11 +157,34 @@ fade_ratio = 100
 fontsize = 15
 type_engine = xft
 line_space = 2
-fg_color = #c0caf5
-bg_color = #1a1b26
-cursor_fg_color = #1a1b26
-cursor_bg_color = #7aa2f7
+fg_color = #ffffff
+bg_color = #000000
+cursor_fg_color = #000000
+cursor_bg_color = #ffffff
 scrollbar_mode = none
+EOF
+
+cat << 'EOF' > "$TARGET_HOME/.mlterm/color"
+# iTerm2 Tango Dark Color Palette for mlterm
+# Standard 8 Colors (0-7)
+black=#000000
+red=#d81e00
+green=#5ea702
+yellow=#cfae00
+blue=#427ab3
+magenta=#89658e
+cyan=#00a7aa
+white=#dbded8
+
+# High-Intensity / Bold Colors (8-15)
+hl_black=#686a66
+hl_red=#f54235
+hl_green=#99e343
+hl_yellow=#fdeb61
+hl_blue=#84b0d8
+hl_magenta=#bc94b7
+hl_cyan=#37e6e8
+hl_white=#f1f1f0
 EOF
 
 cat << 'EOF' > "$TARGET_HOME/.mlterm/aafont"
@@ -168,7 +193,7 @@ ISO10646_UCS4_1_FULLWIDTH = Noto Sans Mono CJK JP
 EOF
 chown -R "$TARGET_USER" "$TARGET_HOME/.mlterm"
 chmod 0700 "$TARGET_HOME/.mlterm"
-chmod 0600 "$TARGET_HOME/.mlterm/main" "$TARGET_HOME/.mlterm/aafont"
+chmod 0600 "$TARGET_HOME/.mlterm/main" "$TARGET_HOME/.mlterm/color" "$TARGET_HOME/.mlterm/aafont"
 
 # 4.6 ~/.xsession
 echo ">> Configuring $TARGET_HOME/.xsession (cwm + mlterm Japanese desktop)..."
@@ -182,7 +207,7 @@ if [ -f "$HOME/.Xdefaults" ]; then
     xrdb -merge "$HOME/.Xdefaults"
 fi
 
-xsetroot -solid "#1a1b26"
+xsetroot -solid "#000000"
 mlterm &
 exec cwm
 EOF
@@ -197,7 +222,8 @@ echo ""
 echo "How to use your new environment:"
 echo "  1. Start GUI manually : run 'startx'"
 echo "     - Alt + Enter    : Open terminal (mlterm)"
-echo "     - Alt + Up/Down  : Adjust screen brightness"
+echo "     - Alt + F1 / F2  : Adjust screen brightness (F1: Dim, F2: Brighten)"
+echo "     - Alt + Up / Down: Adjust screen brightness"
 echo "     - Ctrl + Alt + q : Close current window"
 echo "     - Ctrl + Alt + BackSpace : Exit GUI to CUI"
 echo "  2. Setup Japanese Input (IME):"

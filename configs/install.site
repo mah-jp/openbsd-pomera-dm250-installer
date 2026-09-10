@@ -60,6 +60,7 @@ fi
 
 # Configure doas
 echo "permit persist :wheel" > /etc/doas.conf
+echo "permit nopass :wheel cmd wsconsctl" >> /etc/doas.conf
 chmod 440 /etc/doas.conf
 
 # 1. Clean and complete /etc/fstab and /etc/boot.conf for standalone eMMC boot

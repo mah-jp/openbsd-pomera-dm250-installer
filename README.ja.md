@@ -218,6 +218,7 @@ pomera-setup-desktop
 > [!TIP]
 > **デスクトップ（cwm）での便利ショートカット**:
 > - `Alt + Enter`: ターミナル（mlterm）起動
+> - `Alt + F1` / `Alt + F2`: 画面の明るさを調整（F1: 暗く、F2: 明るく）※ Mac風
 > - `Alt + ↑` / `Alt + ↓`: 画面の明るさを 10% 刻みで増減
 > - `Ctrl + Alt + m`: ウィンドウの最大化 / 復帰
 > - `Ctrl + Alt + q`: ウィンドウを閉じる
@@ -240,13 +241,13 @@ pomera-setup-desktop-jp
 
 | コマンド | 説明 |
 | :--- | :--- |
+| `pomera-brightness [up\|down\|<%>]` | 画面のバックライト明るさを手動調整（`Alt+F1`/`Alt+F2` でも操作可能）。 |
 | `sysctl hw.sensors.simplebat0` | バッテリー電圧・充電状態・残量パーセント（`percent0`）を表示。 |
 | `sysctl -n hw.sensors.simplebat0.percent0` | バッテリー残量パーセントのみをサクッと取得（例: `96.00%`）。 |
 | `sysctl hw.cpuspeed` | 現在の CPU 動作クロック周波数を表示（単位: MHz、最大 1200 MHz）。 |
 | `sysctl hw.perfpolicy` / `hw.setperf` | CPU 制御ポリシー（`auto`/`high`）およびクロック比率（0〜100%）を確認。 |
 | `doas rcctl [start\|stop\|restart\|check] pomera_lid_watch` | 蓋開閉省電力デーモンの起動・停止・再起動・ステータス確認。 |
 | `doas rcctl set pomera_lid_watch flags "-i 0.5 -p auto"` | 蓋検知間隔（秒）や蓋オープン時の CPU ポリシーを変更。 |
-| `wsconsctl display.brightness=0..100` | 画面のバックライト明るさを手動調整（蓋開閉時も前回設定値を記憶・復元）。 |
 | `doas pomera-suspend` | SoC/PLLを休止してディープサスペンドへ移行（電源ボタンや蓋開閉で復帰）。 |
 | `doas gpioctl gpio1 red_led 1` / `green_led 1` | 前面の赤/緑ステータスLEDを点灯・消灯（`0` で消灯）。 |
 

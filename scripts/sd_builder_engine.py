@@ -378,6 +378,7 @@ def package_site_set(work_dir: str, configs_dir: str, scripts_dir: str, res_mgr:
         ("pomera-setup-desktop.sh", "usr/local/bin/pomera-setup-desktop", True),
         ("pomera-setup-desktop-jp.sh", "usr/local/bin/pomera-setup-desktop-jp", True),
         ("pomera-font.sh", "usr/local/bin/pomera-font", True),
+        ("pomera-brightness.sh", "usr/local/bin/pomera-brightness", True),
         ("pomera-bt-pan.sh", "usr/local/bin/pomera-bt-pan", True),
     ]
     for src_name, dst_rel, make_exec in helpers:
@@ -430,7 +431,7 @@ rc_cmd $1
     os.chmod(rc_d_lid, 0o755)
 
     with open(os.path.join(site_build, "etc/doas.conf"), "w") as f:
-        f.write("permit keepenv :wheel\npermit nopass :wheel cmd reboot\n")
+        f.write("permit keepenv :wheel\npermit nopass :wheel cmd reboot\npermit nopass :wheel cmd wsconsctl\n")
     os.chmod(os.path.join(site_build, "etc/doas.conf"), 0o600)
 
     with open(os.path.join(site_build, "etc/X11/xorg.conf"), "w") as f:
