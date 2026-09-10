@@ -256,6 +256,7 @@ pomera-setup-desktop-jp
 | :--- | :--- |
 | `pomera-setup-desktop` | デスクトップGUI (`cwm`/`mlterm`)、Vim、tmux、dotfiles を一括自動セットアップ。 |
 | `pomera-setup-desktop-jp` | 日本語入力システム (`uim`/`uim-anthy`) および XIM 設定を自動セットアップ。 |
+| `pomera-font [udev\|moraler\|noto]` | ターミナルフォント（斜線ゼロ入り UDEV Gothic、Moralerspace、Noto）をワンタッチ切替。 |
 | `doas pomera-gui-toggle [gui\|cui\|toggle]` | CUIコンソールとX11 GUIモード（`xenodm`/`cwm`）を即座に切り替え。 |
 | `doas pomera-bt-pan connect <BD_ADDR>` | スマホのBluetoothテザリング（PAN）にワンタッチ接続。 |
 

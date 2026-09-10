@@ -377,6 +377,7 @@ def package_site_set(work_dir: str, configs_dir: str, scripts_dir: str, res_mgr:
         ("pomera-gui-toggle.sh", "usr/local/bin/pomera-gui-toggle", True),
         ("pomera-setup-desktop.sh", "usr/local/bin/pomera-setup-desktop", True),
         ("pomera-setup-desktop-jp.sh", "usr/local/bin/pomera-setup-desktop-jp", True),
+        ("pomera-font.sh", "usr/local/bin/pomera-font", True),
         ("pomera-bt-pan.sh", "usr/local/bin/pomera-bt-pan", True),
     ]
     for src_name, dst_rel, make_exec in helpers:

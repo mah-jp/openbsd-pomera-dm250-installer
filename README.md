@@ -258,6 +258,7 @@ pomera-setup-desktop-jp
 | :--- | :--- |
 | `pomera-setup-desktop` | Automatically set up GUI (`cwm`/`mlterm`), fonts, Vim, tmux, and dotfiles. |
 | `pomera-setup-desktop-jp` | Automatically set up Japanese IME (`uim`/`uim-anthy`) and XIM integration. |
+| `pomera-font [udev\|moraler\|noto]` | Instantly switch terminal fonts (slashed-zero UDEV Gothic, Moralerspace, or Noto). |
 | `doas pomera-gui-toggle [gui\|cui\|toggle]` | Switch between CUI console and X11 GUI mode (`xenodm`/`cwm`). |
 | `doas pomera-bt-pan connect <BD_ADDR>` | Connect to smartphone Bluetooth Tethering (PAN). |
 
