@@ -346,14 +346,9 @@ fetch_all_artifacts() {
     fi
 
     if [ "$need_build_uboot" = true ]; then
-        local uboot_builder=""
-        if [ -f "${SCRIPT_DIR}/dev/scripts/build_uboot.sh" ]; then
-            uboot_builder="${SCRIPT_DIR}/dev/scripts/build_uboot.sh"
-        elif [ -f "${SCRIPT_DIR}/scripts/build_uboot.sh" ]; then
-            uboot_builder="${SCRIPT_DIR}/scripts/build_uboot.sh"
-        fi
+        local uboot_builder="${SCRIPT_DIR}/scripts/build_uboot.sh"
 
-        if [ -n "$uboot_builder" ] && { command -v arm-none-eabi-gcc >/dev/null 2>&1 || command -v arm-linux-gnueabihf-gcc >/dev/null 2>&1; }; then
+        if [ -f "$uboot_builder" ] && { command -v arm-none-eabi-gcc >/dev/null 2>&1 || command -v arm-linux-gnueabihf-gcc >/dev/null 2>&1; }; then
             echo ">> Compiling custom auto-booting U-Boot (${uboot_target})..."
             "$uboot_builder" "$uboot_target"
         else
@@ -382,6 +377,23 @@ sync
 reboot
 EOF
     fetch_file "${JCS_MIRROR}/logo.bmp" "${WORK_DIR}/logo.bmp"
+
+    # OpenBSD Sets
+    local base_sets=(
+        "base${OPENBSD_VER}.tgz"
+        "comp${OPENBSD_VER}.tgz"
+        "man${OPENBSD_VER}.tgz"
+        "xbase${OPENBSD_VER}.tgz"
+        "xfont${OPENBSD_VER}.tgz"
+        "xshare${OPENBSD_VER}.tgz"
+        "xserv${OPENBSD_VER}.tgz"
+    )
+
+    for bset in "${base_sets[@]}"; do
+        fetch_file "${ARMV7_MIRROR}/${bset}" "${WORK_DIR}/${bset}" "${ARMV7_SNAP_MIRROR}/${bset}"
+    done
+    fetch_file "${ARMV7_MIRROR}/SHA256.sig" "${WORK_DIR}/SHA256.sig" "${ARMV7_SNAP_MIRROR}/SHA256.sig"
+    fetch_file "${FIRMWARE_MIRROR}/bwfm-firmware-20200316.1.3p5.tgz" "${WORK_DIR}/bwfm-firmware-20200316.1.3p5.tgz" "${FIRMWARE_SNAP_MIRROR}/bwfm-firmware-20200316.1.3p5.tgz"
 
     # Always fetch upstream official kernel first
     fetch_file "${JCS_MIRROR}/bsd" "${WORK_DIR}/bsd"
@@ -428,6 +440,7 @@ EOF
 
             if [ "$need_compile" = "true" ]; then
                 echo "=== [Kernel Builder] Compiling Patched Kernel via QEMU ==="
+                fetch_file "${ARMV7_MIRROR}/bsd" "${WORK_DIR}/bsd_generic" "${ARMV7_SNAP_MIRROR}/bsd"
                 python3 "${SCRIPT_DIR}/scripts/build_kernel_qemu.py"
                 if [ -f "${WORK_DIR}/bsd.patched" ]; then
                     cp -f "${WORK_DIR}/bsd.patched" "${WORK_DIR}/bsd"
@@ -437,23 +450,6 @@ EOF
     else
         echo ">> Using standard official jcs.org kernel (unpatched)."
     fi
-
-    # OpenBSD Sets
-    local base_sets=(
-        "base${OPENBSD_VER}.tgz"
-        "comp${OPENBSD_VER}.tgz"
-        "man${OPENBSD_VER}.tgz"
-        "xbase${OPENBSD_VER}.tgz"
-        "xfont${OPENBSD_VER}.tgz"
-        "xshare${OPENBSD_VER}.tgz"
-        "xserv${OPENBSD_VER}.tgz"
-    )
-
-    for bset in "${base_sets[@]}"; do
-        fetch_file "${ARMV7_MIRROR}/${bset}" "${WORK_DIR}/${bset}" "${ARMV7_SNAP_MIRROR}/${bset}"
-    done
-    fetch_file "${ARMV7_MIRROR}/SHA256.sig" "${WORK_DIR}/SHA256.sig" "${ARMV7_SNAP_MIRROR}/SHA256.sig"
-    fetch_file "${FIRMWARE_MIRROR}/bwfm-firmware-20200316.1.3p5.tgz" "${WORK_DIR}/bwfm-firmware-20200316.1.3p5.tgz" "${FIRMWARE_SNAP_MIRROR}/bwfm-firmware-20200316.1.3p5.tgz"
 
     # Build helper binaries
     local idbloader_img="${WORK_DIR}/idbloader.img"

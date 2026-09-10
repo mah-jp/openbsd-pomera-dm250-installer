@@ -239,6 +239,14 @@ This automatically configures:
 | `doas pomera-gui-toggle [gui\|cui\|toggle]` | Switch between CUI console and X11 GUI mode (`xenodm`/`cwm`). |
 | `doas pomera-bt-pan connect <BD_ADDR>` | Connect to smartphone Bluetooth Tethering (PAN). |
 
+### Host PC Diagnostics & Simulator Tools
+
+| Tool | Description |
+| :--- | :--- |
+| `sudo python3 scripts/inspect_sd.py /dev/rdiskN` | Inspect physical sector layout, MBR, BootROM sectors (LBA 64/16384), and Disklabel. |
+| `scripts/build_uboot.sh` | Standalone compilation of custom hands-free auto-boot U-Boot image (`uboot.img`). |
+| `scripts/run_qemu.sh [image_path]` | Run local QEMU simulation of the OpenBSD image before writing to physical hardware. |
+
 ---
 
 ## 🤝 Acknowledgements & Credits

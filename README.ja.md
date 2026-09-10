@@ -237,6 +237,14 @@ pomera-setup-desktop
 | `doas pomera-gui-toggle [gui\|cui\|toggle]` | CUIコンソールとX11 GUIモード（`xenodm`/`cwm`）を即座に切り替え。 |
 | `doas pomera-bt-pan connect <BD_ADDR>` | スマホのBluetoothテザリング（PAN）にワンタッチ接続。 |
 
+### ホストPC側での診断・シミュレーターツール
+
+| ツール | 説明 |
+| :--- | :--- |
+| `sudo python3 scripts/inspect_sd.py /dev/rdiskN` | 作成したSDカードのMBR、ブートローダーセクタ（LBA 64/16384）、Disklabelを物理検査。 |
+| `scripts/build_uboot.sh` | DM250専用のハンズフリー auto-boot U-Bootバイナリ（`uboot.img`）を単体ビルド。 |
+| `scripts/run_qemu.sh [image_path]` | 実機に挿す前に、作成したイメージをローカルPC（Mac/Linux）のQEMUシミュレータで起動テスト。 |
+
 ---
 
 ## 🤝 謝辞・クレジット

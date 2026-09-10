@@ -152,7 +152,37 @@ def prepare_patched_sys_archive(mgr: BuildManager) -> str:
     archive_path = os.path.join(WORK_DIR, "sys_patched.tar.gz")
     mgr.temp_files.append(archive_path)
 
-    base_archive = os.path.join(CACHE_DIR, "sys_patched.tar.gz")
+    # Locate base kernel source archive from cache or download automatically
+    base_archive = None
+    for candidate in [
+        os.path.join(CACHE_DIR, "sys_rk3128.tar.gz"),
+        os.path.join(WORK_DIR, "sys_rk3128.tar.gz"),
+        os.path.join(CACHE_DIR, "sys_patched.tar.gz"),
+        os.path.join(WORK_DIR, "sys_patched.tar.gz"),
+        os.path.join(CACHE_DIR, "sys.tar.gz"),
+    ]:
+        if os.path.exists(candidate) and os.path.getsize(candidate) > 1000000:
+            base_archive = candidate
+            break
+
+    if not base_archive:
+        print("   Kernel source cache not found. Fetching jcs/openbsd-src rk3128 branch (sys only)...")
+        dest_archive = os.path.join(CACHE_DIR, "sys_rk3128.tar.gz")
+        clone_tmp = tempfile.mkdtemp(prefix="pomera_src_")
+        try:
+            repo_dir = os.path.join(clone_tmp, "repo")
+            subprocess.run(
+                ["git", "clone", "--depth", "1", "--filter=blob:none", "--sparse",
+                 "https://github.com/jcs/openbsd-src.git", "-b", "rk3128", repo_dir],
+                check=True
+            )
+            subprocess.run(["git", "sparse-checkout", "set", "sys"], cwd=repo_dir, check=True)
+            subprocess.run(["tar", "-czf", dest_archive, "-C", repo_dir, "sys"], check=True)
+            base_archive = dest_archive
+            print(f"   ✅ Successfully cached kernel sources to {dest_archive}")
+        finally:
+            shutil.rmtree(clone_tmp, ignore_errors=True)
+
     stage_dir = os.path.join(WORK_DIR, "sys_stage")
     if os.path.exists(stage_dir):
         shutil.rmtree(stage_dir)
@@ -251,14 +281,25 @@ def main():
     with open(disk_img, "wb") as f:
         f.truncate(4 * 1024 * 1024 * 1024)
 
+    # Ensure all required assets exist in CACHE_DIR or WORK_DIR
+    def ensure_asset(filename: str, url: str):
+        if os.path.exists(os.path.join(WORK_DIR, filename)) or os.path.exists(os.path.join(CACHE_DIR, filename)):
+            return
+        dest = os.path.join(CACHE_DIR, filename)
+        print(f"   Downloading required asset {filename} from {url}...")
+        subprocess.run(["curl", "-sSL", "-f", "--retry", "5", "--retry-delay", "3", url, "-o", dest], check=True)
+
+    ensure_asset("miniroot79.img", "https://cdn.openbsd.org/pub/OpenBSD/7.9/arm64/miniroot79.img")
+    ensure_asset("base79.tgz", "https://cdn.openbsd.org/pub/OpenBSD/7.9/armv7/base79.tgz")
+    ensure_asset("comp79.tgz", "https://cdn.openbsd.org/pub/OpenBSD/7.9/armv7/comp79.tgz")
+    ensure_asset("BOOTARM.EFI", "https://cdn.openbsd.org/pub/OpenBSD/7.9/armv7/BOOTARM.EFI")
+    ensure_asset("bsd_generic", "https://cdn.openbsd.org/pub/OpenBSD/7.9/armv7/bsd")
+
     # Phase 1: Use QEMU aarch64 (HVF native speed) to format FFS and extract sets + source
     edk2_arm64 = find_firmware(EDK2_ARM64_PATHS)
     miniroot_img = os.path.join(WORK_DIR, "miniroot79.img")
     if not os.path.exists(miniroot_img):
         miniroot_img = os.path.join(CACHE_DIR, "miniroot79.img")
-    if not os.path.exists(miniroot_img):
-        print(f"❌ miniroot79.img not found in {WORK_DIR} or {CACHE_DIR}")
-        sys.exit(1)
 
     print(">> Provisioning build disk via high-speed QEMU arm64 (HVF)...")
     serial_sock = f"/tmp/pomera-kbuild-serial-{os.getpid()}.sock"
