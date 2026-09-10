@@ -149,6 +149,7 @@ echo ">> Configuring $TARGET_HOME/.mlterm (Smooth Japanese font rendering)..."
 mkdir -p "$TARGET_HOME/.mlterm"
 cat << 'EOF' > "$TARGET_HOME/.mlterm/main"
 use_anti_alias = true
+use_variable_column_width = false
 fontsize = 15
 type_engine = xft
 line_space = 2
@@ -160,8 +161,8 @@ scrollbar_mode = none
 EOF
 
 cat << 'EOF' > "$TARGET_HOME/.mlterm/aafont"
-DEFAULT = Noto Sans CJK JP
-ISO10646_UCS4_1_FULLWIDTH = Noto Sans CJK JP
+DEFAULT = Noto Sans Mono CJK JP
+ISO10646_UCS4_1_FULLWIDTH = Noto Sans Mono CJK JP
 EOF
 chown -R "$TARGET_USER" "$TARGET_HOME/.mlterm"
 chmod 0700 "$TARGET_HOME/.mlterm"
