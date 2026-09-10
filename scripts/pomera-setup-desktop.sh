@@ -107,16 +107,14 @@ color activeborder "#729fcf"
 color inactiveborder "#2e3436"
 borderwidth 2
 gap 0 0 0 0
-command terminal "mlterm"
-command dmenu "dmenu_run -fn 'sans-serif:pixelsize=14' -nb '#000000' -nf '#ffffff' -sb '#729fcf' -sf '#000000'"
-command brightdown "/usr/local/bin/pomera-brightness down"
-command brightup "/usr/local/bin/pomera-brightness up"
+
+# Key Bindings
 bind-key M-Return terminal
-bind-key M-p dmenu
-bind-key M-F1 brightdown
-bind-key M-F2 brightup
-bind-key M-Down brightdown
-bind-key M-Up brightup
+bind-key M-p "dmenu_run -fn 'sans-serif:pixelsize=14' -nb '#000000' -nf '#ffffff' -sb '#729fcf' -sf '#000000'"
+bind-key M-F1 "/usr/local/bin/pomera-brightness down"
+bind-key M-F2 "/usr/local/bin/pomera-brightness up"
+bind-key M-Down "/usr/local/bin/pomera-brightness down"
+bind-key M-Up "/usr/local/bin/pomera-brightness up"
 EOF
 chown "$TARGET_USER" "$TARGET_HOME/.cwmrc"
 chmod 0644 "$TARGET_HOME/.cwmrc"
