@@ -74,19 +74,37 @@ EOF
 chown "$TARGET_USER" "$TARGET_HOME/.profile"
 chmod 0644 "$TARGET_HOME/.profile"
 
-# 4.2 ~/.tmux.conf
+# 4.2 ~/.vimrc (True Color syntax highlighting & Japanese encoding support)
+echo ">> Configuring $TARGET_HOME/.vimrc (Modern True Color & Japanese editor)..."
+cat << 'EOF' > "$TARGET_HOME/.vimrc"
+syntax on
+set background=dark
+if has('termguicolors')
+  set termguicolors
+endif
+set number
+set autoindent
+set smartindent
+set encoding=utf-8
+set fileencodings=utf-8,cp932,euc-jp,iso-2022-jp
+set backspace=indent,eol,start
+EOF
+chown "$TARGET_USER" "$TARGET_HOME/.vimrc"
+chmod 0644 "$TARGET_HOME/.vimrc"
+
+# 4.3 ~/.tmux.conf
 echo ">> Configuring $TARGET_HOME/.tmux.conf (Compact status bar for 600px height)..."
 cat << 'EOF' > "$TARGET_HOME/.tmux.conf"
 # Pomera DM250 (1024x600) Optimized tmux configuration
-set -g default-terminal "screen-256color"
+set -g default-terminal "xterm-256color"
 set -g prefix C-a
 unbind C-b
 bind C-a send-prefix
 
-# Compact status bar design for 600px height
-set -g status-style bg='#1a1b26',fg='#c0caf5'
-set -g status-left '#[fg=#7aa2f7,bold][#S] '
-set -g status-right '#[fg=#e0af68]%m/%d %H:%M '
+# Compact status bar design for 600px height (Tango Dark palette)
+set -g status-style bg='#2e3436',fg='#ffffff'
+set -g status-left '#[fg=#729fcf,bold][#S] '
+set -g status-right '#[fg=#fce94f]%m/%d %H:%M '
 set -g status-position bottom
 
 # Vim-style pane navigation
@@ -98,7 +116,7 @@ EOF
 chown "$TARGET_USER" "$TARGET_HOME/.tmux.conf"
 chmod 0644 "$TARGET_HOME/.tmux.conf"
 
-# 4.3 ~/.cwmrc
+# 4.4 ~/.cwmrc
 echo ">> Configuring $TARGET_HOME/.cwmrc (cwm window manager for Pomera)..."
 cat << 'EOF' > "$TARGET_HOME/.cwmrc"
 # Pomera DM250 1024x600 Optimized cwmrc
@@ -119,7 +137,7 @@ EOF
 chown "$TARGET_USER" "$TARGET_HOME/.cwmrc"
 chmod 0644 "$TARGET_HOME/.cwmrc"
 
-# 4.4 ~/.Xdefaults (Xft Font Rendering & Crisp Antialiasing)
+# 4.5 ~/.Xdefaults (Xft Font Rendering & Crisp Antialiasing)
 echo ">> Configuring $TARGET_HOME/.Xdefaults (Xft Antialiasing & LCD Subpixel)..."
 cat << 'EOF' > "$TARGET_HOME/.Xdefaults"
 ! -------------------------------------------------------------
@@ -145,21 +163,33 @@ EOF
 chown "$TARGET_USER" "$TARGET_HOME/.Xdefaults"
 chmod 0644 "$TARGET_HOME/.Xdefaults"
 
-# 4.5 mlterm Configuration (Tango Dark palette, Smooth Japanese fonts)
+# 4.6 mlterm Configuration (Tango Dark palette, Smooth Japanese fonts)
 echo ">> Configuring $TARGET_HOME/.mlterm (Tango Dark & Japanese font rendering)..."
 mkdir -p "$TARGET_HOME/.mlterm"
 cat << 'EOF' > "$TARGET_HOME/.mlterm/main"
+# --- Display & Font ---
 use_anti_alias = true
 use_variable_column_width = false
 fade_ratio = 100
 fontsize = 15
 type_engine = xft
 line_space = 2
+scrollbar_mode = none
+
+# --- Modern Color & VT Settings ---
+termtype = xterm-256color
+vt_color_mode = true
+use_ansi_colors = true
+use_bold_font = true
+use_italic_font = true
+use_alt_buffer = true
+use_clipboard = true
+
+# --- Theme (iTerm2 Tango Dark) ---
 fg_color = #ffffff
 bg_color = #000000
 cursor_fg_color = #000000
 cursor_bg_color = #ffffff
-scrollbar_mode = none
 EOF
 
 cat << 'EOF' > "$TARGET_HOME/.mlterm/color"
@@ -193,7 +223,7 @@ chown -R "$TARGET_USER" "$TARGET_HOME/.mlterm"
 chmod 0700 "$TARGET_HOME/.mlterm"
 chmod 0600 "$TARGET_HOME/.mlterm/main" "$TARGET_HOME/.mlterm/color" "$TARGET_HOME/.mlterm/aafont"
 
-# 4.6 ~/.xsession
+# 4.7 ~/.xsession
 echo ">> Configuring $TARGET_HOME/.xsession (cwm + mlterm Japanese desktop)..."
 cat << 'EOF' > "$TARGET_HOME/.xsession"
 #!/bin/sh
