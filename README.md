@@ -200,23 +200,39 @@ sudo ./make_sdcard.sh /dev/rdisk4
 
 ---
 
-### Step 3: Desktop & Development Setup (Optional)
+### Step 3: Desktop & Japanese IME Setup (Optional, 2-Stage)
 
 > [!NOTE]
 > Following the automated install in Step 2, essential hardware features (**JIS Keyboard, Wi-Fi auto-connect, USB Ethernet, and lid-close power management**) are fully operational out of the box.  
-> Step 3 is an optional post-setup step if you want to deploy Japanese fonts, an X11 lightweight desktop (`cwm` + `mlterm`), editor (`vim`), and tmux optimizations directly on the device without needing an external PC.
+> Step 3 is an optional post-setup step if you want to deploy an X11 lightweight desktop (`cwm` + `mlterm`) or Japanese IME (`uim-anthy`) directly on the device without needing an external PC.
 
 After booting into OpenBSD, connect to network (Wi-Fi or USB-NIC) and run:
 
+#### 1. Lightweight Desktop & Dev Setup (`pomera-setup-desktop`)
 ```bash
 pomera-setup-desktop
 ```
-
-This automatically configures:
 - Essential tools (`vim`, `tmux`, `curl`, `git`)
-- Japanese fonts (Noto Sans CJK) & terminal (`mlterm`)
+- Japanese fonts (Noto Sans CJK) & artifact-free fast terminal (`mlterm`)
 - Ultra-lightweight window manager (`cwm`) & launcher (`dmenu`)
-- 1024x600 display optimized dotfiles (`~/.tmux.conf`, `~/.cwmrc`, `~/.profile`, `~/.xsession`)
+- 1024x600 display optimized dotfiles (`~/.cwmrc`, `~/.tmux.conf`, `~/.xsession`, etc.)
+
+> [!TIP]
+> **Convenient Shortcuts in Desktop (cwm)**:
+> - `Alt + Enter`: Launch terminal (`mlterm`)
+> - `Alt + ↑` / `Alt + ↓`: Adjust screen brightness by +/- 10%
+> - `Ctrl + Alt + m`: Maximize / unmaximize active window
+> - `Ctrl + Alt + q`: Close active window
+> - `Ctrl + Alt + Backspace` or `Ctrl + Alt + Shift + q`: Exit X11 back to text console (CUI)
+
+#### 2. Japanese IME Input Setup (`pomera-setup-desktop-jp`)
+If you write in Japanese, run the second stage script:
+```bash
+pomera-setup-desktop-jp
+```
+- Installs `uim` & `uim-anthy`
+- Configures JIS-friendly toggle shortcuts (`Shift + Space`, `Ctrl + Space`, `Hankaku/Zenkaku`)
+- Prepares `~/.xsession` to start `uim-xim` in the background on `startx`
 
 ---
 
@@ -232,14 +248,15 @@ This automatically configures:
 | `sysctl hw.perfpolicy` / `hw.setperf` | Check CPU scaling policy (`auto`/`high`) and clock percentage ratio (0-100%). |
 | `doas rcctl [start\|stop\|restart\|check] pomera_lid_watch` | Manage the lid power management daemon via native OpenBSD `rcctl`. |
 | `doas rcctl set pomera_lid_watch flags "-i 0.5 -p auto"` | Adjust lid polling interval (seconds) or CPU scaling policy. |
-| `wsconsctl display.brightness=0..100` | Adjust screen backlight brightness manually. |
+| `wsconsctl display.brightness=0..100` | Adjust screen backlight brightness manually (restored automatically on lid open). |
 | `doas gpioctl gpio1 red_led 1` / `green_led 1` | Control front status LEDs (`0` to turn off). |
 
 ### Desktop & Connectivity
 
 | Command | Description |
 | :--- | :--- |
-| `pomera-setup-desktop` | Automatically set up Japanese fonts, GUI (`cwm`/`mlterm`), Vim, tmux, and dotfiles. |
+| `pomera-setup-desktop` | Automatically set up GUI (`cwm`/`mlterm`), fonts, Vim, tmux, and dotfiles. |
+| `pomera-setup-desktop-jp` | Automatically set up Japanese IME (`uim`/`uim-anthy`) and XIM integration. |
 | `doas pomera-gui-toggle [gui\|cui\|toggle]` | Switch between CUI console and X11 GUI mode (`xenodm`/`cwm`). |
 | `doas pomera-bt-pan connect <BD_ADDR>` | Connect to smartphone Bluetooth Tethering (PAN). |
 

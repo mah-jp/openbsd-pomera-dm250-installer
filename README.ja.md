@@ -198,23 +198,39 @@ sudo ./make_sdcard.sh /dev/rdisk4
 
 ---
 
-### Step 3: デスクトップ＆開発環境のセットアップ (任意)
+### Step 3: デスクトップ＆日本語入力環境のセットアップ (任意・2段構え)
 
 > [!NOTE]
 > 本インストーラーによる自動インストール（Step 2）の時点で、**JIS日本語キーボード、Wi-Fi自動接続、USB-NIC、蓋開閉省電力デーモン** などの基本機能はすべてセットアップ完了しています。  
-> Step 3 は、日本語フォント、X11デスクトップ環境（`cwm`/`mlterm`）、エディタ（`vim`）、tmux設定などの追加環境を導入したい場合に行うオプショナルな手順です。外部PCは不要で、ポメラ単体で完結します。
+> Step 3 は、X11デスクトップ環境（`cwm`/`mlterm`）や日本語入力（`uim-anthy`）などの追加環境を導入したい場合に行うオプショナルな手順です。外部PCは不要で、ポメラ単体で完結します。
 
 ポメラが起動しログインしたら、Wi-FiまたはUSB-NICでネットワークに接続し、以下のコマンドを実行します：
 
+#### 1. デスクトップ＆開発環境のセットアップ (`pomera-setup-desktop`)
 ```bash
 pomera-setup-desktop
 ```
-
-対話プロンプトに従って待つだけで、以下の環境が一括セットアップされます：
 - 必須ツールの導入（`vim`, `tmux`, `curl`, `git`）
-- 日本語フォント（Noto Sans CJK）＆ 日本語ターミナル（`mlterm`）
+- 日本語フォント（Noto Sans CJK）＆ 残像のない高速ターミナル（`mlterm`）
 - 超軽量ウィンドウマネージャ（`cwm`）＆ アプリランチャー（`dmenu`）
-- 1024x600 画面に最適化された dotfiles（`~/.tmux.conf`, `~/.cwmrc`, `~/.profile`, `~/.xsession`）
+- 1024x600 画面に最適化された dotfiles（`~/.cwmrc`, `~/.tmux.conf`, `~/.xsession` 等）
+
+> [!TIP]
+> **デスクトップ（cwm）での便利ショートカット**:
+> - `Alt + Enter`: ターミナル（mlterm）起動
+> - `Alt + ↑` / `Alt + ↓`: 画面の明るさを 10% 刻みで増減
+> - `Ctrl + Alt + m`: ウィンドウの最大化 / 復帰
+> - `Ctrl + Alt + q`: ウィンドウを閉じる
+> - `Ctrl + Alt + Backspace` または `Ctrl + Alt + Shift + q`: X11を終了してコンソール（CUI）に戻る
+
+#### 2. 日本語入力（IME）のセットアップ (`pomera-setup-desktop-jp`)
+日本語入力を利用する場合は、続けて以下を実行します：
+```bash
+pomera-setup-desktop-jp
+```
+- 日本語入力フレームワーク（`uim`, `uim-anthy`）の自動インストール
+- ポメラ向けキー設定（`Shift + Space`, `Ctrl + Space`, `半角/全角` でIMEオン/オフ）
+- `startx` 時にバックグラウンドで `uim-xim` を自動起動するよう `~/.xsession` を構成
 
 ---
 
@@ -230,14 +246,15 @@ pomera-setup-desktop
 | `sysctl hw.perfpolicy` / `hw.setperf` | CPU 制御ポリシー（`auto`/`high`）およびクロック比率（0〜100%）を確認。 |
 | `doas rcctl [start\|stop\|restart\|check] pomera_lid_watch` | 蓋開閉省電力デーモンの起動・停止・再起動・ステータス確認。 |
 | `doas rcctl set pomera_lid_watch flags "-i 0.5 -p auto"` | 蓋検知間隔（秒）や蓋オープン時の CPU ポリシーを変更。 |
-| `wsconsctl display.brightness=0..100` | 画面のバックライト明るさを手動調整。 |
+| `wsconsctl display.brightness=0..100` | 画面のバックライト明るさを手動調整（蓋開閉時も前回設定値を記憶・復元）。 |
 | `doas gpioctl gpio1 red_led 1` / `green_led 1` | 前面の赤/緑ステータスLEDを点灯・消灯（`0` で消灯）。 |
 
 ### デスクトップ＆ネットワーク
 
 | コマンド | 説明 |
 | :--- | :--- |
-| `pomera-setup-desktop` | 日本語フォント、GUI (`cwm`/`mlterm`)、Vim、tmux、dotfiles を一括自動セットアップ。 |
+| `pomera-setup-desktop` | デスクトップGUI (`cwm`/`mlterm`)、Vim、tmux、dotfiles を一括自動セットアップ。 |
+| `pomera-setup-desktop-jp` | 日本語入力システム (`uim`/`uim-anthy`) および XIM 設定を自動セットアップ。 |
 | `doas pomera-gui-toggle [gui\|cui\|toggle]` | CUIコンソールとX11 GUIモード（`xenodm`/`cwm`）を即座に切り替え。 |
 | `doas pomera-bt-pan connect <BD_ADDR>` | スマホのBluetoothテザリング（PAN）にワンタッチ接続。 |
 

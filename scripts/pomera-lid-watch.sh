@@ -25,13 +25,16 @@ CPU_POLICY="${POMERA_CPU_POLICY:-auto}"
 LID_STATE="open"
 CLOSED_EPOCH=0
 
-while getopts "i:t:p:h" opt; do
+SAVED_BRIGHTNESS="${POMERA_DEFAULT_BRIGHTNESS:-100}"
+
+while getopts "i:t:p:b:h" opt; do
     case "$opt" in
         i) POLL_INTERVAL="$OPTARG" ;;
         t) SUSPEND_TIMEOUT="$OPTARG" ;;
         p) CPU_POLICY="$OPTARG" ;;
+        b) SAVED_BRIGHTNESS="$OPTARG" ;;
         h|*)
-            echo "Usage: $0 [-i interval_sec] [-t timeout_sec] [-p auto|high|100]" >&2
+            echo "Usage: $0 [-i interval_sec] [-t timeout_sec] [-p auto|high|100] [-b default_brightness]" >&2
             exit 1
             ;;
     esac
@@ -44,7 +47,7 @@ case "$CPU_POLICY" in
 esac
 
 # Ensure clean exit on SIGTERM/SIGINT (restore normal full power state)
-trap 'wsconsctl display.brightness=100 >/dev/null 2>&1 || true; sysctl hw.perfpolicy="'"$CPU_POLICY"'" >/dev/null 2>&1 || sysctl hw.setperf=100 >/dev/null 2>&1 || true; exit 0' TERM INT
+trap 'wsconsctl display.brightness="$SAVED_BRIGHTNESS" >/dev/null 2>&1 || wsconsctl display.brightness=100 >/dev/null 2>&1 || true; sysctl hw.perfpolicy="'"$CPU_POLICY"'" >/dev/null 2>&1 || sysctl hw.setperf=100 >/dev/null 2>&1 || true; exit 0' TERM INT
 
 # Ensure sensor is available
 check_lid() {
@@ -63,6 +66,14 @@ while true; do
                 LID_STATE="closed"
                 CLOSED_EPOCH=$(date +%s)
                 
+                # 0. Remember current screen brightness before blanking
+                cur_b=$(wsconsctl -n display.brightness 2>/dev/null)
+                case "$cur_b" in
+                    ''|*[!0-9]*) ;;
+                    0) ;; # If already 0, retain previously saved brightness
+                    *) SAVED_BRIGHTNESS="$cur_b" ;;
+                esac
+
                 # 1. Turn OFF screen backlight instantly (0ms latency feel)
                 wsconsctl display.brightness=0 >/dev/null 2>&1 || true
                 
@@ -91,8 +102,8 @@ while true; do
                 # 1. Restore CPU frequency to configured policy (auto scaling or high performance)
                 sysctl hw.perfpolicy="$CPU_POLICY" >/dev/null 2>&1 || sysctl hw.setperf=100 >/dev/null 2>&1 || true
                 
-                # 2. Turn ON screen backlight instantly
-                wsconsctl display.brightness=100 >/dev/null 2>&1 || true
+                # 2. Restore screen backlight to previously saved brightness level
+                wsconsctl display.brightness="$SAVED_BRIGHTNESS" >/dev/null 2>&1 || wsconsctl display.brightness=100 >/dev/null 2>&1 || true
             fi
             ;;
     esac

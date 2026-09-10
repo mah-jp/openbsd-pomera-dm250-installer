@@ -56,8 +56,8 @@ fi
 echo ">> Installing essential packages (Vim, tmux, curl, git)..."
 $DOAS pkg_add -I vim tmux curl git
 
-echo ">> Installing GUI & Japanese environment (cwm, mlterm, Noto CJK, dmenu)..."
-$DOAS pkg_add -I mlterm noto-fonts noto-cjk cwm dmenu
+echo ">> Installing GUI & fonts (mlterm, Noto CJK, dmenu)..."
+$DOAS pkg_add -I mlterm noto-fonts noto-cjk dmenu
 
 # 4. Deploy 1024x600 Optimized Dotfiles
 
@@ -109,8 +109,12 @@ borderwidth 2
 gap 0 0 0 0
 command terminal "mlterm"
 command dmenu "dmenu_run -fn 'sans-serif:pixelsize=14' -nb '#1a1b26' -nf '#c0caf5' -sb '#7aa2f7' -sf '#1a1b26'"
-bind-key 4-Return terminal
-bind-key 4-p dmenu
+command brightup "wsconsctl display.brightness=+10"
+command brightdown "wsconsctl display.brightness=-10"
+bind-key M-Return terminal
+bind-key M-p dmenu
+bind-key M-Up brightup
+bind-key M-Down brightdown
 EOF
 chown "$TARGET_USER" "$TARGET_HOME/.cwmrc"
 chmod 0644 "$TARGET_HOME/.cwmrc"
@@ -189,8 +193,13 @@ echo "=========================================================="
 echo ""
 echo "How to use your new environment:"
 echo "  1. Start GUI manually : run 'startx'"
-echo "  2. Enable graphical login (xenodm):"
-echo "     $DOAS /usr/local/bin/pomera-gui-toggle gui"
-echo "  3. Revert to CUI console:"
-echo "     $DOAS /usr/local/bin/pomera-gui-toggle cui"
+echo "     - Alt + Enter    : Open terminal (mlterm)"
+echo "     - Alt + Up/Down  : Adjust screen brightness"
+echo "     - Ctrl + Alt + q : Close current window"
+echo "     - Ctrl + Alt + BackSpace : Exit GUI to CUI"
+echo "  2. Setup Japanese Input (IME):"
+echo "     Run 'pomera-setup-desktop-jp' to configure uim-anthy!"
+echo "  3. Optional display modes:"
+echo "     Enable graphical login : $DOAS /usr/local/bin/pomera-gui-toggle gui"
+echo "     Revert to CUI console  : $DOAS /usr/local/bin/pomera-gui-toggle cui"
 echo ""
