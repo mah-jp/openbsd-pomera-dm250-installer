@@ -428,9 +428,9 @@ Section "Screen"
     Identifier "Screen0"
     Device     "Card0"
     Monitor    "Monitor0"
-    DefaultDepth 16
+    DefaultDepth 24
     SubSection "Display"
-        Depth 16
+        Depth 24
         Modes "1024x600"
     EndSubSection
 EndSection

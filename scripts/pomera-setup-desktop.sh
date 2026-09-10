@@ -115,12 +115,66 @@ EOF
 chown "$TARGET_USER" "$TARGET_HOME/.cwmrc"
 chmod 0644 "$TARGET_HOME/.cwmrc"
 
-# 4.4 ~/.xsession
+# 4.4 ~/.Xdefaults (Xft Font Rendering & Crisp Antialiasing)
+echo ">> Configuring $TARGET_HOME/.Xdefaults (Xft Antialiasing & LCD Subpixel)..."
+cat << 'EOF' > "$TARGET_HOME/.Xdefaults"
+! -------------------------------------------------------------
+! Xft Font Rendering Optimization for Pomera DM250 (1024x600)
+! -------------------------------------------------------------
+Xft.dpi:        96
+Xft.antialias:  1
+Xft.hinting:    1
+Xft.hintstyle:  hintslight
+Xft.rgba:       rgb
+Xft.lcdfilter:  lcddefault
+
+! -------------------------------------------------------------
+! XTerm fallback configuration
+! -------------------------------------------------------------
+XTerm*loginShell:        true
+XTerm*faceName:          monospace
+XTerm*faceSize:          11
+XTerm*background:        #1a1b26
+XTerm*foreground:        #c0caf5
+EOF
+chown "$TARGET_USER" "$TARGET_HOME/.Xdefaults"
+chmod 0644 "$TARGET_HOME/.Xdefaults"
+
+# 4.5 mlterm Configuration (~/.mlterm/main & ~/.mlterm/aafont)
+echo ">> Configuring $TARGET_HOME/.mlterm (Smooth Japanese font rendering)..."
+mkdir -p "$TARGET_HOME/.mlterm"
+cat << 'EOF' > "$TARGET_HOME/.mlterm/main"
+use_anti_alias = true
+fontsize = 15
+type_engine = xft
+line_space = 2
+fg_color = #c0caf5
+bg_color = #1a1b26
+cursor_fg_color = #1a1b26
+cursor_bg_color = #7aa2f7
+scrollbar_mode = none
+EOF
+
+cat << 'EOF' > "$TARGET_HOME/.mlterm/aafont"
+DEFAULT = Noto Sans CJK JP
+ISO10646_UCS4_1_FULLWIDTH = Noto Sans CJK JP
+EOF
+chown -R "$TARGET_USER" "$TARGET_HOME/.mlterm"
+chmod 0700 "$TARGET_HOME/.mlterm"
+chmod 0600 "$TARGET_HOME/.mlterm/main" "$TARGET_HOME/.mlterm/aafont"
+
+# 4.6 ~/.xsession
 echo ">> Configuring $TARGET_HOME/.xsession (cwm + mlterm Japanese desktop)..."
 cat << 'EOF' > "$TARGET_HOME/.xsession"
 #!/bin/sh
 export LANG=ja_JP.UTF-8
 export LC_CTYPE=ja_JP.UTF-8
+
+# Load X resources (Xft font rendering, terminal styles)
+if [ -f "$HOME/.Xdefaults" ]; then
+    xrdb -merge "$HOME/.Xdefaults"
+fi
+
 xsetroot -solid "#1a1b26"
 mlterm &
 exec cwm

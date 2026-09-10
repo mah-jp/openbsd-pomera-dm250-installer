@@ -25,6 +25,10 @@ BLOCK_DEV=""
 DOWNLOAD_ONLY=false
 BOOTLOADER_ONLY=false
 REBUILD_UBOOT=false
+BUILD_KERNEL=false
+POMERA_PATCH_USB_HUB="${POMERA_PATCH_USB_HUB:-no}"
+POMERA_PATCH_X11_KEYS="${POMERA_PATCH_X11_KEYS:-no}"
+POMERA_BUILD_PATCHED_KERNEL="${POMERA_BUILD_PATCHED_KERNEL:-no}"
 MODEL_TYPE="dm250"
 
 OS_NAME="$(uname -s)"
@@ -79,6 +83,7 @@ show_help() {
     echo ""
     echo "Options:"
     echo "  --us                   Build for Pomera DM250US (US model)"
+    echo "  --build-kernel         Rebuild patched OpenBSD kernel (USB & keyboard fix) via QEMU"
     echo "  --rebuild-uboot        Rebuild custom auto-booting U-Boot binary"
     echo "  --bootloader-only      Flash only idbloader.img & uboot.img to target without formatting"
     echo "  --download-only        Fetch all required official binaries without formatting"
@@ -86,6 +91,7 @@ show_help() {
     echo ""
     echo "Examples:"
     echo "  $0 --download-only     # Pre-download all packages & binaries"
+    echo "  $0 --build-kernel      # Recompile patched kernel in QEMU"
     echo "  sudo $0 /dev/sdb       # Flash directly to SD card on Linux"
     echo "  $0 /dev/rdisk4         # Flash directly to SD card on macOS"
     echo "  $0 --rebuild-uboot     # Force rebuild auto-booting U-Boot"
@@ -97,6 +103,7 @@ parse_arguments() {
         case "$1" in
             --help|-h) show_help ;;
             --us) MODEL_TYPE="dm250us"; shift ;;
+            --build-kernel) BUILD_KERNEL=true; shift ;;
             --rebuild-uboot) REBUILD_UBOOT=true; shift ;;
             --bootloader-only|--flash-bootloader) BOOTLOADER_ONLY=true; shift ;;
             --download-only) DOWNLOAD_ONLY=true; shift ;;
@@ -159,12 +166,20 @@ fetch_file() {
 generate_install_configs() {
     echo ""
     echo ">> Preparing autoinstall response configuration..."
+    local prev_patch_usb="${POMERA_PATCH_USB_HUB:-}"
+    local prev_patch_x11="${POMERA_PATCH_X11_KEYS:-}"
+    local prev_build_k="${POMERA_BUILD_PATCHED_KERNEL:-}"
+
     local user_config_file="${CONFIGS_DIR}/user_config.env"
     if [ -f "$user_config_file" ]; then
         echo ">> Loading custom user configuration from ${user_config_file}..."
         # shellcheck source=/dev/null
         source "$user_config_file"
     fi
+
+    [ -n "$prev_patch_usb" ] && [ "$prev_patch_usb" != "no" ] && POMERA_PATCH_USB_HUB="$prev_patch_usb"
+    [ -n "$prev_patch_x11" ] && [ "$prev_patch_x11" != "no" ] && POMERA_PATCH_X11_KEYS="$prev_patch_x11"
+    [ -n "$prev_build_k" ] && [ "$prev_build_k" != "no" ] && POMERA_BUILD_PATCHED_KERNEL="$prev_build_k"
 
     local conf_user="${POMERA_USERNAME:-pomera}"
     local conf_host="${POMERA_HOSTNAME:-pomera}"
@@ -176,6 +191,10 @@ generate_install_configs() {
     local conf_confirm_install="${POMERA_CONFIRM_INSTALL:-yes}"
     local conf_lid_interval="${POMERA_LID_INTERVAL:-0.5}"
     local conf_cpu_policy="${POMERA_CPU_POLICY:-auto}"
+
+    POMERA_PATCH_USB_HUB="${POMERA_PATCH_USB_HUB:-no}"
+    POMERA_PATCH_X11_KEYS="${POMERA_PATCH_X11_KEYS:-no}"
+    POMERA_BUILD_PATCHED_KERNEL="${POMERA_BUILD_PATCHED_KERNEL:-no}"
 
     # Inject user credentials into _build_cache/install.site.env to guarantee 100% password enforcement without dirtying git configs
     cat << EOF > "${WORK_DIR}/install.site.env"
@@ -363,7 +382,61 @@ sync
 reboot
 EOF
     fetch_file "${JCS_MIRROR}/logo.bmp" "${WORK_DIR}/logo.bmp"
+
+    # Always fetch upstream official kernel first
     fetch_file "${JCS_MIRROR}/bsd" "${WORK_DIR}/bsd"
+
+    # Evaluate whether kernel patches are requested
+    local want_kernel_patch=false
+    local check_flag="--check-all"
+
+    if [ "$BUILD_KERNEL" = "true" ] || [ "$POMERA_BUILD_PATCHED_KERNEL" = "yes" ]; then
+        want_kernel_patch=true
+        check_flag="--check-all"
+    elif [ "$POMERA_PATCH_USB_HUB" = "yes" ] && [ "$POMERA_PATCH_X11_KEYS" = "yes" ]; then
+        want_kernel_patch=true
+        check_flag="--check-all"
+    elif [ "$POMERA_PATCH_USB_HUB" = "yes" ]; then
+        want_kernel_patch=true
+        check_flag="--check-usb"
+    elif [ "$POMERA_PATCH_X11_KEYS" = "yes" ]; then
+        want_kernel_patch=true
+        check_flag="--check-x11"
+    fi
+
+    if [ "$want_kernel_patch" = "true" ]; then
+        echo ""
+        echo "=== [Kernel Patch Audit] Verifying Upstream Kernel Fix Status ==="
+        local inspect_script="${SCRIPT_DIR}/scripts/inspect_kernel.py"
+
+        if [ -f "$inspect_script" ] && python3 "$inspect_script" "${WORK_DIR}/bsd" "$check_flag"; then
+            echo ">> ✨ Upstream jcs.org kernel already includes requested fix(es)!"
+            echo "   Using official binary directly. Skipping QEMU rebuild."
+        else
+            echo ">> Upstream jcs.org kernel does NOT contain requested fix(es)."
+            local need_compile=false
+            if [ -f "${WORK_DIR}/bsd.patched" ]; then
+                if [ -f "$inspect_script" ] && python3 "$inspect_script" "${WORK_DIR}/bsd.patched" "$check_flag"; then
+                    echo ">> Reusing verified cached patched kernel (_build_cache/bsd.patched)..."
+                    cp -f "${WORK_DIR}/bsd.patched" "${WORK_DIR}/bsd"
+                else
+                    need_compile=true
+                fi
+            else
+                need_compile=true
+            fi
+
+            if [ "$need_compile" = "true" ]; then
+                echo "=== [Kernel Builder] Compiling Patched Kernel via QEMU ==="
+                python3 "${SCRIPT_DIR}/scripts/build_kernel_qemu.py"
+                if [ -f "${WORK_DIR}/bsd.patched" ]; then
+                    cp -f "${WORK_DIR}/bsd.patched" "${WORK_DIR}/bsd"
+                fi
+            fi
+        fi
+    else
+        echo ">> Using standard official jcs.org kernel (unpatched)."
+    fi
 
     # OpenBSD Sets
     local base_sets=(

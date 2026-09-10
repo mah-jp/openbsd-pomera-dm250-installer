@@ -12,13 +12,14 @@
 
 | 機能 | 詳細 |
 | :--- | :--- |
-| **⚡ 蓋開閉の超省電力＆最速復帰** | 専用デーモン `pomera-lid-watch` が蓋センサーを監視。閉じた瞬間にバックライト0秒消灯＆CPU省電力化。開けると最速で復帰して即入力可能。 |
-| **🌐 充実のネットワーク** | 内蔵 Wi-Fi (`bwfm0`、複数SSID自動切替)、スマホテザリング用 Bluetooth PAN (`pomera-bt-pan`)、USB-Ethernet (`ure0`, `axe0`, `axen0`, `urndis0`, `cdce0`) に標準対応。 |
-| **🔒 フルディスク暗号化 (FDE)** | OpenBSD `softraid CRYPTO` による eMMC 暗号化に対応。万が一の紛失・盗難時にも機密メモやSSH鍵を強固に保護。 |
+| **⚡ 蓋開閉の超省電力＆最速復帰** | 専用デーモン `pomera_lid_watch`（`rcctl` 対応）が蓋センサーを監視。閉じた瞬間にバックライト0秒消灯＆CPU省電力化。開けると最速で復帰して即入力可能。検知秒数やCPUポリシー（auto/high）も自在に調整可能。 |
+| **🔋 高精度バッテリー管理** | 内蔵 PMIC (RK818) と連動し、充電器接続時の自動給電・充電に対応。カーネルセンサー（`sysctl hw.sensors.simplebat0`）から電圧・充放電状態・残量パーセントを正確に取得。 |
+| **🌐 充実のネットワーク (2.4GHz Wi-Fi)** | 内蔵 Wi-Fi (`bwfm0`、2.4GHz専用、複数SSID自動切替)、スマホテザリング用 Bluetooth PAN (`pomera-bt-pan`)、USB-Ethernet (`ure0`, `axe0`, `axen0`, `urndis0`, `cdce0`) に標準対応。 |
 | **💻 CUI & GUI デュアル対応** | 標準は超軽量・高速な CUI (wsconsコンソール / VT100 / tmux)。`pomera-gui-toggle` で軽量X11デスクトップ (`xenodm` + `cwm` + `mlterm`) へいつでもワンタッチ切替可能。 |
 | **🖱️ USB周辺機器プラグ＆プレイ** | USB Type-C OTG経由で標準的なUSBマウス、キーボード、有線LANアダプタを挿すだけで即認識。 |
 | **🛡️ 100%原状復帰可能な安全設計** | [pomera-dm250-recovery-tool](https://github.com/mah-jp/pomera-dm250-recovery-tool) と連携し、導入前に純正eMMCの完全バックアップを取得可能。いつでも工場出荷時に戻せます。 |
-| **🤖 ネイティブQEMUエンジン自動構築** | 一時的な OpenBSD QEMU VM を介して本物の disklabel/FFS を生成。`user_config.env` による事前設定（Wi-Fi・パスワード・暗号化）で実機インストールも完全自動で完走。 |
+| **🛠️ パッチ自動検査＆スマートビルド** | USBハブの安定化やX11での右Shift/左Altキー修正パッチを選択可能。公式カーネルを自動検査し、未修正時のみQEMUリコンパイルを実行、公式カーネルが対応済みなら0秒で公式版を採用。 |
+| **🤖 ネイティブQEMUエンジン自動構築** | 一時的な OpenBSD QEMU VM を介して本物の disklabel/FFS を生成。`user_config.env` による事前設定（Wi-Fi・パスワード・省電力）で実機インストールも完全自動で完走。 |
 
 ---
 
@@ -63,8 +64,6 @@ sudo dnf install -y curl python3 qemu-system-aarch64 edk2-aarch64
 sudo pacman -S --needed curl python qemu-system-aarch64 edk2-arm
 ```
 
-*(※ Phase 3 の Ansible 追加プロビジョニングを利用する場合は、母艦に `ansible` もインストールしてください)*
-
 ---
 
 ## 🚀 クイックスタートガイド
@@ -83,8 +82,8 @@ sudo pacman -S --needed curl python qemu-system-aarch64 edk2-arm
   3. 'yes' と入力してインストール承認
   (無人インストールとカーネル・設定配置が自動完走して安全に電源OFF)
   ↓
-[Phase 3: 任意・追加環境構築 (Ansible)]
-  $ cd ansible && ansible-playbook -i inventory.ini pomera_setup.yml
+[Phase 3: 任意・デスクトップ等の追加導入]
+  $ pomera-setup-desktop  (ポメラ上で直接実行・日本語GUI等の全自動構築)
 ```
 
 ---
@@ -105,7 +104,7 @@ cd pomera-dm250-recovery-tool
 ### Step 1: OpenBSD インストーラSDカードの作成
 
 #### ⚙️ 1-A. ユーザー環境の事前設定 (推奨)
-あらかじめ Wi-Fi の接続先やログインパスワード、フルディスク暗号化の有無を設定できます：
+あらかじめ Wi-Fi の接続先やログインパスワード、CPU制御ポリシーなどを設定できます：
 
 ```bash
 cp configs/user_config.env.example configs/user_config.env
@@ -116,11 +115,20 @@ nano configs/user_config.env
 * **設定可能な項目**:
   * `POMERA_USERNAME` / `POMERA_USER_PASSWORD` : ユーザー名とパスワード（デフォルト: `pomera` / `pomera`）
   * `POMERA_ROOT_PASSWORD` : root パスワード（デフォルト: `pomera`）
-  * `POMERA_WIFI_NETWORKS` : 接続先 Wi-Fi（複数指定可能、電波の強い方へ自動接続）
+  * `POMERA_WIFI_NETWORKS` : 接続先 Wi-Fi（**2.4GHz 帯専用**。複数指定可能、電波の強い方へ自動接続）
+  * `POMERA_BOOT_TIMEOUT` : ブートローダーの待機秒数（デフォルト: `5` 秒）
+  * `POMERA_LID_INTERVAL` : 蓋開閉検知デーモンの監視間隔秒数（デフォルト: `0.5` 秒）
+  * `POMERA_CPU_POLICY` : CPU 動作ポリシー（`auto`: 負荷連動可変省電力 / `100` または `high`: 最高性能固定、デフォルト: `auto`）
   * `POMERA_ENABLE_SSHD` / `POMERA_ALLOW_ROOT_SSH` : SSHD 自動起動設定
   * `POMERA_CONFIRM_INSTALL` : インストール開始前の安全確認プロンプト（デフォルト: `yes`。`no` で完全無人化）
+  * `POMERA_PATCH_USB_HUB` : USBハブ使用時の切断・クラッシュ防止パッチ（デフォルト: `no`。`yes` で有効化）
+  * `POMERA_PATCH_X11_KEYS` : X11 GUI使用時の右Shiftおよび左Altキー修正パッチ（デフォルト: `no`。`yes` で有効化）
 
-> ⚠️ **ディスク暗号化について**: OpenBSD 32-bit ARM (`armv7`) の EFI ブートローダー（`BOOTARM.EFI`）の仕様上、ルート暗号化（softraid CRYPTO）ブートは非対応です。そのため本ツールでは暗号化を常に無効化（`no`）にして安全にインストールします。
+> [!TIP]
+> **💡 スマート・カーネル検査機能**  
+> `POMERA_PATCH_USB_HUB` や `POMERA_PATCH_X11_KEYS` を `yes` に設定した場合、インストーラーは公式カーネル（jcs.org）のバイナリを自動検査します。公式カーネルで既に修正されている場合はリコンパイルを行わず公式バイナリをそのまま採用（待ち時間0秒）し、未修正の場合のみ一時的な QEMU VM で安全にパッチ適用リコンパイルを行います（ビルド結果はキャッシュされるため次回以降も即座に再利用されます）。
+
+*(※ OpenBSD armv7 EFI ブートローダーの仕様上、ルートディスク暗号化 [softraid CRYPTO] ブートは非対応のため自動的に無効化されます)*
 
 #### 💾 1-B. SDカードの作成
 母艦PCで `make_sdcard.sh` を実行します。OpenBSD 7.9 armv7 公式バイナリ、DM250専用カスタムカーネル、U-Boot、ファームウェア等が自動ダウンロードされ、一時的な OpenBSD QEMU VM を駆動して SD カードへ本物の disklabel/FFS を書き込みます。
@@ -137,6 +145,9 @@ sudo ./make_sdcard.sh /dev/rdisk4
 
 # ダウンロードとキャッシュのみ行う場合:
 ./make_sdcard.sh --download-only
+
+# パッチ適用済みカーネルのQEMUリコンパイルを明示的に実行する場合:
+./make_sdcard.sh --build-kernel
 ```
 
 *(※ USモデル `DM250US` の場合は `--us` オプションを付与してください)*  
@@ -151,7 +162,7 @@ sudo ./make_sdcard.sh /dev/rdisk4
 > 本ツールのインストーラーSDカードには、Rockchip RK3128 のハードウェア BootROM が直接読み込むブートローダー（`idbloader.img` / `uboot.img`）が書き込まれています。  
 > 特殊なキー操作は一切不要で、**本体eMMCには事前に1バイトも書き込みを行いません**。インストーラー起動後に確認プロンプトで `yes` を入力するまで、本体の純正システムやデータは完全に保護されます（途中で中止してSDカードを抜けば、そのまま純正ポメラOSが起動します）。
 
-1. ポメラの電源を完全に切り、作成したSDカードを挿入します（USB給電ケーブルは抜いておきます）。
+1. ポメラの電源を完全に切り、作成したSDカードを挿入します。
 2. 通常通り **[電源ボタン]** を押して電源を入れます（3〜4秒長押し）。  
    *(SDカード上のブートローダーから自動起動し、`[Pomera DM250] Booting OpenBSD Installer (SD Card)...` と表示されてインストーラーカーネルが自動的に読み込まれます)*
 3. 画面に安全確認プロンプトが表示されます：
@@ -205,13 +216,26 @@ pomera-setup-desktop
 
 ## 🛠️ ポメラ上での便利コマンド
 
+### システム＆ハードウェア制御
+
+| コマンド | 説明 |
+| :--- | :--- |
+| `sysctl hw.sensors.simplebat0` | バッテリー電圧・充電状態・残量パーセント（`percent0`）を表示。 |
+| `sysctl -n hw.sensors.simplebat0.percent0` | バッテリー残量パーセントのみをサクッと取得（例: `96.00%`）。 |
+| `sysctl hw.cpuspeed` | 現在の CPU 動作クロック周波数を表示（単位: MHz、最大 1200 MHz）。 |
+| `sysctl hw.perfpolicy` / `hw.setperf` | CPU 制御ポリシー（`auto`/`high`）およびクロック比率（0〜100%）を確認。 |
+| `doas rcctl [start\|stop\|restart\|check] pomera_lid_watch` | 蓋開閉省電力デーモンの起動・停止・再起動・ステータス確認。 |
+| `doas rcctl set pomera_lid_watch flags "-i 0.5 -p auto"` | 蓋検知間隔（秒）や蓋オープン時の CPU ポリシーを変更。 |
+| `wsconsctl display.brightness=0..100` | 画面のバックライト明るさを手動調整。 |
+| `doas gpioctl gpio1 red_led 1` / `green_led 1` | 前面の赤/緑ステータスLEDを点灯・消灯（`0` で消灯）。 |
+
+### デスクトップ＆ネットワーク
+
 | コマンド | 説明 |
 | :--- | :--- |
 | `pomera-setup-desktop` | 日本語フォント、GUI (`cwm`/`mlterm`)、Vim、tmux、dotfiles を一括自動セットアップ。 |
 | `doas pomera-gui-toggle [gui\|cui\|toggle]` | CUIコンソールとX11 GUIモード（`xenodm`/`cwm`）を即座に切り替え。 |
 | `doas pomera-bt-pan connect <BD_ADDR>` | スマホのBluetoothテザリング（PAN）にワンタッチ接続。 |
-| `doas gpioctl gpio1 red_led 1` / `green_led 1` | 前面の赤/緑ステータスLEDを点灯・消灯。 |
-| `wsconsctl display.brightness=0..100` | 画面の明るさを手動調整。 |
 
 ---
 
@@ -219,7 +243,7 @@ pomera-setup-desktop
 
 - **Joshua Stein (jcs)**: [OpenBSD on Pomera DM250](https://jcs.org/2026/04/09/openbsd-dm250) のカーネル・U-Boot・ディスプレイドライバ開発
 - **4noha**: [openbsd-pomera-dm250](https://github.com/4noha/openbsd-pomera-dm250) ツールチェーンおよびバッテリー/蓋スクリプト
-- **mah-jp**: [pomera-dm250-recovery-tool](https://github.com/mah-jp/pomera-dm250-recovery-tool) U-Boot UMS バックアップ/リカバリツール
+- **mah-jp**: [pomera-dm250-backup-restore-tool](https://github.com/mah-jp/pomera-dm250-backup-restore-tool) U-Boot UMS バックアップ/リカバリツール
 
 ---
 

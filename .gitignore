@@ -18,6 +18,7 @@ dev/
 
 # Local docs / Notes / Memos
 AGENTS.md
+TODO.md
 docs/
 
 # Python cache & bytecode

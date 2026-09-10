@@ -206,7 +206,7 @@ machdep.lidaction=0
 machdep.allowaperture=1
 EOF
 
-# Deploy Xorg configuration for 1024x600 wsfb display (Strictly 16-bit color matching Pomera LVDS)
+# Deploy Xorg configuration for 1024x600 wsfb display (32bpp / Depth 24 matching Pomera rkdrm)
 mkdir -p /etc/X11
 cat << 'EOF' > /etc/X11/xorg.conf
 Section "Device"
@@ -218,9 +218,9 @@ Section "Screen"
     Identifier "Screen0"
     Device     "Card0"
     Monitor    "Monitor0"
-    DefaultDepth 16
+    DefaultDepth 24
     SubSection "Display"
-        Depth 16
+        Depth 24
         Modes "1024x600"
     EndSubSection
 EndSection
@@ -229,6 +229,57 @@ Section "Monitor"
     Identifier "Monitor0"
 EndSection
 EOF
+
+# Ensure .Xdefaults and .xsession exist with Xft font rendering optimization
+cat << 'EOF' > "/home/${TARGET_USER}/.Xdefaults"
+! -------------------------------------------------------------
+! Xft Font Rendering Optimization for Pomera DM250 (1024x600)
+! -------------------------------------------------------------
+Xft.dpi:        96
+Xft.antialias:  1
+Xft.hinting:    1
+Xft.hintstyle:  hintslight
+Xft.rgba:       rgb
+Xft.lcdfilter:  lcddefault
+
+! -------------------------------------------------------------
+! XTerm fallback configuration
+! -------------------------------------------------------------
+XTerm*loginShell:        true
+XTerm*faceName:          monospace
+XTerm*faceSize:          11
+XTerm*background:        #1a1b26
+XTerm*foreground:        #c0caf5
+EOF
+chown "${TARGET_USER}:staff" "/home/${TARGET_USER}/.Xdefaults"
+chmod 0644 "/home/${TARGET_USER}/.Xdefaults"
+
+if [ ! -f "/home/${TARGET_USER}/.xsession" ]; then
+    cat << 'EOF' > "/home/${TARGET_USER}/.xsession"
+#!/bin/sh
+export LANG=ja_JP.UTF-8
+export LC_CTYPE=ja_JP.UTF-8
+
+# Load X resources (Xft font rendering, terminal styles)
+if [ -f "$HOME/.Xdefaults" ]; then
+    xrdb -merge "$HOME/.Xdefaults"
+fi
+
+xsetroot -solid "#1a1b26"
+if command -v mlterm >/dev/null 2>&1; then
+    mlterm &
+elif command -v xterm >/dev/null 2>&1; then
+    xterm &
+fi
+exec cwm 2>/dev/null || exec fvwm
+EOF
+    chown "${TARGET_USER}:staff" "/home/${TARGET_USER}/.xsession"
+    chmod 0755 "/home/${TARGET_USER}/.xsession"
+fi
+
+# Ensure .xinitrc symlink exists so startx runs .xsession desktop environment
+ln -sf .xsession "/home/${TARGET_USER}/.xinitrc"
+chown -h "${TARGET_USER}:staff" "/home/${TARGET_USER}/.xinitrc"
 
 # Set SUID root on Xorg binary so regular users can launch startx out-of-the-box
 if [ -f /usr/X11R6/bin/Xorg ]; then
@@ -292,7 +343,7 @@ cat << 'EOF' >> /etc/motd
 
 ===============================================================
  Welcome to OpenBSD on Pomera DM250!
- 💡 Tip: Connect to Wi-Fi/USB-NIC and run:
+ 💡 Tip: Connect to Wi-Fi and run:
     pomera-setup-desktop
  to set up GUI (cwm), Japanese fonts, vim, and tmux!
 ===============================================================

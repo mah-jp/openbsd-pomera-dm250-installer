@@ -12,12 +12,13 @@ Turn your dedicated Japanese digital typewriter into a portable UNIX terminal wi
 
 | Feature | Details |
 | :--- | :--- |
-| **⚡ Instant Sleep & Wakeup** | Custom daemon (`pomera-lid-watch`) monitors lid sensor: 0ms backlight cutoff & CPU throttling on close, instant full-power restore on open. |
-| **🌐 Complete Connectivity** | Built-in Wi-Fi (`bwfm0`, multi-SSID auto-fallback), Bluetooth PAN tethering (`pomera-bt-pan`), and Plug & Play USB-Ethernet (`ure0`, `axe0`, `axen0`, `urndis0`, `cdce0`). |
-| **🔒 Full-Disk Encryption (FDE)** | OpenBSD `softraid CRYPTO` support on internal eMMC. Protects sensitive notes and SSH keys in case of loss or theft. |
+| **⚡ Instant Sleep & Wakeup** | Native `rcctl` daemon (`pomera_lid_watch`) monitors the lid switch: 0ms backlight cutoff & CPU throttling on close, instant full-power restore on open. Polling interval and CPU policy (auto/high) are fully configurable. |
+| **🔋 Accurate Battery Management** | Integrated with Rockchip RK818 PMIC for automatic battery charging and hardware power routing. Query real-time voltage, charge/discharge status, and capacity percentage via `sysctl hw.sensors.simplebat0`. |
+| **🌐 Connectivity (2.4GHz Wi-Fi)** | Built-in Wi-Fi (`bwfm0`, 2.4GHz only, multi-SSID auto-fallback), Bluetooth PAN tethering (`pomera-bt-pan`), and Plug & Play USB-Ethernet (`ure0`, `axe0`, `axen0`, `urndis0`, `cdce0`). |
 | **💻 CUI & GUI Dual Mode** | High-performance CUI (Console / VT100 / tmux) by default. Switch to lightweight X11 GUI (`xenodm` + `cwm` + `mlterm`) anytime via `pomera-gui-toggle`. |
 | **🖱️ USB Peripherals** | Plug & Play support for standard USB mice, keyboards, and USB Ethernet dongles via USB Type-C OTG. |
-| **🛡️ Safety & Non-Destructive** | Integrated with [pomera-dm250-recovery-tool](https://github.com/mah-jp/pomera-dm250-recovery-tool) for full eMMC factory backup and 100% restore capability. |
+| **🛡️ Safety & Non-Destructive** | Integrated with [pomera-dm250-backup-restore-tool](https://github.com/mah-jp/pomera-dm250-backup-restore-tool) for full eMMC factory backup and 100% restore capability. |
+| **🛠️ Smart Patch Audit & Auto-Build** | Optional kernel patches for USB Hub stability and X11 Right-Shift/Left-Alt keys. Automatically audits the official kernel and skips recompilation if already fixed upstream. |
 | **🤖 Native QEMU Engine Builder** | Drives a temporary OpenBSD QEMU VM to create authentic disklabel/FFS structures. Pre-configurable via `user_config.env` for 100% unattended installation. |
 
 ---
@@ -62,15 +63,13 @@ sudo dnf install -y curl python3 qemu-system-aarch64 edk2-aarch64
 sudo pacman -S --needed curl python qemu-system-aarch64 edk2-arm
 ```
 
-*(Note: If you plan to run Phase 3 Ansible post-provisioning from your host, install `ansible` as well).*
-
 ---
 
 ## 🚀 Quick Start Guide
 
 ```
 [Phase 0: Safety Net]
-  Backup factory eMMC using pomera-dm250-recovery-tool
+  Backup factory eMMC using pomera-dm250-backup-restore-tool
   ↓
 [Phase 1: Pre-Configure & Build Installer SD]
   1. Configure Wi-Fi / passwords in configs/user_config.env
@@ -82,19 +81,19 @@ sudo pacman -S --needed curl python qemu-system-aarch64 edk2-arm
   3. Type 'yes' to confirm installation
   (Autoinstall runs, extracts sets, and powers off upon completion)
   ↓
-[Phase 3: Optional Ansible Desktop Setup]
-  $ cd ansible && ansible-playbook -i inventory.ini pomera_setup.yml
+[Phase 3: Optional Desktop Setup on Pomera]
+  $ pomera-setup-desktop  (run directly on Pomera for X11 GUI & CJK fonts)
 ```
 
 ---
 
 ### Step 0: Create Full Factory Backup (Recommended)
 
-Before flashing, create a complete, bit-for-bit backup of your Pomera's internal eMMC using [pomera-dm250-recovery-tool](https://github.com/mah-jp/pomera-dm250-recovery-tool):
+Before flashing, create a complete, bit-for-bit backup of your Pomera's internal eMMC using [pomera-dm250-backup-restore-tool](https://github.com/mah-jp/pomera-dm250-backup-restore-tool):
 
 ```bash
-git clone https://github.com/mah-jp/pomera-dm250-recovery-tool.git
-cd pomera-dm250-recovery-tool
+git clone https://github.com/mah-jp/pomera-dm250-backup-restore-tool.git
+cd pomera-dm250-backup-restore-tool
 ./prepare_sdcard.sh /dev/sdX
 # Boot Pomera in UMS mode and run backup_emmc.sh
 ```
@@ -104,7 +103,7 @@ cd pomera-dm250-recovery-tool
 ### Step 1: Create the OpenBSD Installer SD Card
 
 #### ⚙️ 1-A. Pre-Configure User Settings (Recommended)
-You can customize Wi-Fi networks, user/root passwords, and disk encryption before writing the SD card:
+You can customize Wi-Fi networks, passwords, CPU scaling policy, and boot timeout before writing the SD card:
 
 ```bash
 cp configs/user_config.env.example configs/user_config.env
@@ -115,11 +114,20 @@ nano configs/user_config.env
 * **Customizable Parameters**:
   * `POMERA_USERNAME` / `POMERA_USER_PASSWORD` : Account username & password (Default: `pomera` / `pomera`)
   * `POMERA_ROOT_PASSWORD` : Root administrator password (Default: `pomera`)
-  * `POMERA_WIFI_NETWORKS` : List of Wi-Fi SSIDs & passwords (automatically connects to the best available network)
+  * `POMERA_WIFI_NETWORKS` : List of Wi-Fi SSIDs & passwords (**2.4GHz band only**; automatically connects to the strongest available network)
+  * `POMERA_BOOT_TIMEOUT` : Bootloader countdown delay in seconds (Default: `5`)
+  * `POMERA_LID_INTERVAL` : Lid daemon polling interval in seconds (Default: `0.5`)
+  * `POMERA_CPU_POLICY` : CPU performance scaling policy (`auto`: dynamic load-based scaling / `100` or `high`: maximum clock lock, Default: `auto`)
   * `POMERA_ENABLE_SSHD` / `POMERA_ALLOW_ROOT_SSH` : SSH daemon enable & root login permission
   * `POMERA_CONFIRM_INSTALL` : Pre-install confirmation prompt before erasing internal storage (Default: `yes`. Set to `no` for unattended zero-touch installation)
+  * `POMERA_PATCH_USB_HUB` : Fix USB Hub crash & disconnect issues (Default: `no`. Set to `yes` to enable)
+  * `POMERA_PATCH_X11_KEYS` : Fix Right-Shift and Left-Alt keys under X11 (Default: `no`. Set to `yes` to enable)
 
-> ⚠️ **Disk Encryption Note**: The OpenBSD 32-bit ARM (`armv7`) EFI bootloader (`BOOTARM.EFI`) does not support booting from a `softraid CRYPTO` root volume by architectural specification. Therefore, root disk encryption is permanently disabled (`no`) in this installer to guarantee reliable hardware boot.
+> [!TIP]
+> **💡 Smart Kernel Audit Feature**  
+> When `POMERA_PATCH_USB_HUB` or `POMERA_PATCH_X11_KEYS` is set to `yes`, the installer automatically audits the binary of the official kernel (`jcs.org/dm250/bsd`). If the official kernel already incorporates the required fixes, it skips recompilation and adopts the official binary directly (0s wait time). Recompilation via temporary QEMU VM runs only when fixes are missing (and build results are cached for subsequent runs).
+
+*(Note: Root disk encryption [softraid CRYPTO] boot is permanently disabled as the OpenBSD armv7 EFI bootloader does not support crypto boot by design).*
 
 #### 💾 1-B. Build and Flash the SD Card
 Run `make_sdcard.sh` on your host PC. It automatically downloads OpenBSD 7.9 official binaries, the custom DM250 kernel, U-Boot, and firmware, then launches a temporary headless OpenBSD QEMU VM to write authentic disklabel and FFS filesystems:
@@ -136,6 +144,9 @@ sudo ./make_sdcard.sh /dev/rdisk4
 
 # Download and cache files only (no formatting):
 ./make_sdcard.sh --download-only
+
+# Force QEMU recompilation of the patched kernel:
+./make_sdcard.sh --build-kernel
 ```
 
 *(For US model `DM250US`, append `--us` flag).*  
@@ -207,13 +218,26 @@ This automatically configures:
 
 ## 🛠️ On-Device Utilities
 
+### System & Power Management
+
+| Command | Description |
+| :--- | :--- |
+| `sysctl hw.sensors.simplebat0` | Display battery voltage, charging/discharging status, and capacity percentage (`percent0`). |
+| `sysctl -n hw.sensors.simplebat0.percent0` | Quickly output battery percentage only (e.g. `96.00%`). |
+| `sysctl hw.cpuspeed` | Display current CPU operating clock speed in MHz (max: 1200 MHz). |
+| `sysctl hw.perfpolicy` / `hw.setperf` | Check CPU scaling policy (`auto`/`high`) and clock percentage ratio (0-100%). |
+| `doas rcctl [start\|stop\|restart\|check] pomera_lid_watch` | Manage the lid power management daemon via native OpenBSD `rcctl`. |
+| `doas rcctl set pomera_lid_watch flags "-i 0.5 -p auto"` | Adjust lid polling interval (seconds) or CPU scaling policy. |
+| `wsconsctl display.brightness=0..100` | Adjust screen backlight brightness manually. |
+| `doas gpioctl gpio1 red_led 1` / `green_led 1` | Control front status LEDs (`0` to turn off). |
+
+### Desktop & Connectivity
+
 | Command | Description |
 | :--- | :--- |
 | `pomera-setup-desktop` | Automatically set up Japanese fonts, GUI (`cwm`/`mlterm`), Vim, tmux, and dotfiles. |
 | `doas pomera-gui-toggle [gui\|cui\|toggle]` | Switch between CUI console and X11 GUI mode (`xenodm`/`cwm`). |
 | `doas pomera-bt-pan connect <BD_ADDR>` | Connect to smartphone Bluetooth Tethering (PAN). |
-| `doas gpioctl gpio1 red_led 1` / `green_led 1` | Control front status LEDs. |
-| `wsconsctl display.brightness=0..100` | Adjust screen brightness manually. |
 
 ---
 
@@ -221,7 +245,7 @@ This automatically configures:
 
 - **Joshua Stein (jcs)**: [OpenBSD on Pomera DM250](https://jcs.org/2026/04/09/openbsd-dm250) kernel, U-Boot, and display patches.
 - **4noha**: [openbsd-pomera-dm250](https://github.com/4noha/openbsd-pomera-dm250) toolchain and battery/lid scripts.
-- **mah-jp**: [pomera-dm250-recovery-tool](https://github.com/mah-jp/pomera-dm250-recovery-tool) for U-Boot UMS backup/recovery.
+- **mah-jp**: [pomera-dm250-backup-restore-tool](https://github.com/mah-jp/pomera-dm250-backup-restore-tool) for U-Boot UMS backup/recovery.
 
 ---
 
