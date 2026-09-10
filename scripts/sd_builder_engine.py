@@ -454,7 +454,7 @@ EndSection
     with open(os.path.join(site_build, "etc/wsconsctl.conf"), "w") as f:
         f.write("""keyboard.encoding=jp
 keyboard.map+=keycode 13 = asciicircum asciitilde
-keyboard.map+=keycode 58 = Control_L
+keyboard.map+=keysym Caps_Lock = Control_L
 keyboard.map+=keycode 139 = Mode_switch
 keyboard.map+=keycode 103 = Up Up Prior Prior
 keyboard.map+=keycode 108 = Down Down Next Next

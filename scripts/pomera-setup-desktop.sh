@@ -205,6 +205,9 @@ if [ -f "$HOME/.Xdefaults" ]; then
     xrdb -merge "$HOME/.Xdefaults"
 fi
 
+# Ensure Caps Lock behaves as Control in X11
+setxkbmap -option ctrl:nocaps 2>/dev/null || true
+
 xsetroot -solid "#000000"
 mlterm &
 exec cwm
