@@ -415,7 +415,7 @@ rc_cmd $1
     os.chmod(rc_d_lid, 0o755)
 
     with open(os.path.join(site_build, "etc/doas.conf"), "w") as f:
-        f.write("permit keepenv :wheel\npermit nopass :wheel cmd reboot\npermit nopass :wheel cmd poweroff\n")
+        f.write("permit keepenv :wheel\npermit nopass :wheel cmd reboot\n")
     os.chmod(os.path.join(site_build, "etc/doas.conf"), 0o600)
 
     with open(os.path.join(site_build, "etc/X11/xorg.conf"), "w") as f:

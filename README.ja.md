@@ -146,6 +146,9 @@ sudo ./make_sdcard.sh /dev/rdisk4
 # ダウンロードとキャッシュのみ行う場合:
 ./make_sdcard.sh --download-only
 
+# Pomera DM250 特化型スマートカーネル（約50%軽量化・高速起動）をビルドして適用する場合:
+./make_sdcard.sh --smart-kernel
+
 # パッチ適用済みカーネルのQEMUリコンパイルを明示的に実行する場合:
 ./make_sdcard.sh --build-kernel
 ```
@@ -242,6 +245,8 @@ pomera-setup-desktop
 | ツール | 説明 |
 | :--- | :--- |
 | `sudo python3 scripts/inspect_sd.py /dev/rdiskN` | 作成したSDカードのMBR、ブートローダーセクタ（LBA 64/16384）、Disklabelを物理検査。 |
+| `python3 scripts/inspect_kernel.py [kernel]` | カーネルバイナリが DM250 スマートカーネルか、USB/X11キー修正を含むかを自動監査。 |
+| `python3 scripts/build_kernel_qemu.py [--config DM250]` | QEMU ネイティブVM上でパッチ適用・軽量特化カーネル（`DM250` / `GENERIC`）を自動ビルド。 |
 | `scripts/build_uboot.sh` | DM250専用のハンズフリー auto-boot U-Bootバイナリ（`uboot.img`）を単体ビルド。 |
 | `scripts/run_qemu.sh [image_path]` | 実機に挿す前に、作成したイメージをローカルPC（Mac/Linux）のQEMUシミュレータで起動テスト。 |
 

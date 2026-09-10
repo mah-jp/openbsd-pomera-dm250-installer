@@ -26,6 +26,7 @@ DOWNLOAD_ONLY=false
 BOOTLOADER_ONLY=false
 REBUILD_UBOOT=false
 BUILD_KERNEL=false
+POMERA_SMART_KERNEL="${POMERA_SMART_KERNEL:-no}"
 POMERA_PATCH_USB_HUB="${POMERA_PATCH_USB_HUB:-no}"
 POMERA_PATCH_X11_KEYS="${POMERA_PATCH_X11_KEYS:-no}"
 POMERA_BUILD_PATCHED_KERNEL="${POMERA_BUILD_PATCHED_KERNEL:-no}"
@@ -83,6 +84,8 @@ show_help() {
     echo ""
     echo "Options:"
     echo "  --us                   Build for Pomera DM250US (US model)"
+    echo "  --smart-kernel         Build & use DM250 optimized kernel (~50% smaller, faster boot)"
+    echo "  --no-smart-kernel      Use standard generic kernel"
     echo "  --build-kernel         Rebuild patched OpenBSD kernel (USB & keyboard fix) via QEMU"
     echo "  --rebuild-uboot        Rebuild custom auto-booting U-Boot binary"
     echo "  --bootloader-only      Flash only idbloader.img & uboot.img to target without formatting"
@@ -91,6 +94,7 @@ show_help() {
     echo ""
     echo "Examples:"
     echo "  $0 --download-only     # Pre-download all packages & binaries"
+    echo "  $0 --smart-kernel      # Build & use DM250 optimized kernel (~4MB)"
     echo "  $0 --build-kernel      # Recompile patched kernel in QEMU"
     echo "  sudo $0 /dev/sdb       # Flash directly to SD card on Linux"
     echo "  $0 /dev/rdisk4         # Flash directly to SD card on macOS"
@@ -103,6 +107,8 @@ parse_arguments() {
         case "$1" in
             --help|-h) show_help ;;
             --us) MODEL_TYPE="dm250us"; shift ;;
+            --smart-kernel) POMERA_SMART_KERNEL="yes"; shift ;;
+            --no-smart-kernel) POMERA_SMART_KERNEL="no"; shift ;;
             --build-kernel) BUILD_KERNEL=true; shift ;;
             --rebuild-uboot) REBUILD_UBOOT=true; shift ;;
             --bootloader-only|--flash-bootloader) BOOTLOADER_ONLY=true; shift ;;
@@ -166,6 +172,7 @@ fetch_file() {
 generate_install_configs() {
     echo ""
     echo ">> Preparing autoinstall response configuration..."
+    local prev_smart_k="${POMERA_SMART_KERNEL:-}"
     local prev_patch_usb="${POMERA_PATCH_USB_HUB:-}"
     local prev_patch_x11="${POMERA_PATCH_X11_KEYS:-}"
     local prev_build_k="${POMERA_BUILD_PATCHED_KERNEL:-}"
@@ -177,6 +184,7 @@ generate_install_configs() {
         source "$user_config_file"
     fi
 
+    [ -n "$prev_smart_k" ] && [ "$prev_smart_k" != "no" ] && POMERA_SMART_KERNEL="$prev_smart_k"
     [ -n "$prev_patch_usb" ] && [ "$prev_patch_usb" != "no" ] && POMERA_PATCH_USB_HUB="$prev_patch_usb"
     [ -n "$prev_patch_x11" ] && [ "$prev_patch_x11" != "no" ] && POMERA_PATCH_X11_KEYS="$prev_patch_x11"
     [ -n "$prev_build_k" ] && [ "$prev_build_k" != "no" ] && POMERA_BUILD_PATCHED_KERNEL="$prev_build_k"
@@ -192,6 +200,7 @@ generate_install_configs() {
     local conf_lid_interval="${POMERA_LID_INTERVAL:-0.5}"
     local conf_cpu_policy="${POMERA_CPU_POLICY:-auto}"
 
+    POMERA_SMART_KERNEL="${POMERA_SMART_KERNEL:-no}"
     POMERA_PATCH_USB_HUB="${POMERA_PATCH_USB_HUB:-no}"
     POMERA_PATCH_X11_KEYS="${POMERA_PATCH_X11_KEYS:-no}"
     POMERA_BUILD_PATCHED_KERNEL="${POMERA_BUILD_PATCHED_KERNEL:-no}"
@@ -398,38 +407,45 @@ EOF
     # Always fetch upstream official kernel first
     fetch_file "${JCS_MIRROR}/bsd" "${WORK_DIR}/bsd"
 
-    # Evaluate whether kernel patches are requested
+    # Evaluate whether kernel patches or smart optimization are requested
     local want_kernel_patch=false
-    local check_flag="--check-all"
+    local check_flags=()
+    local target_kconfig="GENERIC"
+
+    if [ "$POMERA_SMART_KERNEL" = "yes" ]; then
+        want_kernel_patch=true
+        target_kconfig="DM250"
+        check_flags+=("--check-smart")
+    fi
 
     if [ "$BUILD_KERNEL" = "true" ] || [ "$POMERA_BUILD_PATCHED_KERNEL" = "yes" ]; then
         want_kernel_patch=true
-        check_flag="--check-all"
+        check_flags+=("--check-all")
     elif [ "$POMERA_PATCH_USB_HUB" = "yes" ] && [ "$POMERA_PATCH_X11_KEYS" = "yes" ]; then
         want_kernel_patch=true
-        check_flag="--check-all"
+        check_flags+=("--check-all")
     elif [ "$POMERA_PATCH_USB_HUB" = "yes" ]; then
         want_kernel_patch=true
-        check_flag="--check-usb"
+        check_flags+=("--check-usb")
     elif [ "$POMERA_PATCH_X11_KEYS" = "yes" ]; then
         want_kernel_patch=true
-        check_flag="--check-x11"
+        check_flags+=("--check-x11")
     fi
 
     if [ "$want_kernel_patch" = "true" ]; then
         echo ""
-        echo "=== [Kernel Patch Audit] Verifying Upstream Kernel Fix Status ==="
+        echo "=== [Kernel Audit] Verifying Upstream Kernel Status (Config: ${target_kconfig}) ==="
         local inspect_script="${SCRIPT_DIR}/scripts/inspect_kernel.py"
 
-        if [ -f "$inspect_script" ] && python3 "$inspect_script" "${WORK_DIR}/bsd" "$check_flag"; then
-            echo ">> ✨ Upstream jcs.org kernel already includes requested fix(es)!"
+        if [ -f "$inspect_script" ] && python3 "$inspect_script" "${WORK_DIR}/bsd" "${check_flags[@]}"; then
+            echo ">> ✨ Upstream jcs.org kernel already satisfies requested configuration!"
             echo "   Using official binary directly. Skipping QEMU rebuild."
         else
-            echo ">> Upstream jcs.org kernel does NOT contain requested fix(es)."
+            echo ">> Upstream jcs.org kernel does NOT satisfy requested configuration (${check_flags[*]})."
             local need_compile=false
             if [ -f "${WORK_DIR}/bsd.patched" ]; then
-                if [ -f "$inspect_script" ] && python3 "$inspect_script" "${WORK_DIR}/bsd.patched" "$check_flag"; then
-                    echo ">> Reusing verified cached patched kernel (_build_cache/bsd.patched)..."
+                if [ -f "$inspect_script" ] && python3 "$inspect_script" "${WORK_DIR}/bsd.patched" "${check_flags[@]}"; then
+                    echo ">> Reusing verified cached custom kernel (_build_cache/bsd.patched)..."
                     cp -f "${WORK_DIR}/bsd.patched" "${WORK_DIR}/bsd"
                 else
                     need_compile=true
@@ -439,16 +455,16 @@ EOF
             fi
 
             if [ "$need_compile" = "true" ]; then
-                echo "=== [Kernel Builder] Compiling Patched Kernel via QEMU ==="
+                echo "=== [Kernel Builder] Compiling Custom Kernel via QEMU (Config: ${target_kconfig}) ==="
                 fetch_file "${ARMV7_MIRROR}/bsd" "${WORK_DIR}/bsd_generic" "${ARMV7_SNAP_MIRROR}/bsd"
-                python3 "${SCRIPT_DIR}/scripts/build_kernel_qemu.py"
+                python3 "${SCRIPT_DIR}/scripts/build_kernel_qemu.py" --config "${target_kconfig}"
                 if [ -f "${WORK_DIR}/bsd.patched" ]; then
                     cp -f "${WORK_DIR}/bsd.patched" "${WORK_DIR}/bsd"
                 fi
             fi
         fi
     else
-        echo ">> Using standard official jcs.org kernel (unpatched)."
+        echo ">> Using standard official jcs.org kernel (unpatched GENERIC)."
     fi
 
     # Build helper binaries

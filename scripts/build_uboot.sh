@@ -130,8 +130,21 @@ if [ ! -f "pomera-dm250.dtb" ]; then
 
         if [ ! -f "${DTS_CACHE_DIR}/$f" ] || [ ! -s "${DTS_CACHE_DIR}/$f" ]; then
             echo "   -> Downloading $f..."
-            curl -sSL --retry 5 --retry-delay 3 -f "$DTS_BASE_URL/$f" -o "${DTS_CACHE_DIR}/$f"
-            sleep 2
+            attempt=1
+            while [ $attempt -le 5 ]; do
+                if curl -sSL -f "$DTS_BASE_URL/$f" -o "${DTS_CACHE_DIR}/$f"; then
+                    break
+                else
+                    echo "      ⚠️ Download failed or rate limited (attempt $attempt/5). Waiting 5s..."
+                    sleep 5
+                    attempt=$((attempt + 1))
+                fi
+            done
+            if [ ! -f "${DTS_CACHE_DIR}/$f" ] || [ ! -s "${DTS_CACHE_DIR}/$f" ]; then
+                echo "❌ Failed to download DTS file $f after 5 attempts"
+                exit 1
+            fi
+            sleep 1
         else
             echo "   -> Cached: $f"
         fi

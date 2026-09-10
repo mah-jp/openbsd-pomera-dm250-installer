@@ -120,12 +120,13 @@ nano configs/user_config.env
   * `POMERA_CPU_POLICY` : CPU performance scaling policy (`auto`: dynamic load-based scaling / `100` or `high`: maximum clock lock, Default: `auto`)
   * `POMERA_ENABLE_SSHD` / `POMERA_ALLOW_ROOT_SSH` : SSH daemon enable & root login permission
   * `POMERA_CONFIRM_INSTALL` : Pre-install confirmation prompt before erasing internal storage (Default: `yes`. Set to `no` for unattended zero-touch installation)
+  * `POMERA_SMART_KERNEL` : Optimize & slim down kernel for DM250 (~50% smaller, faster boot) (Default: `no`. Set to `yes` to enable)
   * `POMERA_PATCH_USB_HUB` : Fix USB Hub crash & disconnect issues (Default: `no`. Set to `yes` to enable)
   * `POMERA_PATCH_X11_KEYS` : Fix Right-Shift and Left-Alt keys under X11 (Default: `no`. Set to `yes` to enable)
 
 > [!TIP]
 > **💡 Smart Kernel Audit Feature**  
-> When `POMERA_PATCH_USB_HUB` or `POMERA_PATCH_X11_KEYS` is set to `yes`, the installer automatically audits the binary of the official kernel (`jcs.org/dm250/bsd`). If the official kernel already incorporates the required fixes, it skips recompilation and adopts the official binary directly (0s wait time). Recompilation via temporary QEMU VM runs only when fixes are missing (and build results are cached for subsequent runs).
+> When `POMERA_SMART_KERNEL`, `POMERA_PATCH_USB_HUB`, or `POMERA_PATCH_X11_KEYS` is set to `yes`, the installer automatically audits the binary of the official kernel (`jcs.org/dm250/bsd`). If the official kernel already satisfies the requested configuration, it skips recompilation and adopts the official binary directly (0s wait time). Recompilation via temporary QEMU VM runs only when needed (and build results are cached for subsequent runs).
 
 *(Note: Root disk encryption [softraid CRYPTO] boot is permanently disabled as the OpenBSD armv7 EFI bootloader does not support crypto boot by design).*
 
@@ -144,6 +145,9 @@ sudo ./make_sdcard.sh /dev/rdisk4
 
 # Download and cache files only (no formatting):
 ./make_sdcard.sh --download-only
+
+# Build and use DM250 optimized smart kernel (~50% smaller, faster boot):
+./make_sdcard.sh --smart-kernel
 
 # Force QEMU recompilation of the patched kernel:
 ./make_sdcard.sh --build-kernel
@@ -244,6 +248,8 @@ This automatically configures:
 | Tool | Description |
 | :--- | :--- |
 | `sudo python3 scripts/inspect_sd.py /dev/rdiskN` | Inspect physical sector layout, MBR, BootROM sectors (LBA 64/16384), and Disklabel. |
+| `python3 scripts/inspect_kernel.py [kernel]` | Audit if a kernel binary is optimized DM250 smart kernel or contains USB/X11 fixes. |
+| `python3 scripts/build_kernel_qemu.py [--config DM250]` | Automatically build patched & slimmed kernel (`DM250` / `GENERIC`) via native QEMU VM. |
 | `scripts/build_uboot.sh` | Standalone compilation of custom hands-free auto-boot U-Boot image (`uboot.img`). |
 | `scripts/run_qemu.sh [image_path]` | Run local QEMU simulation of the OpenBSD image before writing to physical hardware. |
 

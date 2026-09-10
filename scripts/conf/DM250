@@ -1,0 +1,177 @@
+#	$OpenBSD: DM250,v 1.0 2026/09/10 mah Exp $
+#
+# Pomera DM250 Optimized & Slimmed-down Kernel
+# Excludes unnecessary SoCs (i.MX, Sunxi, OMAP, Exynos, etc.) and PCI devices.
+# Preserves rich USB peripheral support (UVC webcam, CD/DVD, USB audio, storage, LAN).
+
+machine		armv7 arm
+include		"../../../conf/GENERIC"
+
+makeoptions	KERNEL_BASE_VIRT="0xc0300000"
+
+maxusers	32			# estimated number of users
+option		CPU_ARMv7		# Support the ARMv7
+
+option WSDISPLAY_COMPAT_USL		# VT handling
+option WSDISPLAY_COMPAT_RAWKBD		# can get raw scancodes
+option WSDISPLAY_DEFAULTSCREENS=6	# initial number of text consoles
+
+option		CONF_HAVE_APM
+option		CONF_HAVE_GPIO
+option		PCIVERBOSE
+option		SUSPEND
+option		USBVERBOSE
+option		USER_PCICONF
+
+config		bsd	swap generic
+
+# The main bus device
+mainbus0	at root
+simplebus*	at fdt?
+cpu0		at mainbus?
+apm0		at mainbus?
+
+# Generic ARM Interrupt / Timer / Power
+ampintc*	at fdt? early 1
+ampintcmsi*	at fdt? early 1
+agtimer*	at fdt?
+psci*		at fdt? early 1
+syscon*		at fdt? early 1
+
+# Consoles & Serial UARTs (required by platform_init_cons & RK3128 console)
+com*		at fdt?			# onboard standard 16550 UARTs (RK3128 serial console)
+pluart*		at fdt?			# ARM PrimeCell PL011 UART (QEMU virt console)
+cduart*		at fdt?
+exuart*		at fdt?
+imxuart*	at fdt?
+
+# Display / Framebuffer (FDT)
+simplefb*	at fdt?
+wsdisplay*	at simplefb?
+
+# Rockchip RK3128 & Core Peripherals
+rkclock*	at fdt? early 1
+rkgrf*		at fdt? early 1
+rkpinctrl*	at fdt? early 1
+rkusbphy*	at fdt? early 1
+rklvdsphy*	at fdt?
+rkgpio*		at fdt?
+gpio*		at rkgpio?
+rkiic*		at fdt?
+iic*		at rkiic?
+rktemp*		at fdt?
+dwdog*		at fdt?
+rkpwm*		at fdt?
+pwmbl*		at fdt?
+simplepanel*	at fdt?
+rklvds*		at fdt?
+rkvop*		at fdt?
+rkdrm*		at fdt?
+drm*		at rkdrm?
+wsdisplay*	at rkdrm?
+
+# SD / eMMC (DesignWare MMC)
+dwmmc*		at fdt?
+sdmmc*		at dwmmc?
+
+# USB Controller (DesignWare OTG dwc2)
+dwctwo*		at fdt?
+usb*		at dwctwo?
+
+# PMIC, Battery & Sensors
+rkpmic*		at iic?			# RK808 / RK818 PMIC
+rkcharger*	at rkpmic?		# RK818 battery charger
+simplebat*	at rkcharger?		# battery sensors
+
+# Pomera DM250 Keyboard & Keys
+tcmfd*		at iic?			# Toshiba TC3589x I2C GPIO expander
+wskbd*		at tcmfd? mux 1
+gpiokeys*	at fdt?
+gpioleds*	at fdt?
+
+# PCI Bus & Virtio (required for DRM subsystem linkage and QEMU simulation)
+virtio*		at fdt?
+virtio*		at pci?
+pciecam*	at fdt?
+pci*		at pciecam?
+ppb*		at pci?
+pci*		at ppb?
+vioblk*		at virtio?
+vio*		at virtio?
+viomb*		at virtio?
+viornd*		at virtio?
+vioscsi*	at virtio?
+
+# USB Bus Support
+uhub*		at usb?			# USB Hubs
+uhub*		at uhub?		# USB Hubs
+urng*		at uhub?		# USB Random Number Generator
+
+# USB Storage & Optical Media
+umass*		at uhub?		# USB Mass Storage devices
+scsibus*	at scsi?
+sd*		at scsibus?		# USB flash drives / external disks
+cd*		at scsibus?		# USB CD/DVD-ROM drives
+
+# USB Human Interface Devices (HID)
+uhidev*		at uhub?		# Human Interface Devices
+ums*		at uhidev?		# USB mouse
+wsmouse*	at ums? mux 0
+ukbd*		at uhidev?		# USB keyboard
+wskbd*		at ukbd? mux 1
+ucc*		at uhidev?		# Consumer Control keyboards
+wskbd*		at ucc? mux 1
+ujoy*		at uhidev?		# USB joystick / gamepad
+uwacom*		at uhidev?		# USB Wacom tablet
+wsmouse*	at uwacom? mux 0
+uhid*		at uhidev?		# USB generic HID support
+fido*		at uhidev?		# FIDO/U2F security key support
+
+# USB Audio & Video (Webcam & DAC)
+uaudio*		at uhub?		# USB Audio (DAC / headphone / mic)
+audio*		at uaudio?
+uvideo*		at uhub?		# USB Video (UVC Webcams)
+video*		at uvideo?
+
+# USB Wired Ethernet & Mobile Tethering
+axe*		at uhub?		# ASIX AX88172 USB Ethernet
+axen*		at uhub?		# ASIX AX88179 USB Ethernet
+cdce*		at uhub?		# CDC Ethernet
+smsc*		at uhub?		# SMSC LAN95xx Ethernet
+mue*		at uhub?		# Microchip LAN75xx/LAN78xx Ethernet
+ure*		at uhub?		# Realtek RTL8152 based adapters
+urndis*		at uhub?		# Remote NDIS Ethernet (USB tethering)
+
+# MII PHY Support (required by USB Ethernet adapters)
+atphy*		at mii?			# Attansic F1 PHYs
+eephy*		at mii?			# Marvell 88E1000 series PHY
+rgephy*		at mii?			# Realtek 8169S/8110S PHY
+rlphy*		at mii?			# Realtek 8139 internal PHYs
+ukphy*		at mii?			# "unknown" generic PHYs
+
+# USB Serial Adapters
+uftdi*		at uhub?		# FTDI serial adapter
+ucom*		at uftdi?
+uplcom*		at uhub?		# Prolific PL2303 serial
+ucom*		at uplcom?
+uslcom*		at uhub?		# Silicon Labs CP210x serial
+ucom*		at uslcom?
+uchcom*		at uhub?		# WinChipHead CH340/CH341 serial
+ucom*		at uchcom?
+umodem*		at uhub?		# USB Modems / CDC ACM serial
+ucom*		at umodem?
+
+# Wireless Networking
+bwfm*		at sdmmc?		# Broadcom FullMAC (SDIO)
+bwfm*		at uhub?		# Broadcom FullMAC (USB)
+urtwn*		at uhub?		# Realtek RTL8188CU/RTL8192CU USB Wi-Fi
+rsu*		at uhub?		# Realtek RTL8188SU USB Wi-Fi
+
+# GPIO "pin bus" drivers
+gpioiic*	at gpio?		# I2C bus bit-banging
+iic*		at gpioiic?
+
+# Pseudo-Devices
+pseudo-device	openprom
+pseudo-device	hotplug		1	# devices hot plugging
+pseudo-device	wsmux		2	# mouse & keyboard multiplexor

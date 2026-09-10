@@ -36,6 +36,8 @@ OUTPUT_KERNEL = os.path.join(CACHE_DIR, "bsd.patched")
 parser = argparse.ArgumentParser(description="Build OpenBSD patched kernel via QEMU")
 parser.add_argument("--work-dir", type=str, default=None, help="Working directory for disk images and temp files")
 parser.add_argument("--no-clean", action="store_true", help="Keep build disk image and temp files after build")
+parser.add_argument("--config", type=str, default="DM250", choices=["DM250", "GENERIC"],
+                    help="Kernel configuration to build (default: DM250)")
 args, _ = parser.parse_known_args()
 
 if args.work_dir:
@@ -242,6 +244,14 @@ def prepare_patched_sys_archive(mgr: BuildManager) -> str:
             raise RuntimeError("Verification failed: wskbdvar.h does not contain wskbd_is_raw declaration!")
     print("   ✅ Verified wskbd_is_raw declaration in wskbdvar.h")
 
+    # Inject DM250 optimized kernel configuration if available
+    conf_dm250 = os.path.join(SCRIPT_DIR, "conf", "DM250")
+    if os.path.isfile(conf_dm250):
+        target_conf_dir = os.path.join(stage_dir, "sys", "arch", "armv7", "conf")
+        os.makedirs(target_conf_dir, exist_ok=True)
+        shutil.copy2(conf_dm250, os.path.join(target_conf_dir, "DM250"))
+        print(f"   ✅ Injected DM250 optimized kernel configuration -> {os.path.join(target_conf_dir, 'DM250')}")
+
     print(f"   Creating final patched archive {archive_path}...")
     subprocess.run(
         ["tar", "-czf", archive_path, "-C", stage_dir, "sys"],
@@ -253,8 +263,9 @@ def prepare_patched_sys_archive(mgr: BuildManager) -> str:
 
 
 def main():
+    target_config = args.config
     print("=================================================================")
-    print("🛠️  OpenBSD Pomera DM250 DWC2 Patched Kernel Builder (Mac x QEMU)")
+    print(f"🛠️  OpenBSD Pomera DM250 Patched Kernel Builder (Config: {target_config})")
     print("=================================================================")
 
     mgr = BuildManager()
@@ -380,17 +391,17 @@ EOF_RCCONF
 # Configure automatic build script in rc.local
 cat << 'EOF_RC' > /mnt/etc/rc.local
 echo "=========================================================="
-echo ">> [QEMU-ARMV7] Starting Patched Kernel Compilation..."
+echo ">> [QEMU-ARMV7] Starting Patched Kernel Compilation ({target_config})..."
 echo "=========================================================="
 cd /usr/src/sys/arch/armv7/conf
-/usr/sbin/config GENERIC
-cd /usr/src/sys/arch/armv7/compile/GENERIC
+/usr/sbin/config {target_config}
+cd /usr/src/sys/arch/armv7/compile/{target_config}
 make clean || true
 make -j4
 if [ -f bsd ]; then
     K=bsd
-elif [ -f /usr/obj/sys/arch/armv7/compile/GENERIC/bsd ]; then
-    K=/usr/obj/sys/arch/armv7/compile/GENERIC/bsd
+elif [ -f /usr/obj/sys/arch/armv7/compile/{target_config}/bsd ]; then
+    K=/usr/obj/sys/arch/armv7/compile/{target_config}/bsd
 else
     echo "❌ Kernel build failed!"
     sync

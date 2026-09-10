@@ -338,16 +338,9 @@ if [ -f /etc/rc.d/pomera_lid_watch ]; then
     rcctl set pomera_lid_watch flags "-i ${conf_lid_int} -p ${conf_cpu_pol}"
 fi
 
-# Add friendly MOTD notice for pomera-setup-desktop
+# Set simple MOTD welcome message
 cat << 'EOF' >> /etc/motd
-
-===============================================================
- Welcome to OpenBSD on Pomera DM250!
- 💡 Tip: Connect to Wi-Fi and run:
-    pomera-setup-desktop
- to set up GUI (cwm), Japanese fonts, vim, and tmux!
-===============================================================
-
+Welcome to OpenBSD on Pomera DM250!
 EOF
 
 # Final flush of all buffers to physical media
