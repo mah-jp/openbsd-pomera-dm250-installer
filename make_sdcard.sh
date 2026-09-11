@@ -29,6 +29,7 @@ BUILD_KERNEL=false
 POMERA_SMART_KERNEL="${POMERA_SMART_KERNEL:-no}"
 POMERA_PATCH_USB_HUB="${POMERA_PATCH_USB_HUB:-no}"
 POMERA_PATCH_X11_KEYS="${POMERA_PATCH_X11_KEYS:-no}"
+POMERA_PATCH_MLTERM_FB="${POMERA_PATCH_MLTERM_FB:-no}"
 POMERA_BUILD_PATCHED_KERNEL="${POMERA_BUILD_PATCHED_KERNEL:-no}"
 MODEL_TYPE="dm250"
 
@@ -175,6 +176,7 @@ generate_install_configs() {
     local prev_smart_k="${POMERA_SMART_KERNEL:-}"
     local prev_patch_usb="${POMERA_PATCH_USB_HUB:-}"
     local prev_patch_x11="${POMERA_PATCH_X11_KEYS:-}"
+    local prev_patch_smode="${POMERA_PATCH_MLTERM_FB:-}"
     local prev_build_k="${POMERA_BUILD_PATCHED_KERNEL:-}"
 
     local user_config_file="${CONFIGS_DIR}/user_config.env"
@@ -187,6 +189,7 @@ generate_install_configs() {
     [ -n "$prev_smart_k" ] && [ "$prev_smart_k" != "no" ] && POMERA_SMART_KERNEL="$prev_smart_k"
     [ -n "$prev_patch_usb" ] && [ "$prev_patch_usb" != "no" ] && POMERA_PATCH_USB_HUB="$prev_patch_usb"
     [ -n "$prev_patch_x11" ] && [ "$prev_patch_x11" != "no" ] && POMERA_PATCH_X11_KEYS="$prev_patch_x11"
+    [ -n "$prev_patch_smode" ] && [ "$prev_patch_smode" != "no" ] && POMERA_PATCH_MLTERM_FB="$prev_patch_smode"
     [ -n "$prev_build_k" ] && [ "$prev_build_k" != "no" ] && POMERA_BUILD_PATCHED_KERNEL="$prev_build_k"
 
     local conf_user="${POMERA_USERNAME:-pomera}"
@@ -203,6 +206,7 @@ generate_install_configs() {
     POMERA_SMART_KERNEL="${POMERA_SMART_KERNEL:-no}"
     POMERA_PATCH_USB_HUB="${POMERA_PATCH_USB_HUB:-no}"
     POMERA_PATCH_X11_KEYS="${POMERA_PATCH_X11_KEYS:-no}"
+    POMERA_PATCH_MLTERM_FB="${POMERA_PATCH_MLTERM_FB:-no}"
     POMERA_BUILD_PATCHED_KERNEL="${POMERA_BUILD_PATCHED_KERNEL:-no}"
 
     # Inject user credentials into _build_cache/install.site.env to guarantee 100% password enforcement without dirtying git configs
@@ -421,18 +425,22 @@ EOF
     if [ "$BUILD_KERNEL" = "true" ] || [ "$POMERA_BUILD_PATCHED_KERNEL" = "yes" ]; then
         want_kernel_patch=true
         check_flags+=("--check-all")
-    elif [ "$POMERA_PATCH_USB_HUB" = "yes" ] && [ "$POMERA_PATCH_X11_KEYS" = "yes" ]; then
-        want_kernel_patch=true
-        check_flags+=("--check-all")
-    elif [ "$POMERA_PATCH_USB_HUB" = "yes" ]; then
-        want_kernel_patch=true
-        check_flags+=("--check-usb")
-    elif [ "$POMERA_PATCH_X11_KEYS" = "yes" ]; then
-        want_kernel_patch=true
-        check_flags+=("--check-x11")
+    else
+        if [ "$POMERA_PATCH_USB_HUB" = "yes" ]; then
+            want_kernel_patch=true
+            check_flags+=("--check-usb")
+        fi
+        if [ "$POMERA_PATCH_X11_KEYS" = "yes" ]; then
+            want_kernel_patch=true
+            check_flags+=("--check-x11")
+        fi
+        if [ "$POMERA_PATCH_MLTERM_FB" = "yes" ]; then
+            want_kernel_patch=true
+            check_flags+=("--check-smode")
+        fi
     fi
 
-    local current_kernel_sig="CONFIG=${target_kconfig}|SMART=${POMERA_SMART_KERNEL}|USB_HUB=${POMERA_PATCH_USB_HUB}|X11_KEYS=${POMERA_PATCH_X11_KEYS}"
+    local current_kernel_sig="CONFIG=${target_kconfig}|SMART=${POMERA_SMART_KERNEL}|USB_HUB=${POMERA_PATCH_USB_HUB}|X11_KEYS=${POMERA_PATCH_X11_KEYS}|MLTERM_FB=${POMERA_PATCH_MLTERM_FB}"
     local tag_file="${WORK_DIR}/bsd.patched.tag"
     local inspect_script="${SCRIPT_DIR}/scripts/inspect_kernel.py"
 
@@ -484,6 +492,11 @@ EOF
                     build_args+=("--patch-x11")
                 else
                     build_args+=("--no-patch-x11")
+                fi
+                if [ "$POMERA_PATCH_MLTERM_FB" = "yes" ]; then
+                    build_args+=("--patch-smode")
+                else
+                    build_args+=("--no-patch-smode")
                 fi
 
                 python3 "${SCRIPT_DIR}/scripts/build_kernel_qemu.py" "${build_args[@]}"

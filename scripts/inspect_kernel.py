@@ -124,13 +124,39 @@ def check_smart_kernel(kernel_path: str, nm_bin: Optional[str]) -> Tuple[bool, s
     return False, "Unable to verify DM250 smart kernel signature"
 
 
+def check_smode_patch(kernel_path: str, objdump_bin: Optional[str]) -> Tuple[bool, str]:
+    """
+    Checks if rkdrm implements WSDISPLAYIO_SMODE ioctl (for mlterm-fb DUMBFB console).
+    WSDISPLAYIO_SMODE = _IOW('W', 67, u_int) = 0x80045743.
+    """
+    if objdump_bin:
+        code, out = run_cmd([objdump_bin, "-d", "--disassemble-symbols=rkdrm_wsioctl", kernel_path])
+        if code == 0 and "rkdrm_wsioctl" in out:
+            # Look for 0x5743 (low 16 bits of WSDISPLAYIO_SMODE) or 80045743
+            if "5743" in out.lower() or "80045743" in out.lower():
+                return True, "rkdrm_wsioctl accepts WSDISPLAYIO_SMODE (0x80045743) for mlterm-fb DUMBFB"
+            return False, "rkdrm_wsioctl does not handle WSDISPLAYIO_SMODE (returns ENOTTY, mlterm-fb will fail)"
+
+    # Fallback to binary search if objdump is unavailable
+    try:
+        with open(kernel_path, "rb") as f:
+            data = f.read()
+            if b"\x43\x57\x04\x80" in data or b"\x43\x37\x05\xe3" in data:
+                return True, "Found WSDISPLAYIO_SMODE constant pattern in kernel binary"
+    except Exception:
+        pass
+
+    return False, "Unable to verify rkdrm WSDISPLAYIO_SMODE patch"
+
+
 def main():
     parser = argparse.ArgumentParser(description="Inspect OpenBSD DM250 kernel for hardware patches and smart optimization")
     parser.add_argument("kernel", help="Path to kernel binary (bsd or bsd.patched)")
     parser.add_argument("--check-x11", action="store_true", help="Check only X11 Right-Shift / Left-Alt fix (PR #4)")
     parser.add_argument("--check-usb", action="store_true", help="Check only USB Hub split transaction fix (PR #3)")
+    parser.add_argument("--check-smode", action="store_true", help="Check rkdrm WSDISPLAYIO_SMODE fix for mlterm-fb")
     parser.add_argument("--check-smart", action="store_true", help="Check if kernel is optimized DM250 smart kernel")
-    parser.add_argument("--check-all", action="store_true", help="Check that both patches are present")
+    parser.add_argument("--check-all", action="store_true", help="Check that all hardware patches are present")
     parser.add_argument("--verbose", "-v", action="store_true", help="Print detailed inspection diagnostic messages")
 
     args = parser.parse_args()
@@ -145,9 +171,12 @@ def main():
 
     has_x11, reason_x11 = check_x11_key_patch(args.kernel, objdump_bin, nm_bin)
     has_usb, reason_usb = check_usb_hub_patch(args.kernel, objdump_bin)
+    has_smode, reason_smode = check_smode_patch(args.kernel, objdump_bin)
     has_smart, reason_smart = check_smart_kernel(args.kernel, nm_bin)
 
-    if args.verbose or (not args.check_x11 and not args.check_usb and not args.check_smart and not args.check_all):
+    no_specific_checks = not (args.check_x11 or args.check_usb or args.check_smode or args.check_smart or args.check_all)
+
+    if args.verbose or no_specific_checks:
         print(f"=== Kernel Inspection Report: {os.path.basename(args.kernel)} ===")
         print(f"  Toolchain : objdump={objdump_bin or 'none'}, nm={nm_bin or 'none'}")
         print(f"  DM250 Smart Kernel (Slim / Optimized) : {'✅ APPLIED' if has_smart else '❌ MISSING (GENERIC)'}")
@@ -156,6 +185,8 @@ def main():
         print(f"     -> Details: {reason_x11}")
         print(f"  PR #3 (USB Hub Split Transactions)     : {'✅ APPLIED' if has_usb else '❌ MISSING'}")
         print(f"     -> Details: {reason_usb}")
+        print(f"  rkdrm SMODE (mlterm-fb DUMBFB Console) : {'✅ APPLIED' if has_smode else '❌ MISSING'}")
+        print(f"     -> Details: {reason_smode}")
         print("=================================================================")
 
     # Determine exit code based on requested checks
@@ -166,11 +197,13 @@ def main():
         passed = passed and has_x11
     if args.check_usb:
         passed = passed and has_usb
+    if args.check_smode:
+        passed = passed and has_smode
     if args.check_all:
-        passed = passed and has_x11 and has_usb
+        passed = passed and has_x11 and has_usb and has_smode
 
     # Default if no specific check flags given
-    if not (args.check_smart or args.check_x11 or args.check_usb or args.check_all):
+    if no_specific_checks:
         passed = has_x11 and has_usb
 
     sys.exit(0 if passed else 1)

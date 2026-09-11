@@ -123,10 +123,11 @@ nano configs/user_config.env
   * `POMERA_SMART_KERNEL` : Optimize kernel by removing unused SoCs and PCI expansion drivers (~25% smaller) (Default: `no`. Set to `yes` to enable)
   * `POMERA_PATCH_USB_HUB` : Fix USB Hub crash & disconnect issues (Default: `no`. Set to `yes` to enable)
   * `POMERA_PATCH_X11_KEYS` : Fix Right-Shift and Left-Alt keys under X11 (Default: `no`. Set to `yes` to enable)
+  * `POMERA_PATCH_MLTERM_FB` : Enable high-performance direct framebuffer console for `mlterm-fb` (Default: `no`. Set to `yes` to enable)
 
 > [!TIP]
 > **💡 Smart Kernel Audit Feature**  
-> When `POMERA_SMART_KERNEL`, `POMERA_PATCH_USB_HUB`, or `POMERA_PATCH_X11_KEYS` is set to `yes`, the installer automatically audits the binary of the official kernel (`jcs.org/dm250/bsd`). If the official kernel already satisfies the requested configuration, it skips recompilation and adopts the official binary directly (0s wait time). Recompilation via temporary QEMU VM runs only when needed (and build results are cached for subsequent runs).
+> When `POMERA_SMART_KERNEL`, `POMERA_PATCH_USB_HUB`, `POMERA_PATCH_X11_KEYS`, or `POMERA_PATCH_MLTERM_FB` is set to `yes`, the installer automatically audits the binary of the official kernel (`jcs.org/dm250/bsd`). If the official kernel already satisfies the requested configuration, it skips recompilation and adopts the official binary directly (0s wait time). Recompilation via temporary QEMU VM runs only when needed (and build results are cached for subsequent runs).
 
 *(Note: Root disk encryption [softraid CRYPTO] boot is permanently disabled as the OpenBSD armv7 EFI bootloader does not support crypto boot by design).*
 
