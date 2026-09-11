@@ -63,9 +63,24 @@ EDK2_PATHS = [
 
 
 class SilentHandler(http.server.SimpleHTTPRequestHandler):
-    """HTTP request handler that suppresses access logging."""
+    """HTTP request handler that suppresses access logging and broken pipe exceptions."""
     def log_message(self, format, *args):
         pass
+
+    def copyfile(self, source, outputfile):
+        try:
+            super().copyfile(source, outputfile)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+
+
+class SilentTCPServer(socketserver.TCPServer):
+    """TCP server that suppresses broken pipe tracebacks on premature client disconnect."""
+    def handle_error(self, request, client_address):
+        exctype, value, tb = sys.exc_info()
+        if exctype in (BrokenPipeError, ConnectionResetError):
+            return
+        super().handle_error(request, client_address)
 
 
 class ResourceManager:
@@ -820,8 +835,8 @@ def run_qemu_builder(
 
     # 4. Start HTTP distribution server serving work_dir with dynamic port
     handler = functools.partial(SilentHandler, directory=work_dir)
-    socketserver.TCPServer.allow_reuse_address = True
-    httpd = socketserver.TCPServer(("127.0.0.1", 0), handler)
+    SilentTCPServer.allow_reuse_address = True
+    httpd = SilentTCPServer(("127.0.0.1", 0), handler)
     http_port = httpd.server_address[1]
 
     res_mgr.httpd = httpd

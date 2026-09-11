@@ -236,9 +236,31 @@ if [ "${POMERA_WORKSPACE:-yes}" != "no" ]; then
         fi
     done
 
+    # If running inside target chroot, locate and mount installer SD card partition
+    SD_PKG_MNT=""
+    if [ -z "$PKG_CACHE_DIR" ]; then
+        mkdir -p /mnt_sd_pkg
+        for sdev in /dev/sd0a /dev/sd1a /dev/sd2a; do
+            if [ -e "$sdev" ] && mount -o ro "$sdev" /mnt_sd_pkg 2>/dev/null; then
+                if [ -d "/mnt_sd_pkg/packages" ] && ls /mnt_sd_pkg/packages/*.tgz >/dev/null 2>&1; then
+                    PKG_CACHE_DIR="/mnt_sd_pkg/packages"
+                    SD_PKG_MNT="/mnt_sd_pkg"
+                    break
+                else
+                    umount /mnt_sd_pkg 2>/dev/null || echo ">> [install.site] scanning next partition..."
+                fi
+            fi
+        done
+    fi
+
     if [ -n "$PKG_CACHE_DIR" ]; then
         echo ">> [install.site] Installing Pomera Workspace packages from offline cache ($PKG_CACHE_DIR)..."
         PKG_PATH="$PKG_CACHE_DIR" pkg_add -I -D unsigned vim curl git mlterm noto-cjk dmenu 2>/dev/null || echo ">> [install.site] Offline packages processed."
+    fi
+
+    if [ -n "$SD_PKG_MNT" ]; then
+        umount "$SD_PKG_MNT" 2>/dev/null || echo ">> [install.site] SD package partition unmounted."
+        rmdir "$SD_PKG_MNT" 2>/dev/null || echo ">> [install.site] SD package mount point cleaned."
     fi
 fi
 
