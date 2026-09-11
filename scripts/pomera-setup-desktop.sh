@@ -112,6 +112,10 @@ bind h select-pane -L
 bind j select-pane -D
 bind k select-pane -U
 bind l select-pane -R
+
+# Alt+F1 / Alt+F2 for backlight brightness adjustment (no prefix needed)
+bind-key -n M-F1 run-shell "/usr/local/bin/pomera-brightness down"
+bind-key -n M-F2 run-shell "/usr/local/bin/pomera-brightness up"
 EOF
 chown "$TARGET_USER" "$TARGET_HOME/.tmux.conf"
 chmod 0644 "$TARGET_HOME/.tmux.conf"

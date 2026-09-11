@@ -42,6 +42,8 @@ parser.add_argument("--patch-usb", dest="patch_usb", action=argparse.BooleanOpti
                     help="Apply USB hub split transactions fix (PR #3)")
 parser.add_argument("--patch-x11", dest="patch_x11", action=argparse.BooleanOptionalAction, default=True,
                     help="Apply X11 raw keys fix (PR #4)")
+parser.add_argument("--patch-smode", dest="patch_smode", action=argparse.BooleanOptionalAction, default=True,
+                    help="Apply rkdrm WSDISPLAYIO_SMODE fix for mlterm-fb framebuffer console")
 args, _ = parser.parse_known_args()
 
 if args.work_dir:
@@ -261,6 +263,30 @@ def prepare_patched_sys_archive(mgr: BuildManager) -> str:
             print("   ✅ Verified wskbd_is_raw declaration in wskbdvar.h")
     else:
         print("   ⏩ Skipping X11 keys patch (disabled by user configuration)")
+
+    # 3. Apply rkdrm WSDISPLAYIO_SMODE fix for mlterm-fb framebuffer console
+    if args.patch_smode:
+        smode_patch = os.path.join(SCRIPT_DIR, "patches", "rkdrm_wsdisplay_smode.patch")
+        if os.path.isfile(smode_patch):
+            print("   Applying patch rkdrm_wsdisplay_smode.patch to staged tree...")
+            subprocess.run(
+                ["patch", "-p1", "--forward", "-r", "-"],
+                input=open(smode_patch, "rb").read(),
+                cwd=stage_dir,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=False
+            )
+
+        target_rkdrm = os.path.join(stage_dir, "sys", "dev", "fdt", "rkdrm.c")
+        if os.path.isfile(target_rkdrm):
+            with open(target_rkdrm, "r") as f:
+                content = f.read()
+                if "WSDISPLAYIO_SMODE:" not in content:
+                    raise RuntimeError("Verification failed: rkdrm.c does not contain WSDISPLAYIO_SMODE fix!")
+            print("   ✅ Verified WSDISPLAYIO_SMODE in rkdrm.c")
+    else:
+        print("   ⏩ Skipping rkdrm SMODE patch (disabled by user configuration)")
 
     # Inject DM250 optimized kernel configuration if available
     conf_dm250 = os.path.join(SCRIPT_DIR, "conf", "DM250")
