@@ -1,4 +1,5 @@
-# NVRAM configuration for Broadcom AP6212 / BCM43430 on Rockchip RK3128 (Pomera DM250)
+# NVRAM calibration parameters for Broadcom AP6212 / BCM43430 on Pomera DM250
+# Used by OpenBSD bwfm(4) wireless driver.
 NVRAMREV=1
 manfid=0x2d0
 prodid=0x43430

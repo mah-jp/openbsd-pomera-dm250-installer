@@ -27,7 +27,8 @@ else
     DOAS="doas"
 fi
 
-TARGET_HOME=$(getent passwd "$TARGET_USER" 2>/dev/null | cut -d: -f6 || echo "/home/$TARGET_USER")
+TARGET_HOME=$(awk -F: -v u="$TARGET_USER" '$1 == u {print $6}' /etc/passwd 2>/dev/null)
+[ -z "$TARGET_HOME" ] && TARGET_HOME="/home/$TARGET_USER"
 
 if [ ! -d "$TARGET_HOME" ]; then
     echo "❌ Error: Target user home directory $TARGET_HOME does not exist."

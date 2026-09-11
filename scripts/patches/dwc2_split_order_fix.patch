@@ -1,3 +1,12 @@
+From: Masahiko OHKUBO and Pomera DM250 OpenBSD Project Contributors
+Subject: dwc2: avoid list corruption and panic during split transactions on USB hubs (PR #3)
+License: ISC (this patch modifies OpenBSD source and inherits ISC; see LICENSE)
+
+Snapshot pending split channels into a local buffer before invoking dwc2_hc_n_intr().
+During interrupt processing, channels may be released and new transactions queued,
+modifying hsotg->split_order dynamically and causing list corruption and use-after-free
+kernel panics when multiple USB devices are connected through a USB hub.
+
 --- a/sys/dev/usb/dwc2/dwc2var.h
 +++ b/sys/dev/usb/dwc2/dwc2var.h
 @@ -135,7 +135,11 @@

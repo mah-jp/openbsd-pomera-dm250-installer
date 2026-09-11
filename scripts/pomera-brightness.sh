@@ -31,7 +31,7 @@ fi
 
 cur=$(echo "$cur_raw" | tr -d '%' | cut -d. -f1)
 
-case "$1" in
+case "${1:-}" in
     up|+)
         new=$((cur + STEP))
         [ "$new" -gt "$MAX_BRIGHTNESS" ] && new=$MAX_BRIGHTNESS

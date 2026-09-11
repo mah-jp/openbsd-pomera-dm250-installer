@@ -47,7 +47,7 @@ reconnect_wifi() {
 
 # If invoked as 'pomera-wifi-reconnect' or with '-r', run single-shot manual reconnect
 BASENAME="$(basename "$0")"
-if [ "$BASENAME" = "pomera-wifi-reconnect" ] || [ "$1" = "-r" ] || [ "$1" = "--reconnect" ]; then
+if [ "$BASENAME" = "pomera-wifi-reconnect" ] || [ "${1:-}" = "-r" ] || [ "${1:-}" = "--reconnect" ]; then
     reconnect_wifi
     exit $?
 fi

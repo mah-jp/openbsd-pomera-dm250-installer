@@ -10,7 +10,7 @@
 #
 # Enhancements:
 # - Dynamic CPU setperf scaling (setperf=0 on close, setperf=100 on open)
-# - Ultra-fast 0.5s polling loop for instantaneous resume feel
+# - Responsive 2.0s polling loop with instant wake-from-lid reaction
 #
 # Behavior:
 # - Lid CLOSED: Immediately turns off backlight and drops CPU clock to minimum (setperf=0).
@@ -47,7 +47,11 @@ case "$CPU_POLICY" in
 esac
 
 # Ensure clean exit on SIGTERM/SIGINT (restore normal full power state)
-trap 'wsconsctl display.brightness="$SAVED_BRIGHTNESS" >/dev/null 2>&1 || wsconsctl display.brightness=100 >/dev/null 2>&1 || true; sysctl hw.perfpolicy="'"$CPU_POLICY"'" >/dev/null 2>&1 || sysctl hw.setperf=100 >/dev/null 2>&1 || true; exit 0' TERM INT
+cleanup() {
+    wsconsctl display.brightness="$SAVED_BRIGHTNESS" >/dev/null 2>&1 || wsconsctl display.brightness=100 >/dev/null 2>&1 || true
+    sysctl hw.perfpolicy="$CPU_POLICY" >/dev/null 2>&1 || sysctl hw.setperf=100 >/dev/null 2>&1 || true
+}
+trap 'cleanup; exit 0' TERM INT
 
 # Ensure sensor is available
 check_lid() {
@@ -84,7 +88,7 @@ while true; do
                 # Check timeout for long-term sleep
                 now=$(date +%s)
                 elapsed=$((now - CLOSED_EPOCH))
-                if [ $elapsed -ge $SUSPEND_TIMEOUT ]; then
+                if [ "$elapsed" -ge "$SUSPEND_TIMEOUT" ]; then
                     if [ -x /usr/local/sbin/pomera-suspend ]; then
                         /usr/local/sbin/pomera-suspend
                     elif [ -x /etc/pomera-suspend ]; then

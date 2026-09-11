@@ -1,3 +1,12 @@
+From: Masahiko OHKUBO and Pomera DM250 OpenBSD Project Contributors
+Subject: gpiokeys/wskbd: pass raw scancodes to X11 for Right-Shift and Left-Alt (PR #4)
+License: ISC (this patch modifies OpenBSD source and inherits ISC; see LICENSE)
+
+On Pomera DM250, Right-Shift and Left-Alt are hardwired to SoC GPIOs rather than
+the TC3589x I2C keyboard matrix. In X11 RAW mode, gpiokeys must send raw scancodes
+via wskbd_rawinput() rather than cooked wscons events via wskbd_input(), otherwise
+Right-Shift and Left-Alt key presses are ignored by Xorg.
+
 --- a/sys/dev/fdt/gpiokeys.c
 +++ b/sys/dev/fdt/gpiokeys.c
 @@ -300,11 +300,34 @@ gpiokeys_console_key(void *arg)

@@ -30,6 +30,7 @@ This project builds upon and interacts with several upstream components and comm
   - `configs/install.md` incorporates logic from OpenBSD's installer scripts:
     Copyright (c) 1996 Canonical Software. All rights reserved.
     Redistribution and use in source and binary forms are permitted under standard BSD/ISC terms.
+  - OpenBSD kernel source modifications (`scripts/patches/dwc2_split_order_fix.patch` and `scripts/patches/gpiokeys_rawkbd_fix.patch`) are distributed under the ISC License.
   - OpenBSD binaries and sets (`base79.tgz`, `bsd.rd`, etc.) are downloaded directly from official OpenBSD mirrors under ISC / BSD licenses.
 
 - **Joshua Stein (jcs)**:
@@ -38,7 +39,7 @@ This project builds upon and interacts with several upstream components and comm
     Binaries and scripts are fetched from upstream sources during installation under respective ISC / GPL licenses.
 
 - **4noha**:
-  - Research, kernel patches (ISC License), mlterm-fb patches (MIT License), and power management concepts for Pomera DM250:
+  - Research, kernel patches (`scripts/patches/bcmbt_delay_2s.patch`, `scripts/patches/rkdrm_wsdisplay_smode.patch` under the ISC License), mlterm-fb patches (`scripts/patches/mlterm-fb-dm250-shadowfb.patch` under the MIT License), and power management concepts for Pomera DM250:
     Copyright (c) 2026 4noha
     https://github.com/4noha/openbsd-pomera-dm250
 

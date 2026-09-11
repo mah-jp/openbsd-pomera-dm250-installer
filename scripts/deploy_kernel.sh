@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # =====================================================================
 # deploy_kernel.sh - Deploy Patched Kernel to Pomera DM250
+#
+# Copyright (c) 2026 Masahiko OHKUBO and Pomera DM250 OpenBSD Project Contributors
+# SPDX-License-Identifier: MIT
 # =====================================================================
 
 set -euo pipefail

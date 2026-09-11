@@ -15,7 +15,7 @@ AAFONT_FILE="$CONFIG_DIR/aafont"
 
 mkdir -p "$CONFIG_DIR"
 
-case "$1" in
+case "${1:-}" in
     udev)
         cat << 'EOF' > "$AAFONT_FILE"
 DEFAULT = UDEV Gothic JPDOC

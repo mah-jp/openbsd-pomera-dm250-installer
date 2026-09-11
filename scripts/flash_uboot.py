@@ -5,6 +5,9 @@ flash_uboot.py - Safe Sector 16384 U-Boot Flasher.
 Directly flashes custom auto-boot U-Boot (_build_cache/uboot.img) to Sector 16384
 of a target SD card or image, unmounting volumes cleanly and verifying readback.
 
+Copyright (c) 2026 Masahiko OHKUBO and Pomera DM250 OpenBSD Project Contributors
+SPDX-License-Identifier: MIT
+
 Usage:
     sudo python3 scripts/flash_uboot.py /dev/rdisk4
 """
