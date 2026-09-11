@@ -15,10 +15,10 @@ Turn your dedicated Japanese digital typewriter into a portable UNIX terminal wi
 | **⚡ Instant Sleep & Wakeup** | Native `rcctl` daemon (`pomera_lid_watch`) monitors the lid switch: 0ms backlight cutoff & CPU throttling on close, instant full-power restore on open. Polling interval and CPU policy (auto/high) are fully configurable. |
 | **🔋 Accurate Battery Management** | Integrated with Rockchip RK818 PMIC for automatic battery charging and hardware power routing. Query real-time voltage, charge/discharge status, and capacity percentage via `sysctl hw.sensors.simplebat0`. |
 | **🌐 Connectivity (2.4GHz Wi-Fi)** | Built-in Wi-Fi (`bwfm0`, 2.4GHz only, multi-SSID auto-fallback), Bluetooth PAN tethering (`pomera-bt-pan`), and Plug & Play USB-Ethernet (`ure0`, `axe0`, `axen0`, `urndis0`, `cdce0`). |
-| **💻 CUI & GUI Dual Mode** | High-performance CUI (Console / VT100 / tmux) by default. Switch to lightweight X11 GUI (`xenodm` + `cwm` + `mlterm`) anytime via `pomera-gui-toggle`. |
+| **💻 CUI & GUI Dual Mode** | High-performance CUI (Console / VT100 / tmux) by default. Supports direct framebuffer console `mlterm-fb` with zero tearing, and switch to lightweight X11 GUI (`xenodm` + `cwm` + `mlterm`) anytime via `pomera-gui-toggle`. |
 | **🖱️ USB Peripherals** | Plug & Play support for standard USB mice, keyboards, and USB Ethernet dongles via USB Type-C OTG. |
 | **🛡️ Safety & Non-Destructive** | Integrated with [pomera-dm250-backup-restore-tool](https://github.com/mah-jp/pomera-dm250-backup-restore-tool) for full eMMC factory backup and 100% restore capability. |
-| **🛠️ Smart Patch Audit & Auto-Build** | Optional kernel patches for USB Hub stability and X11 Right-Shift/Left-Alt keys. Automatically audits the official kernel and skips recompilation if already fixed upstream. |
+| **🛠️ Smart Patch Audit & Auto-Build** | Optional kernel patches for USB Hub stability, X11 Right-Shift/Left-Alt keys, and mlterm-fb framebuffer console (SMODE). Automatically audits official kernel and skips recompilation if already fixed upstream. |
 | **🤖 Native QEMU Engine Builder** | Drives a temporary OpenBSD QEMU VM to create authentic disklabel/FFS structures. Pre-configurable via `user_config.env` for 100% unattended installation. |
 
 ---
@@ -150,6 +150,9 @@ sudo ./make_sdcard.sh /dev/rdisk4
 # Build and use DM250 tailored smart kernel (removes unused SoC/PCI drivers):
 ./make_sdcard.sh --smart-kernel
 
+# Build kernel with mlterm-fb direct framebuffer console patch:
+./make_sdcard.sh --patch-mlterm-fb
+
 # Force QEMU recompilation of the patched kernel:
 ./make_sdcard.sh --build-kernel
 ```
@@ -214,18 +217,23 @@ After booting into OpenBSD, connect to network (Wi-Fi or USB-NIC) and run:
 pomera-setup-desktop
 ```
 - Essential tools (`vim`, `tmux`, `curl`, `git`)
-- Japanese fonts (Noto Sans CJK) & artifact-free fast terminal (`mlterm`)
+- Japanese fonts (Noto Sans CJK) & artifact-free fast terminal (`mlterm` / `mlterm-fb`)
 - Ultra-lightweight window manager (`cwm`) & launcher (`dmenu`)
 - 1024x600 display optimized dotfiles (`~/.cwmrc`, `~/.tmux.conf`, `~/.xsession`, etc.)
 
 > [!TIP]
-> **Convenient Shortcuts in Desktop (cwm)**:
-> - `Alt + Enter`: Launch terminal (`mlterm`)
-> - `Alt + F1` / `Alt + F2`: Adjust screen brightness (F1: Dim, F2: Brighten, Mac-style)
-> - `Alt + ↑` / `Alt + ↓`: Adjust screen brightness by +/- 10%
-> - `Ctrl + Alt + m`: Maximize / unmaximize active window
-> - `Ctrl + Alt + q`: Close active window
-> - `Ctrl + Alt + Backspace` or `Ctrl + Alt + Shift + q`: Exit X11 back to text console (CUI)
+> **Convenient Keyboard Shortcuts**:
+> - **Brightness Control (Common to X11, tmux, and mlterm-fb)**:
+>   - `Alt + F1`: Dim screen brightness (Mac-style)
+>   - `Alt + F2`: Brighten screen brightness (Mac-style)
+>   - `Alt + ↑` / `Alt + ↓`: Adjust brightness by +/- 10% (in cwm desktop)
+> - **Desktop (cwm)**:
+>   - `Alt + Enter`: Launch terminal (`mlterm`)
+>   - `Ctrl + Alt + m`: Maximize / unmaximize active window
+>   - `Ctrl + Alt + q`: Close active window
+>   - `Ctrl + Alt + Backspace` or `Ctrl + Alt + Shift + q`: Exit X11 back to text console (CUI)
+> - **CUI / Direct Framebuffer (mlterm-fb)**:
+>   - `mlterm-fb`: Launch direct framebuffer high-resolution CJK terminal (no X11 needed, supports `Alt+F1`/`Alt+F2` brightness control)
 
 #### 2. Japanese IME Input Setup (`pomera-setup-desktop-jp`)
 If you write in Japanese, run the second stage script:
@@ -258,9 +266,9 @@ pomera-setup-desktop-jp
 
 | Command | Description |
 | :--- | :--- |
-| `pomera-setup-desktop` | Automatically set up GUI (`cwm`/`mlterm`), fonts, Vim, tmux, and dotfiles. |
+| `pomera-setup-desktop` | Automatically set up GUI (`cwm`/`mlterm`), framebuffer `mlterm-fb`, fonts, Vim, tmux, and dotfiles. |
 | `pomera-setup-desktop-jp` | Automatically set up Japanese IME (`uim`/`uim-anthy`) and XIM integration. |
-| `pomera-font [udev\|moraler\|noto]` | Instantly switch terminal fonts (slashed-zero UDEV Gothic, Moralerspace, or Noto). |
+| `pomera-font [udev\|moraler\|noto]` | Instantly switch terminal fonts (slashed-zero UDEV Gothic, Moralerspace, or Noto) for both X11 and `mlterm-fb`. |
 | `doas pomera-gui-toggle [gui\|cui\|toggle]` | Switch between CUI console and X11 GUI mode (`xenodm`/`cwm`). |
 | `doas pomera-bt-pan connect <BD_ADDR>` | Connect to smartphone Bluetooth Tethering (PAN). |
 
@@ -269,8 +277,8 @@ pomera-setup-desktop-jp
 | Tool | Description |
 | :--- | :--- |
 | `sudo python3 scripts/inspect_sd.py /dev/rdiskN` | Inspect physical sector layout, MBR, BootROM sectors (LBA 64/16384), and Disklabel. |
-| `python3 scripts/inspect_kernel.py [kernel]` | Audit if a kernel binary is optimized DM250 smart kernel or contains USB/X11 fixes. |
-| `python3 scripts/build_kernel_qemu.py [--config DM250]` | Automatically build patched & slimmed kernel (`DM250` / `GENERIC`) via native QEMU VM. |
+| `python3 scripts/inspect_kernel.py [kernel]` | Audit if a kernel binary is optimized DM250 smart kernel or contains USB/X11/mlterm-fb fixes. |
+| `python3 scripts/build_kernel_qemu.py [--config DM250]` | Automatically build patched (USB, X11 keys, mlterm-fb) & slimmed kernel (`DM250` / `GENERIC`) via native QEMU VM. |
 | `scripts/build_uboot.sh` | Standalone compilation of custom hands-free auto-boot U-Boot image (`uboot.img`). |
 | `scripts/run_qemu.sh [image_path]` | Run local QEMU simulation of the OpenBSD image before writing to physical hardware. |
 

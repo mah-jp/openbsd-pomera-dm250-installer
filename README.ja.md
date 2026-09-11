@@ -15,10 +15,10 @@
 | **⚡ 蓋開閉の超省電力＆最速復帰** | 専用デーモン `pomera_lid_watch`（`rcctl` 対応）が蓋センサーを監視。閉じた瞬間にバックライト0秒消灯＆CPU省電力化。開けると最速で復帰して即入力可能。検知秒数やCPUポリシー（auto/high）も自在に調整可能。 |
 | **🔋 高精度バッテリー管理** | 内蔵 PMIC (RK818) と連動し、充電器接続時の自動給電・充電に対応。カーネルセンサー（`sysctl hw.sensors.simplebat0`）から電圧・充放電状態・残量パーセントを正確に取得。 |
 | **🌐 充実のネットワーク (2.4GHz Wi-Fi)** | 内蔵 Wi-Fi (`bwfm0`、2.4GHz専用、複数SSID自動切替)、スマホテザリング用 Bluetooth PAN (`pomera-bt-pan`)、USB-Ethernet (`ure0`, `axe0`, `axen0`, `urndis0`, `cdce0`) に標準対応。 |
-| **💻 CUI & GUI デュアル対応** | 標準は超軽量・高速な CUI (wsconsコンソール / VT100 / tmux)。`pomera-gui-toggle` で軽量X11デスクトップ (`xenodm` + `cwm` + `mlterm`) へいつでもワンタッチ切替可能。 |
+| **💻 CUI & GUI デュアル対応** | 標準は超軽量・高速な CUI (wsconsコンソール / VT100 / tmux)。フレームバッファ直描画の超高速日本語コンソール `mlterm-fb` に対応し、`pomera-gui-toggle` で軽量X11デスクトップ (`xenodm` + `cwm` + `mlterm`) へもワンタッチ切替可能。 |
 | **🖱️ USB周辺機器プラグ＆プレイ** | USB Type-C OTG経由で標準的なUSBマウス、キーボード、有線LANアダプタを挿すだけで即認識。 |
 | **🛡️ 100%原状復帰可能な安全設計** | [pomera-dm250-recovery-tool](https://github.com/mah-jp/pomera-dm250-recovery-tool) と連携し、導入前に純正eMMCの完全バックアップを取得可能。いつでも工場出荷時に戻せます。 |
-| **🛠️ パッチ自動検査＆スマートビルド** | USBハブの安定化やX11での右Shift/左Altキー修正パッチを選択可能。公式カーネルを自動検査し、未修正時のみQEMUリコンパイルを実行、公式カーネルが対応済みなら0秒で公式版を採用。 |
+| **🛠️ パッチ自動検査＆スマートビルド** | USBハブ安定化、X11キー修正、mlterm-fb直描画用カーネルパッチ（SMODE）を選択可能。公式カーネルを自動検査し、未修正時のみQEMUリコンパイルを実行、対応済みなら0秒で公式版を採用。 |
 | **🤖 ネイティブQEMUエンジン自動構築** | 一時的な OpenBSD QEMU VM を介して本物の disklabel/FFS を生成。`user_config.env` による事前設定（Wi-Fi・パスワード・省電力）で実機インストールも完全自動で完走。 |
 
 ---
@@ -151,6 +151,9 @@ sudo ./make_sdcard.sh /dev/rdisk4
 # Pomera DM250 特化型スマートカーネル（不要SoC・PCIドライバの削除、約25%削減）を適用する場合:
 ./make_sdcard.sh --smart-kernel
 
+# 高速日本語コンソール mlterm-fb 用カーネルパッチを適用する場合:
+./make_sdcard.sh --patch-mlterm-fb
+
 # パッチ適用済みカーネルのQEMUリコンパイルを明示的に実行する場合:
 ./make_sdcard.sh --build-kernel
 ```
@@ -212,18 +215,23 @@ sudo ./make_sdcard.sh /dev/rdisk4
 pomera-setup-desktop
 ```
 - 必須ツールの導入（`vim`, `tmux`, `curl`, `git`）
-- 日本語フォント（Noto Sans CJK）＆ 残像のない高速ターミナル（`mlterm`）
+- 日本語フォント（Noto Sans CJK）＆ 残像のない高速ターミナル（`mlterm` / `mlterm-fb`）
 - 超軽量ウィンドウマネージャ（`cwm`）＆ アプリランチャー（`dmenu`）
 - 1024x600 画面に最適化された dotfiles（`~/.cwmrc`, `~/.tmux.conf`, `~/.xsession` 等）
 
 > [!TIP]
-> **デスクトップ（cwm）での便利ショートカット**:
-> - `Alt + Enter`: ターミナル（mlterm）起動
-> - `Alt + F1` / `Alt + F2`: 画面の明るさを調整（F1: 暗く、F2: 明るく）※ Mac風
-> - `Alt + ↑` / `Alt + ↓`: 画面の明るさを 10% 刻みで増減
-> - `Ctrl + Alt + m`: ウィンドウの最大化 / 復帰
-> - `Ctrl + Alt + q`: ウィンドウを閉じる
-> - `Ctrl + Alt + Backspace` または `Ctrl + Alt + Shift + q`: X11を終了してコンソール（CUI）に戻る
+> **便利なキーボードショートカット**:
+> - **画面輝度調整（X11およびtmux/mlterm-fb共通）**:
+>   - `Alt + F1`: 画面を暗くする ※Mac風
+>   - `Alt + F2`: 画面を明るくする ※Mac風
+>   - `Alt + ↑` / `Alt + ↓`: 画面の明るさを 10% 刻みで増減（cwmデスクトップ時）
+> - **デスクトップ（cwm）**:
+>   - `Alt + Enter`: ターミナル（mlterm）起動
+>   - `Ctrl + Alt + m`: ウィンドウの最大化 / 復帰
+>   - `Ctrl + Alt + q`: ウィンドウを閉じる
+>   - `Ctrl + Alt + Backspace` または `Ctrl + Alt + Shift + q`: X11を終了してコンソール（CUI）に戻る
+> - **CUI / フレームバッファ（mlterm-fb）**:
+>   - `mlterm-fb`: フレームバッファ直描画の超高速・高解像度日本語コンソールを起動（X11不要、`Alt+F1`/`Alt+F2` 輝度調整対応）
 
 #### 2. 日本語入力（IME）のセットアップ (`pomera-setup-desktop-jp`)
 日本語入力を利用する場合は、続けて以下を実行します：
@@ -256,9 +264,9 @@ pomera-setup-desktop-jp
 
 | コマンド | 説明 |
 | :--- | :--- |
-| `pomera-setup-desktop` | デスクトップGUI (`cwm`/`mlterm`)、Vim、tmux、dotfiles を一括自動セットアップ。 |
+| `pomera-setup-desktop` | デスクトップGUI (`cwm`/`mlterm`)、フレームバッファ版 `mlterm-fb`、Vim、tmux、dotfiles を一括自動セットアップ。 |
 | `pomera-setup-desktop-jp` | 日本語入力システム (`uim`/`uim-anthy`) および XIM 設定を自動セットアップ。 |
-| `pomera-font [udev\|moraler\|noto]` | ターミナルフォント（斜線ゼロ入り UDEV Gothic、Moralerspace、Noto）をワンタッチ切替。 |
+| `pomera-font [udev\|moraler\|noto]` | ターミナルフォント（斜線ゼロ入り UDEV Gothic、Moralerspace、Noto）をワンタッチ切替（X11版 / `mlterm-fb` 共通）。 |
 | `doas pomera-gui-toggle [gui\|cui\|toggle]` | CUIコンソールとX11 GUIモード（`xenodm`/`cwm`）を即座に切り替え。 |
 | `doas pomera-bt-pan connect <BD_ADDR>` | スマホのBluetoothテザリング（PAN）にワンタッチ接続。 |
 
@@ -267,8 +275,8 @@ pomera-setup-desktop-jp
 | ツール | 説明 |
 | :--- | :--- |
 | `sudo python3 scripts/inspect_sd.py /dev/rdiskN` | 作成したSDカードのMBR、ブートローダーセクタ（LBA 64/16384）、Disklabelを物理検査。 |
-| `python3 scripts/inspect_kernel.py [kernel]` | カーネルバイナリが DM250 スマートカーネルか、USB/X11キー修正を含むかを自動監査。 |
-| `python3 scripts/build_kernel_qemu.py [--config DM250]` | QEMU ネイティブVM上でパッチ適用・軽量特化カーネル（`DM250` / `GENERIC`）を自動ビルド。 |
+| `python3 scripts/inspect_kernel.py [kernel]` | カーネルバイナリが DM250 スマートカーネルか、USB/X11キー/mlterm-fb修正を含むかを自動監査。 |
+| `python3 scripts/build_kernel_qemu.py [--config DM250]` | QEMU ネイティブVM上でパッチ適用（USB, X11キー, mlterm-fb）・軽量特化カーネル（`DM250` / `GENERIC`）を自動ビルド。 |
 | `scripts/build_uboot.sh` | DM250専用のハンズフリー auto-boot U-Bootバイナリ（`uboot.img`）を単体ビルド。 |
 | `scripts/run_qemu.sh [image_path]` | 実機に挿す前に、作成したイメージをローカルPC（Mac/Linux）のQEMUシミュレータで起動テスト。 |
 

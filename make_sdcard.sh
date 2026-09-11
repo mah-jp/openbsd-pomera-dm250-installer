@@ -87,7 +87,9 @@ show_help() {
     echo "  --us                   Build for Pomera DM250US (US model)"
     echo "  --smart-kernel         Build & use DM250 tailored kernel (removes unused SoCs/PCI drivers)"
     echo "  --no-smart-kernel      Use standard generic kernel"
-    echo "  --build-kernel         Rebuild patched OpenBSD kernel (USB & keyboard fix) via QEMU"
+    echo "  --patch-mlterm-fb      Enable mlterm-fb framebuffer console patch (rkdrm SMODE)"
+    echo "  --no-patch-mlterm-fb   Disable mlterm-fb framebuffer console patch"
+    echo "  --build-kernel         Rebuild patched OpenBSD kernel (USB, keyboard & mlterm-fb fixes) via QEMU"
     echo "  --rebuild-uboot        Rebuild custom auto-booting U-Boot binary"
     echo "  --bootloader-only      Flash only idbloader.img & uboot.img to target without formatting"
     echo "  --download-only        Fetch all required official binaries without formatting"
@@ -96,6 +98,7 @@ show_help() {
     echo "Examples:"
     echo "  $0 --download-only     # Pre-download all packages & binaries"
     echo "  $0 --smart-kernel      # Build & use DM250 optimized kernel (~4MB)"
+    echo "  $0 --patch-mlterm-fb   # Build kernel with mlterm-fb framebuffer patch"
     echo "  $0 --build-kernel      # Recompile patched kernel in QEMU"
     echo "  sudo $0 /dev/sdb       # Flash directly to SD card on Linux"
     echo "  $0 /dev/rdisk4         # Flash directly to SD card on macOS"
@@ -110,6 +113,8 @@ parse_arguments() {
             --us) MODEL_TYPE="dm250us"; shift ;;
             --smart-kernel) POMERA_SMART_KERNEL="yes"; shift ;;
             --no-smart-kernel) POMERA_SMART_KERNEL="no"; shift ;;
+            --patch-mlterm-fb) POMERA_PATCH_MLTERM_FB="yes"; shift ;;
+            --no-patch-mlterm-fb) POMERA_PATCH_MLTERM_FB="no"; shift ;;
             --build-kernel) BUILD_KERNEL=true; shift ;;
             --rebuild-uboot) REBUILD_UBOOT=true; shift ;;
             --bootloader-only|--flash-bootloader) BOOTLOADER_ONLY=true; shift ;;
