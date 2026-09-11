@@ -101,6 +101,8 @@ show_help() {
     echo "  --no-patch-mlterm-fb   Disable mlterm-fb framebuffer console patch"
     echo "  --patch-bt             Enable Bluetooth UART 2s delay patch (bcmbt, Default: yes)"
     echo "  --no-patch-bt          Disable Bluetooth UART 2s delay patch"
+    echo "  --workspace            Pre-bundle offline workspace packages (Vim, curl, git, mlterm, Noto CJK, dmenu, Default: yes)"
+    echo "  --no-workspace         Do not bundle offline packages (minimal installer)"
     echo "  --build-kernel         Rebuild patched OpenBSD kernel (USB, keyboard, mlterm-fb & BT fixes) via QEMU"
     echo "  --rebuild-uboot        Rebuild custom auto-booting U-Boot binary"
     echo "  --bootloader-only      Flash only idbloader.img & uboot.img to target without formatting"
@@ -133,6 +135,8 @@ parse_arguments() {
             --no-patch-mlterm-fb) CLI_PATCH_MLTERM_FB="no"; shift ;;
             --patch-bt) CLI_PATCH_BT="yes"; shift ;;
             --no-patch-bt) CLI_PATCH_BT="no"; shift ;;
+            --workspace) CLI_WORKSPACE="yes"; shift ;;
+            --no-workspace) CLI_WORKSPACE="no"; shift ;;
             --build-kernel) BUILD_KERNEL=true; shift ;;
             --rebuild-uboot) REBUILD_UBOOT=true; shift ;;
             --bootloader-only|--flash-bootloader) BOOTLOADER_ONLY=true; shift ;;
@@ -209,6 +213,7 @@ generate_install_configs() {
     [ -n "$CLI_PATCH_X11_KEYS" ] && POMERA_PATCH_X11_KEYS="$CLI_PATCH_X11_KEYS"
     [ -n "$CLI_PATCH_MLTERM_FB" ] && POMERA_PATCH_MLTERM_FB="$CLI_PATCH_MLTERM_FB"
     [ -n "$CLI_PATCH_BT" ] && POMERA_PATCH_BT="$CLI_PATCH_BT"
+    [ -n "$CLI_WORKSPACE" ] && POMERA_WORKSPACE="$CLI_WORKSPACE"
 
     local conf_user="${POMERA_USERNAME:-pomera}"
     local conf_host="${POMERA_HOSTNAME:-pomera}"
@@ -226,6 +231,7 @@ generate_install_configs() {
     POMERA_PATCH_X11_KEYS="${POMERA_PATCH_X11_KEYS:-yes}"
     POMERA_PATCH_MLTERM_FB="${POMERA_PATCH_MLTERM_FB:-yes}"
     POMERA_PATCH_BT="${POMERA_PATCH_BT:-yes}"
+    POMERA_WORKSPACE="${POMERA_WORKSPACE:-yes}"
     POMERA_BUILD_PATCHED_KERNEL="${POMERA_BUILD_PATCHED_KERNEL:-no}"
 
     # Inject user credentials into _build_cache/install.site.env to guarantee 100% password enforcement without dirtying git configs
@@ -237,6 +243,8 @@ export POMERA_USER_PASSWORD="${conf_userpass}"
 export POMERA_CONFIRM_INSTALL="${conf_confirm_install}"
 export POMERA_LID_INTERVAL="${conf_lid_interval}"
 export POMERA_CPU_POLICY="${conf_cpu_policy}"
+export POMERA_WORKSPACE="${POMERA_WORKSPACE}"
+export POMERA_MODEL="${MODEL_TYPE}"
 EOF
 
     # Write dynamic install.conf into _build_cache
@@ -426,6 +434,13 @@ EOF
     done
     fetch_file "${ARMV7_MIRROR}/SHA256.sig" "${WORK_DIR}/SHA256.sig" "${ARMV7_SNAP_MIRROR}/SHA256.sig"
     fetch_file "${FIRMWARE_MIRROR}/bwfm-firmware-20200316.1.3p5.tgz" "${WORK_DIR}/bwfm-firmware-20200316.1.3p5.tgz" "${FIRMWARE_SNAP_MIRROR}/bwfm-firmware-20200316.1.3p5.tgz"
+
+    # Pre-fetch offline workspace packages if requested (saves 10-15m on device)
+    if [ "${POMERA_WORKSPACE:-yes}" = "yes" ]; then
+        echo ""
+        echo ">> [Workspace] Fetching & caching offline workspace packages (Vim, curl, git, mlterm, Noto CJK, dmenu)..."
+        python3 "${SCRIPTS_DIR}/fetch_packages.py" --dest "${WORK_DIR}/packages"
+    fi
 
     # Always fetch upstream official kernel to a protected cache location
     fetch_file "${JCS_MIRROR}/bsd" "${WORK_DIR}/bsd.official"

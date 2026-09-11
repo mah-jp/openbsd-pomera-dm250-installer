@@ -81,8 +81,9 @@ sudo pacman -S --needed curl python qemu-system-aarch64 edk2-arm
   3. Type 'yes' to confirm installation
   (Autoinstall runs, extracts sets, and powers off upon completion)
   ↓
-[Phase 3: Optional Desktop Setup on Pomera]
-  $ pomera-setup-desktop  (run directly on Pomera for X11 GUI & CJK fonts)
+[Phase 3: Out-of-the-box Workspace / Optional Japanese IME]
+  - Pre-bundled with Vim, tmux, mlterm, Noto CJK, and tailored dotfiles ready on first boot!
+  - Optional Japanese IME setup: $ pomera-setup-japanese
 ```
 
 ---
@@ -205,17 +206,14 @@ sudo ./make_sdcard.sh /dev/rdisk4
 
 ---
 
-### Step 3: Desktop & Japanese IME Setup (Optional, 2-Stage)
+### Step 3: Workspace & Japanese IME Setup
 
-> [!NOTE]
-> Following the automated install in Step 2, essential hardware features (**JIS Keyboard, Wi-Fi auto-connect, USB Ethernet, and lid-close power management**) are fully operational out of the box.  
-> Step 3 is an optional post-setup step if you want to deploy an X11 lightweight desktop (`cwm` + `mlterm`) or Japanese IME (`uim-anthy`) directly on the device without needing an external PC.
+> Step 3 allows re-configuring the pre-bundled workspace environment or adding Japanese IME (`uim-anthy`) directly on the device without needing an external PC.
+> *(Note: When `--workspace` is enabled during SD creation, Vim, tmux, mlterm, Noto CJK, cwm, and dotfiles are already fully configured upon first boot!)*
 
-After booting into OpenBSD, connect to network (Wi-Fi or USB-NIC) and run:
-
-#### 1. Lightweight Desktop & Dev Setup (`pomera-setup-desktop`)
+#### 1. Workspace & Dev Environment Setup (`pomera-setup-workspace`)
 ```bash
-pomera-setup-desktop
+pomera-setup-workspace
 ```
 - Essential tools (`vim`, `tmux`, `curl`, `git`)
 - Japanese fonts (Noto Sans CJK) & artifact-free fast terminal (`mlterm` / `mlterm-fb`)
@@ -236,10 +234,10 @@ pomera-setup-desktop
 > - **CUI / Direct Framebuffer (mlterm-fb)**:
 >   - `mlterm-fb`: Launch direct framebuffer high-resolution CJK terminal (no X11 needed, supports `Alt+F1`/`Alt+F2` brightness control)
 
-#### 2. Japanese IME Input Setup (`pomera-setup-desktop-jp`)
+#### 2. Japanese IME Input Setup (`pomera-setup-japanese`)
 If you write in Japanese, run the second stage script:
 ```bash
-pomera-setup-desktop-jp
+pomera-setup-japanese
 ```
 - Installs `uim` & `uim-anthy`
 - Configures JIS-friendly toggle shortcuts (`Shift + Space`, `Ctrl + Space`, `Hankaku/Zenkaku`)
@@ -270,8 +268,8 @@ pomera-setup-desktop-jp
 
 | Command | Description |
 | :--- | :--- |
-| `pomera-setup-desktop` | Automatically set up GUI (`cwm`/`mlterm`), framebuffer `mlterm-fb`, fonts, Vim, tmux, and dotfiles. |
-| `pomera-setup-desktop-jp` | Automatically set up Japanese IME (`uim`/`uim-anthy`) and XIM integration. |
+| `pomera-setup-workspace` | Automatically set up workspace (`cwm`/`mlterm`), framebuffer `mlterm-fb`, fonts, Vim, tmux, and dotfiles. |
+| `pomera-setup-japanese` | Automatically set up Japanese IME (`uim`/`uim-anthy`) and XIM integration. |
 | `pomera-font [udev\|moraler\|noto]` | Instantly switch terminal fonts (slashed-zero UDEV Gothic, Moralerspace, or Noto) for both X11 and `mlterm-fb`. |
 | `doas pomera-gui-toggle [gui\|cui\|toggle]` | Switch between CUI console and X11 GUI mode (`xenodm`/`cwm`). |
 | `doas pomera-bt-pan connect <BD_ADDR>` | Connect to smartphone Bluetooth Tethering (PAN). |

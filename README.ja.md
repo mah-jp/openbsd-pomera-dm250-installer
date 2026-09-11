@@ -82,8 +82,9 @@ sudo pacman -S --needed curl python qemu-system-aarch64 edk2-arm
   3. 'yes' と入力してインストール承認
   (無人インストールとカーネル・設定配置が自動完走して安全に電源OFF)
   ↓
-[Phase 3: 任意・デスクトップ等の追加導入]
-  $ pomera-setup-desktop  (ポメラ上で直接実行・日本語GUI等の全自動構築)
+[Phase 3: ワークスペース構築済み / 日本語入力の追加]
+  - インストール完了時点で Vim, tmux, mlterm, Noto CJK, cwm, dotfiles が最初から完成！
+  - 日本語入力 (IME) を追加する場合: $ pomera-setup-japanese
 ```
 
 ---
@@ -203,17 +204,16 @@ sudo ./make_sdcard.sh /dev/rdisk4
 
 ---
 
-### Step 3: デスクトップ＆日本語入力環境のセットアップ (任意・2段構え)
+### Step 3: ワークスペース＆日本語入力（IME）環境の導入・再構成
 
 > [!NOTE]
 > 本インストーラーによる自動インストール（Step 2）の時点で、**JIS日本語キーボード、Wi-Fi自動接続、USB-NIC、蓋開閉省電力デーモン** などの基本機能はすべてセットアップ完了しています。  
-> Step 3 は、X11デスクトップ環境（`cwm`/`mlterm`）や日本語入力（`uim-anthy`）などの追加環境を導入したい場合に行うオプショナルな手順です。外部PCは不要で、ポメラ単体で完結します。
+> Step 3 は、オフラインで事前構築されたワークスペースの再構成や、日本語入力（`uim-anthy`）の追加導入を行いたい場合の手順です。外部PCは不要で、ポメラ単体で完結します。
+> （※ SDカード作成時に `--workspace` が有効な場合、Vim, tmux, mlterm, Noto CJK, cwm, dotfiles はインストール完了時点で最初から完成しています！）
 
-ポメラが起動しログインしたら、Wi-FiまたはUSB-NICでネットワークに接続し、以下のコマンドを実行します：
-
-#### 1. デスクトップ＆開発環境のセットアップ (`pomera-setup-desktop`)
+#### 1. ワークスペース環境のセットアップ・再構成 (`pomera-setup-workspace`)
 ```bash
-pomera-setup-desktop
+pomera-setup-workspace
 ```
 - 必須ツールの導入（`vim`, `tmux`, `curl`, `git`）
 - 日本語フォント（Noto Sans CJK）＆ 残像のない高速ターミナル（`mlterm` / `mlterm-fb`）
@@ -234,10 +234,10 @@ pomera-setup-desktop
 > - **CUI / フレームバッファ（mlterm-fb）**:
 >   - `mlterm-fb`: フレームバッファ直描画の超高速・高解像度日本語コンソールを起動（X11不要、`Alt+F1`/`Alt+F2` 輝度調整対応）
 
-#### 2. 日本語入力（IME）のセットアップ (`pomera-setup-desktop-jp`)
+#### 2. 日本語入力（IME）のセットアップ (`pomera-setup-japanese`)
 日本語入力を利用する場合は、続けて以下を実行します：
 ```bash
-pomera-setup-desktop-jp
+pomera-setup-japanese
 ```
 - 日本語入力フレームワーク（`uim`, `uim-anthy`）の自動インストール
 - ポメラ向けキー設定（`Shift + Space`, `Ctrl + Space`, `半角/全角` でIMEオン/オフ）
@@ -268,8 +268,8 @@ pomera-setup-desktop-jp
 
 | コマンド | 説明 |
 | :--- | :--- |
-| `pomera-setup-desktop` | デスクトップGUI (`cwm`/`mlterm`)、フレームバッファ版 `mlterm-fb`、Vim、tmux、dotfiles を一括自動セットアップ。 |
-| `pomera-setup-desktop-jp` | 日本語入力システム (`uim`/`uim-anthy`) および XIM 設定を自動セットアップ。 |
+| `pomera-setup-workspace` | ワークスペース環境（Vim、tmux、mlterm、Noto CJK、cwm、dotfiles）を一括セットアップ・再初期化。 |
+| `pomera-setup-japanese` | 日本語入力システム (`uim`/`uim-anthy`) および XIM 設定を自動セットアップ。 |
 | `pomera-font [udev\|moraler\|noto]` | ターミナルフォント（斜線ゼロ入り UDEV Gothic、Moralerspace、Noto）をワンタッチ切替（X11版 / `mlterm-fb` 共通）。 |
 | `doas pomera-gui-toggle [gui\|cui\|toggle]` | CUIコンソールとX11 GUIモード（`xenodm`/`cwm`）を即座に切り替え。 |
 | `doas pomera-bt-pan connect <BD_ADDR>` | スマホのBluetoothテザリング（PAN）にワンタッチ接続。 |

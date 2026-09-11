@@ -226,6 +226,148 @@ Section "Monitor"
 EndSection
 EOF
 
+# 7.5 Install Offline Workspace Packages if bundled
+if [ "${POMERA_WORKSPACE:-yes}" != "no" ]; then
+    PKG_CACHE_DIR=""
+    for pdir in /packages /mnt/packages /mnt2/packages; do
+        if [ -d "$pdir" ] && ls "$pdir"/*.tgz >/dev/null 2>&1; then
+            PKG_CACHE_DIR="$pdir"
+            break
+        fi
+    done
+
+    if [ -n "$PKG_CACHE_DIR" ]; then
+        echo ">> [install.site] Installing Pomera Workspace packages from offline cache ($PKG_CACHE_DIR)..."
+        PKG_PATH="$PKG_CACHE_DIR" pkg_add -I -D unsigned vim curl git mlterm noto-cjk dmenu 2>/dev/null || echo ">> [install.site] Offline packages processed."
+    fi
+fi
+
+# Determine workspace locale based on model type (US model -> en_US.UTF-8, JP model -> ja_JP.UTF-8)
+if [ "${POMERA_MODEL:-}" = "dm250us" ]; then
+    WORKSPACE_LANG="en_US.UTF-8"
+else
+    WORKSPACE_LANG="ja_JP.UTF-8"
+fi
+
+# Deploy 1024x600 Optimized Workspace Dotfiles to user and /etc/skel
+echo ">> Deploying Pomera 1024x600 workspace configuration (${WORKSPACE_LANG})...."
+
+# ~/.profile
+cat << EOF > "/home/${TARGET_USER}/.profile"
+export LANG=${WORKSPACE_LANG}
+export LC_CTYPE=${WORKSPACE_LANG}
+export TERM=xterm-256color
+export EDITOR=vim
+export PAGER=less
+alias ll='ls -la'
+EOF
+chown "${TARGET_USER}:staff" "/home/${TARGET_USER}/.profile"
+chmod 0644 "/home/${TARGET_USER}/.profile"
+[ -d /etc/skel ] && cp -f "/home/${TARGET_USER}/.profile" /etc/skel/.profile
+
+# ~/.vimrc
+cat << 'EOF' > "/home/${TARGET_USER}/.vimrc"
+syntax on
+set background=dark
+if has('termguicolors')
+  set termguicolors
+endif
+set number
+set autoindent
+set smartindent
+set encoding=utf-8
+set fileencodings=utf-8,cp932,euc-jp,iso-2022-jp
+set backspace=indent,eol,start
+EOF
+chown "${TARGET_USER}:staff" "/home/${TARGET_USER}/.vimrc"
+chmod 0644 "/home/${TARGET_USER}/.vimrc"
+[ -d /etc/skel ] && cp -f "/home/${TARGET_USER}/.vimrc" /etc/skel/.vimrc
+
+# ~/.tmux.conf
+cat << 'EOF' > "/home/${TARGET_USER}/.tmux.conf"
+set -g default-terminal "xterm-256color"
+set -g prefix C-a
+unbind C-b
+bind C-a send-prefix
+
+set -g status-style bg='#2e3436',fg='#ffffff'
+set -g status-left '#[fg=#729fcf,bold][#S] '
+set -g status-right '#[fg=#fce94f]%m/%d %H:%M '
+set -g status-position bottom
+
+bind h select-pane -L
+bind j select-pane -D
+bind k select-pane -U
+bind l select-pane -R
+
+bind-key -n M-F1 run-shell "/usr/local/bin/pomera-brightness down"
+bind-key -n M-F2 run-shell "/usr/local/bin/pomera-brightness up"
+EOF
+chown "${TARGET_USER}:staff" "/home/${TARGET_USER}/.tmux.conf"
+chmod 0644 "/home/${TARGET_USER}/.tmux.conf"
+[ -d /etc/skel ] && cp -f "/home/${TARGET_USER}/.tmux.conf" /etc/skel/.tmux.conf
+
+# ~/.cwmrc
+cat << 'EOF' > "/home/${TARGET_USER}/.cwmrc"
+fontname "sans-serif:pixelsize=14:antialias=true"
+color activeborder "#729fcf"
+color inactiveborder "#2e3436"
+borderwidth 2
+gap 0 0 0 0
+
+bind-key M-Return terminal
+bind-key M-p "dmenu_run -fn 'sans-serif:pixelsize=14' -nb '#000000' -nf '#ffffff' -sb '#729fcf' -sf '#000000'"
+bind-key M-F1 "/usr/local/bin/pomera-brightness down"
+bind-key M-F2 "/usr/local/bin/pomera-brightness up"
+bind-key M-Down "/usr/local/bin/pomera-brightness down"
+bind-key M-Up "/usr/local/bin/pomera-brightness up"
+EOF
+chown "${TARGET_USER}:staff" "/home/${TARGET_USER}/.cwmrc"
+chmod 0644 "/home/${TARGET_USER}/.cwmrc"
+[ -d /etc/skel ] && cp -f "/home/${TARGET_USER}/.cwmrc" /etc/skel/.cwmrc
+
+# ~/.mlterm configuration
+mkdir -p "/home/${TARGET_USER}/.mlterm"
+cat << 'EOF' > "/home/${TARGET_USER}/.mlterm/main"
+fontsize = 15
+line_space = 2
+scrollbar_mode = none
+use_anti_alias = true
+use_bold_font = true
+use_login_shell = true
+box_drawing_font = unicode
+fg_color = #c0caf5
+bg_color = #1a1b26
+EOF
+
+cat << 'EOF' > "/home/${TARGET_USER}/.mlterm/color"
+black=#15161e
+red=#f7768e
+green=#9ece6a
+yellow=#e0af68
+blue=#7aa2f7
+magenta=#bb9af7
+cyan=#7dcfff
+white=#a9b1d6
+hl_black=#414868
+hl_red=#f7768e
+hl_green=#73daca
+hl_yellow=#e0af68
+hl_blue=#84b0d8
+hl_magenta=#bc94b7
+hl_cyan=#37e6e8
+hl_white=#f1f1f0
+EOF
+
+cat << 'EOF' > "/home/${TARGET_USER}/.mlterm/aafont"
+DEFAULT = DejaVu Sans Mono
+ISO10646_UCS4_1 = DejaVu Sans Mono
+ISO10646_UCS4_1_FULLWIDTH = Noto Sans Mono CJK JP
+EOF
+chown -R "${TARGET_USER}:staff" "/home/${TARGET_USER}/.mlterm"
+chmod 0700 "/home/${TARGET_USER}/.mlterm"
+chmod 0600 "/home/${TARGET_USER}/.mlterm/main" "/home/${TARGET_USER}/.mlterm/color" "/home/${TARGET_USER}/.mlterm/aafont"
+
 # Ensure .Xdefaults and .xsession exist with Xft font rendering optimization
 cat << 'EOF' > "/home/${TARGET_USER}/.Xdefaults"
 ! -------------------------------------------------------------
@@ -249,17 +391,20 @@ XTerm*foreground:        #c0caf5
 EOF
 chown "${TARGET_USER}:staff" "/home/${TARGET_USER}/.Xdefaults"
 chmod 0644 "/home/${TARGET_USER}/.Xdefaults"
+[ -d /etc/skel ] && cp -f "/home/${TARGET_USER}/.Xdefaults" /etc/skel/.Xdefaults
 
-if [ ! -f "/home/${TARGET_USER}/.xsession" ]; then
-    cat << 'EOF' > "/home/${TARGET_USER}/.xsession"
+# ~/.xsession
+cat << EOF > "/home/${TARGET_USER}/.xsession"
 #!/bin/sh
-export LANG=ja_JP.UTF-8
-export LC_CTYPE=ja_JP.UTF-8
+export LANG=${WORKSPACE_LANG}
+export LC_CTYPE=${WORKSPACE_LANG}
 
 # Load X resources (Xft font rendering, terminal styles)
-if [ -f "$HOME/.Xdefaults" ]; then
-    xrdb -merge "$HOME/.Xdefaults"
+if [ -f "\$HOME/.Xdefaults" ]; then
+    xrdb -merge "\$HOME/.Xdefaults"
 fi
+
+[ -x /usr/X11R6/bin/setxkbmap ] && setxkbmap -option ctrl:nocaps 2>/dev/null || echo ""
 
 xsetroot -solid "#1a1b26"
 if command -v mlterm >/dev/null 2>&1; then
@@ -269,11 +414,11 @@ elif command -v xterm >/dev/null 2>&1; then
 fi
 exec cwm 2>/dev/null || exec fvwm
 EOF
-    chown "${TARGET_USER}:staff" "/home/${TARGET_USER}/.xsession"
-    chmod 0755 "/home/${TARGET_USER}/.xsession"
-fi
+chown "${TARGET_USER}:staff" "/home/${TARGET_USER}/.xsession"
+chmod 0755 "/home/${TARGET_USER}/.xsession"
+[ -d /etc/skel ] && cp -f "/home/${TARGET_USER}/.xsession" /etc/skel/.xsession
 
-# Ensure .xinitrc symlink exists so startx runs .xsession desktop environment
+# Ensure .xinitrc symlink exists so startx runs .xsession workspace
 ln -sf .xsession "/home/${TARGET_USER}/.xinitrc"
 chown -h "${TARGET_USER}:staff" "/home/${TARGET_USER}/.xinitrc"
 

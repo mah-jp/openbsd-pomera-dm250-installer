@@ -1,5 +1,5 @@
 #!/bin/sh
-# pomera-setup-desktop-jp - Automated Japanese Input (IME) Setup for Pomera DM250
+# pomera-setup-japanese - Automated Japanese Input (IME) Setup for Pomera DM250
 #
 # Copyright (c) 2026 Masahiko OHKUBO and Pomera DM250 OpenBSD Project Contributors
 # SPDX-License-Identifier: MIT
@@ -36,22 +36,35 @@ fi
 
 echo ">> Target User : $TARGET_USER ($TARGET_HOME)"
 
-# 2. Check Internet Connectivity
-echo ">> Checking internet connectivity..."
-if ! ping -c 1 -w 3 1.1.1.1 >/dev/null 2>&1 && ! ping -c 1 -w 3 8.8.8.8 >/dev/null 2>&1; then
-    echo "⚠️  Internet connection could not be verified!"
-    echo "   Please connect to Wi-Fi before running this script."
-    printf "Continue anyway? [y/N]: "
-    read -r ans
-    case "$ans" in
-        [yY]*) ;;
-        *) echo "Setup aborted."; exit 1 ;;
-    esac
-fi
+# 2. Check for local offline package cache or internet connectivity
+PKG_DIR=""
+for d in /packages /mnt/packages /var/cache/packages; do
+    if [ -d "$d" ] && ls "$d"/uim*.tgz >/dev/null 2>&1; then
+        PKG_DIR="$d"
+        break
+    fi
+done
 
-# 3. Install uim and Anthy packages
-echo ">> Installing Japanese input method (uim, uim-anthy)..."
-$DOAS pkg_add -I uim uim-anthy
+if [ -n "$PKG_DIR" ]; then
+    echo "📦 Found offline package cache at $PKG_DIR. Installing uim and uim-anthy locally..."
+    $DOAS env PKG_PATH="$PKG_DIR" pkg_add -I uim uim-anthy
+else
+    echo ">> Checking internet connectivity..."
+    if ! ping -c 1 -w 3 1.1.1.1 >/dev/null 2>&1 && ! ping -c 1 -w 3 8.8.8.8 >/dev/null 2>&1; then
+        echo "⚠️  Internet connection could not be verified!"
+        echo "   Please connect to Wi-Fi before running this script."
+        printf "Continue anyway? [y/N]: "
+        read -r ans
+        case "$ans" in
+            [yY]*) ;;
+            *) echo "Setup aborted."; exit 1 ;;
+        esac
+    fi
+
+    # 3. Install uim and Anthy packages online
+    echo ">> Installing Japanese input method (uim, uim-anthy)..."
+    $DOAS pkg_add -I uim uim-anthy
+fi
 
 # 4. Configure ~/.uim (Key bindings: Shift+Space, Ctrl+Space, Zenkaku_Hankaku)
 echo ">> Configuring $TARGET_HOME/.uim..."

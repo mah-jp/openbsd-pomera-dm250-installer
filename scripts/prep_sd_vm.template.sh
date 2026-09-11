@@ -75,6 +75,13 @@ for s in comp79 man79 xbase79 xfont79 xserv79 xshare79 site79; do
 done
 ftp -V -o /mnt/bwfm-firmware-20200316.1.3p5.tgz http://10.0.2.2:@HTTP_PORT@/bwfm-firmware-20200316.1.3p5.tgz
 
+# Fetch offline workspace packages archive if bundled
+if ftp -V -o /tmp/packages.tar http://10.0.2.2:@HTTP_PORT@/packages.tar 2>/dev/null; then
+    echo ">> Extracting offline workspace packages into /mnt/packages..."
+    tar -xf /tmp/packages.tar -C /mnt 2>/dev/null || true
+    rm -f /tmp/packages.tar
+fi
+
 # Unpack full base system into SD root so ALL dynamic libraries and commands exist
 cd /mnt
 tar -xzphf /mnt/base79.tgz -C /mnt 2>/dev/null || true

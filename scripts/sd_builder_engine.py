@@ -377,8 +377,8 @@ def package_site_set(work_dir: str, configs_dir: str, scripts_dir: str, res_mgr:
         ("pomera-power-led.sh", "usr/local/sbin/pomera-power-led", True),
         ("pomera-wifi-watch.sh", "usr/local/sbin/pomera-wifi-watch", True),
         ("pomera-gui-toggle.sh", "usr/local/bin/pomera-gui-toggle", True),
-        ("pomera-setup-desktop.sh", "usr/local/bin/pomera-setup-desktop", True),
-        ("pomera-setup-desktop-jp.sh", "usr/local/bin/pomera-setup-desktop-jp", True),
+        ("pomera-setup-workspace.sh", "usr/local/bin/pomera-setup-workspace", True),
+        ("pomera-setup-japanese.sh", "usr/local/bin/pomera-setup-japanese", True),
         ("pomera-font.sh", "usr/local/bin/pomera-font", True),
         ("pomera-brightness.sh", "usr/local/bin/pomera-brightness", True),
         ("pomera-bt-pan.sh", "usr/local/bin/pomera-bt-pan", True),
@@ -577,6 +577,39 @@ ttyC5	"/usr/libexec/getty std.9600"	wsvt25	on  secure
 
     shutil.rmtree(site_build, ignore_errors=True)
     res_mgr.unregister_temp_dir(site_build)
+
+
+def package_offline_packages(work_dir: str, res_mgr: ResourceManager):
+    """
+    If _build_cache/packages exists, package it into packages.tar for rapid
+    single-shot transfer into the SD card guest filesystem.
+    """
+    pkgs_dir = os.path.join(work_dir, "packages")
+    if not os.path.isdir(pkgs_dir):
+        return
+
+    pkg_files = [f for f in os.listdir(pkgs_dir) if f.endswith(".tgz")]
+    if not pkg_files:
+        return
+
+    tar_path = os.path.join(work_dir, "packages.tar")
+    tar_tmp = os.path.join(work_dir, "packages.tar.tmp")
+    res_mgr.register_temp_file(tar_tmp)
+    print(f">> [engine] Bundling {len(pkg_files)} offline packages into packages.tar...")
+    try:
+        with tarfile.open(tar_tmp, "w") as tar:
+            for pf in sorted(pkg_files):
+                full_p = os.path.join(pkgs_dir, pf)
+                tar.add(full_p, arcname=os.path.join("packages", pf))
+        os.replace(tar_tmp, tar_path)
+        print(f">> [engine] Successfully created packages.tar ({os.path.getsize(tar_path) / 1024 / 1024:.1f} MB)")
+    finally:
+        res_mgr.unregister_temp_file(tar_tmp)
+        if os.path.exists(tar_tmp):
+            try:
+                os.remove(tar_tmp)
+            except Exception:
+                pass
 
 
 def sync_distribution_files(work_dir: str, configs_dir: str):
@@ -778,6 +811,9 @@ def run_qemu_builder(
 
     # 2. Package site79.tgz (atomic)
     package_site_set(work_dir, configs_dir, scripts_dir, res_mgr)
+
+    # 2.5 Package offline workspace packages into packages.tar if present
+    package_offline_packages(work_dir, res_mgr)
 
     # 3. Synchronize distribution config files
     sync_distribution_files(work_dir, configs_dir)

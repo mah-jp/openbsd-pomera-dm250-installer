@@ -1,16 +1,16 @@
 #!/bin/sh
-# pomera-setup-desktop - Automated Desktop & Dev Environment Setup for Pomera DM250
+# pomera-setup-workspace - Automated Workspace & Writing Environment Setup for Pomera DM250
 #
 # Copyright (c) 2026 Masahiko OHKUBO and Pomera DM250 OpenBSD Project Contributors
 # SPDX-License-Identifier: MIT
 #
-# Sets up X11 GUI (cwm, mlterm, Noto CJK Japanese fonts), development tools (vim, tmux),
-# and optimized dotfiles for the 1024x600 display.
+# Sets up Pomera DM250 optimized workspace (Vim, tmux, mlterm, Noto fonts, cwm)
+# and tailored dotfiles for the 1024x600 distraction-free writing environment.
 
 set -e
 
 echo "=========================================================="
-echo "✨ Pomera DM250 OpenBSD Desktop & Dev Setup"
+echo "✨ Pomera DM250 Workspace & Writing Environment Setup"
 echo "=========================================================="
 
 # 1. Determine target user and home directory
@@ -37,28 +37,38 @@ fi
 
 echo ">> Target User : $TARGET_USER ($TARGET_HOME)"
 
-# 2. Check Internet Connectivity
-echo ">> Checking internet connectivity..."
-if ! ping -c 1 -w 3 1.1.1.1 >/dev/null 2>&1 && ! ping -c 1 -w 3 8.8.8.8 >/dev/null 2>&1; then
-    echo "⚠️  Internet connection could not be verified!"
-    echo "   Please make sure your Wi-Fi or USB Ethernet is connected."
-    echo "   - Wi-Fi config : /etc/hostname.bwfm0 (e.g. 'join SSID wpakey PASS \n inet autoconf')"
-    echo "   - Apply network: doas sh /etc/netstart"
-    echo ""
-    printf "Continue anyway? [y/N]: "
-    read -r ans
-    case "$ans" in
-        [yY]*) ;;
-        *) echo "Setup aborted. Connect to internet and run again!"; exit 1 ;;
-    esac
+# 2. Check for local offline package cache or internet connectivity
+PKG_DIR=""
+for d in /packages /mnt/packages /var/cache/packages; do
+    if [ -d "$d" ] && ls "$d"/*.tgz >/dev/null 2>&1; then
+        PKG_DIR="$d"
+        break
+    fi
+done
+
+if [ -n "$PKG_DIR" ]; then
+    echo "📦 Found offline package cache at $PKG_DIR. Installing locally..."
+    $DOAS env PKG_PATH="$PKG_DIR" pkg_add -I vim curl git mlterm noto-fonts noto-cjk dmenu
+else
+    echo ">> Checking internet connectivity for package download..."
+    if ! ping -c 1 -w 3 1.1.1.1 >/dev/null 2>&1 && ! ping -c 1 -w 3 8.8.8.8 >/dev/null 2>&1; then
+        echo "⚠️  Internet connection could not be verified and no offline cache found!"
+        echo "   Please make sure your Wi-Fi or USB Ethernet is connected."
+        echo "   - Wi-Fi config : /etc/hostname.bwfm0 (e.g. 'join SSID wpakey PASS \n inet autoconf')"
+        echo "   - Apply network: doas sh /etc/netstart"
+        echo ""
+        printf "Continue anyway? [y/N]: "
+        read -r ans
+        case "$ans" in
+            [yY]*) ;;
+            *) echo "Setup aborted. Connect to internet and run again!"; exit 1 ;;
+        esac
+    fi
+
+    # Install Packages online
+    echo ">> Installing workspace packages (Vim, curl, git, mlterm, fonts, dmenu)..."
+    $DOAS pkg_add -I vim curl git mlterm noto-fonts noto-cjk dmenu
 fi
-
-# 3. Install Packages
-echo ">> Installing essential packages (Vim, tmux, curl, git)..."
-$DOAS pkg_add -I vim tmux curl git
-
-echo ">> Installing GUI & fonts (mlterm, Noto CJK, dmenu)..."
-$DOAS pkg_add -I mlterm noto-fonts noto-cjk dmenu
 
 # 4. Deploy 1024x600 Optimized Dotfiles
 
@@ -256,18 +266,18 @@ chmod 0755 "$TARGET_HOME/.xsession"
 
 # 5. Optional GUI display mode
 echo "=========================================================="
-echo "🎉 Desktop & Development Environment Setup Complete!"
+echo "🎉 Pomera Workspace & Writing Environment Ready!"
 echo "=========================================================="
 echo ""
-echo "How to use your new environment:"
-echo "  1. Start GUI manually : run 'startx'"
+echo "How to use your workspace:"
+echo "  1. Start GUI workspace : run 'startx'"
 echo "     - Alt + Enter    : Open terminal (mlterm)"
 echo "     - Alt + F1 / F2  : Adjust screen brightness (F1: Dim, F2: Brighten)"
 echo "     - Alt + Up / Down: Adjust screen brightness"
 echo "     - Ctrl + Alt + q : Close current window"
 echo "     - Ctrl + Alt + BackSpace : Exit GUI to CUI"
 echo "  2. Setup Japanese Input (IME):"
-echo "     Run 'pomera-setup-desktop-jp' to configure uim-anthy!"
+echo "     Run 'pomera-setup-japanese' to configure uim-anthy!"
 echo "  3. Optional display modes:"
 echo "     Enable graphical login : $DOAS /usr/local/bin/pomera-gui-toggle gui"
 echo "     Revert to CUI console  : $DOAS /usr/local/bin/pomera-gui-toggle cui"
