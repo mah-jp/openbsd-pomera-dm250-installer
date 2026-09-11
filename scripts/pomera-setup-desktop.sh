@@ -172,12 +172,15 @@ echo ">> Configuring $TARGET_HOME/.mlterm (Tango Dark & Japanese font rendering)
 mkdir -p "$TARGET_HOME/.mlterm"
 cat << 'EOF' > "$TARGET_HOME/.mlterm/main"
 # --- Display & Font ---
-use_anti_alias = true
+use_aafont = true
 use_variable_column_width = false
 fade_ratio = 100
-fontsize = 15
-type_engine = xft
-line_space = 2
+fontsize = 18
+line_space = 0
+letter_space = 2
+col_size_of_width_a = 1
+unicode_full_width = false
+unicode_full_width_areas = U+1F000-1FAFF
 scrollbar_mode = none
 
 # --- Modern Color & VT Settings ---
@@ -220,7 +223,8 @@ hl_white=#f1f1f0
 EOF
 
 cat << 'EOF' > "$TARGET_HOME/.mlterm/aafont"
-DEFAULT = Noto Sans Mono CJK JP
+DEFAULT = DejaVu Sans Mono
+ISO10646_UCS4_1 = DejaVu Sans Mono
 ISO10646_UCS4_1_FULLWIDTH = Noto Sans Mono CJK JP
 EOF
 chown -R "$TARGET_USER" "$TARGET_HOME/.mlterm"

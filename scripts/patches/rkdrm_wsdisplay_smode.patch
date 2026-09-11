@@ -22,10 +22,11 @@ on DM250.
 
 --- a/sys/dev/fdt/rkdrm.c
 +++ b/sys/dev/fdt/rkdrm.c
-@@ -316,6 +316,9 @@ rkdrm_wsioctl(void *v, u_long cmd, caddr_t data, int flag, struct proc *p)
+@@ -316,6 +316,10 @@ rkdrm_wsioctl(void *v, u_long cmd, caddr_t data, int flag, struct proc *p)
  	case WSDISPLAYIO_LINEBYTES:
  		*(u_int *)data = ri->ri_stride;
  		return 0;
++	case WSDISPLAYIO_SETGFXMODE:
 +	case WSDISPLAYIO_SMODE:
 +		/* no-op (simplefb style); allows mlterm-fb to use DUMBFB */
 +		return 0;

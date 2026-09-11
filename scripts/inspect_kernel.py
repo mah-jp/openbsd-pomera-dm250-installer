@@ -127,21 +127,21 @@ def check_smart_kernel(kernel_path: str, nm_bin: Optional[str]) -> Tuple[bool, s
 def check_smode_patch(kernel_path: str, objdump_bin: Optional[str]) -> Tuple[bool, str]:
     """
     Checks if rkdrm implements WSDISPLAYIO_SMODE ioctl (for mlterm-fb DUMBFB console).
-    WSDISPLAYIO_SMODE = _IOW('W', 67, u_int) = 0x80045743.
+    WSDISPLAYIO_SMODE = _IOW('W', 76, u_int) = 0x8004574c.
     """
     if objdump_bin:
         code, out = run_cmd([objdump_bin, "-d", "--disassemble-symbols=rkdrm_wsioctl", kernel_path])
         if code == 0 and "rkdrm_wsioctl" in out:
-            # Look for 0x5743 (low 16 bits of WSDISPLAYIO_SMODE) or 80045743
-            if "5743" in out.lower() or "80045743" in out.lower():
-                return True, "rkdrm_wsioctl accepts WSDISPLAYIO_SMODE (0x80045743) for mlterm-fb DUMBFB"
+            # Look for 0x574c (low 16 bits of WSDISPLAYIO_SMODE) or 8004574c
+            if "574c" in out.lower() or "8004574c" in out.lower():
+                return True, "rkdrm_wsioctl accepts WSDISPLAYIO_SMODE (0x8004574c) for mlterm-fb DUMBFB"
             return False, "rkdrm_wsioctl does not handle WSDISPLAYIO_SMODE (returns ENOTTY, mlterm-fb will fail)"
 
     # Fallback to binary search if objdump is unavailable
     try:
         with open(kernel_path, "rb") as f:
             data = f.read()
-            if b"\x43\x57\x04\x80" in data or b"\x43\x37\x05\xe3" in data:
+            if b"\x4c\x57\x04\x80" in data or b"\x4c\x07\x05\xe3" in data or b"\x4c\x17\x05\xe3" in data:
                 return True, "Found WSDISPLAYIO_SMODE constant pattern in kernel binary"
     except Exception:
         pass
