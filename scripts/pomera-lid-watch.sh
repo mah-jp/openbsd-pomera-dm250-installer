@@ -19,7 +19,7 @@
 
 # Configurable parameters:
 # Priority: Command-line arguments > Environment variables > Defaults
-POLL_INTERVAL="${POMERA_LID_INTERVAL:-0.5}"
+POLL_INTERVAL="${POMERA_LID_INTERVAL:-2.0}"
 SUSPEND_TIMEOUT="${POMERA_LID_TIMEOUT:-7200}" # 2 hours default
 CPU_POLICY="${POMERA_CPU_POLICY:-auto}"
 LID_STATE="open"

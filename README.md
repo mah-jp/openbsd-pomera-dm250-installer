@@ -116,18 +116,19 @@ nano configs/user_config.env
   * `POMERA_ROOT_PASSWORD` : Root administrator password (Default: `pomera`)
   * `POMERA_WIFI_NETWORKS` : List of Wi-Fi SSIDs & passwords (**2.4GHz band only**; automatically connects to the strongest available network)
   * `POMERA_BOOT_TIMEOUT` : Bootloader countdown delay in seconds (Default: `5`)
-  * `POMERA_LID_INTERVAL` : Lid daemon polling interval in seconds (Default: `0.5`)
+  * `POMERA_LID_INTERVAL` : Lid daemon polling interval in seconds (Default: `2.0`)
   * `POMERA_CPU_POLICY` : CPU performance scaling policy (`auto`: dynamic load-based scaling / `100` or `high`: maximum clock lock, Default: `auto`)
   * `POMERA_ENABLE_SSHD` / `POMERA_ALLOW_ROOT_SSH` : SSH daemon enable & root login permission
   * `POMERA_CONFIRM_INSTALL` : Pre-install confirmation prompt before erasing internal storage (Default: `yes`. Set to `no` for unattended zero-touch installation)
-  * `POMERA_SMART_KERNEL` : Optimize kernel by removing unused SoCs and PCI expansion drivers (~25% smaller) (Default: `no`. Set to `yes` to enable)
-  * `POMERA_PATCH_USB_HUB` : Fix USB Hub crash & disconnect issues (Default: `no`. Set to `yes` to enable)
-  * `POMERA_PATCH_X11_KEYS` : Fix Right-Shift and Left-Alt keys under X11 (Default: `no`. Set to `yes` to enable)
-  * `POMERA_PATCH_MLTERM_FB` : Enable high-performance direct framebuffer console for `mlterm-fb` (Default: `no`. Set to `yes` to enable)
+  * `POMERA_SMART_KERNEL` : Optimize kernel by removing unused SoCs and PCI expansion drivers (~25% smaller) (Default: `yes`. Set to `no` for generic kernel)
+  * `POMERA_PATCH_USB_HUB` : Fix USB Hub crash & disconnect issues (Default: `yes`)
+  * `POMERA_PATCH_X11_KEYS` : Fix Right-Shift and Left-Alt keys under X11 (Default: `yes`)
+  * `POMERA_PATCH_MLTERM_FB` : Enable high-performance direct framebuffer console for `mlterm-fb` (Default: `yes`)
+  * `POMERA_PATCH_BT` : Enable Bluetooth UART 2s delay patch for AP6212A (Default: `yes`)
 
 > [!TIP]
 > **💡 Smart Kernel Audit Feature**  
-> When `POMERA_SMART_KERNEL`, `POMERA_PATCH_USB_HUB`, `POMERA_PATCH_X11_KEYS`, or `POMERA_PATCH_MLTERM_FB` is set to `yes`, the installer automatically audits the binary of the official kernel (`jcs.org/dm250/bsd`). If the official kernel already satisfies the requested configuration, it skips recompilation and adopts the official binary directly (0s wait time). Recompilation via temporary QEMU VM runs only when needed (and build results are cached for subsequent runs).
+> When `POMERA_SMART_KERNEL`, `POMERA_PATCH_USB_HUB`, `POMERA_PATCH_X11_KEYS`, `POMERA_PATCH_MLTERM_FB`, or `POMERA_PATCH_BT` is set to `yes`, the installer automatically audits the binary of the official kernel (`jcs.org/dm250/bsd`). If the official kernel already satisfies the requested configuration, it skips recompilation and adopts the official binary directly (0s wait time). Recompilation via temporary QEMU VM runs only when needed (and build results are cached for subsequent runs).
 
 *(Note: Root disk encryption [softraid CRYPTO] boot is permanently disabled as the OpenBSD armv7 EFI bootloader does not support crypto boot by design).*
 
@@ -258,7 +259,10 @@ pomera-setup-desktop-jp
 | `sysctl hw.cpuspeed` | Display current CPU operating clock speed in MHz (max: 1200 MHz). |
 | `sysctl hw.perfpolicy` / `hw.setperf` | Check CPU scaling policy (`auto`/`high`) and clock percentage ratio (0-100%). |
 | `doas rcctl [start\|stop\|restart\|check] pomera_lid_watch` | Manage the lid power management daemon via native OpenBSD `rcctl`. |
-| `doas rcctl set pomera_lid_watch flags "-i 0.5 -p auto"` | Adjust lid polling interval (seconds) or CPU scaling policy. |
+| `doas rcctl set pomera_lid_watch flags "-i 2.0 -p auto"` | Adjust lid polling interval (seconds) or CPU scaling policy. |
+| `doas rcctl [start\|stop\|restart\|check] pomera_power_led` | Lightweight battery LED daemon (orange charging, green full, red low). |
+| `doas rcctl [start\|stop\|restart\|check] pomera_wifi_watch` | Wi-Fi link monitoring & auto-reconnect daemon on link drops. |
+| `doas pomera-wifi-reconnect` | Instantly reset Wi-Fi interface (`bwfm0`) and re-acquire DHCP lease. |
 | `doas pomera-suspend` | Suspend SoC and clocks to deep idle power state (wake via Power button or lid switch). |
 | `doas gpioctl gpio1 red_led 1` / `green_led 1` | Control front status LEDs (`0` to turn off). |
 

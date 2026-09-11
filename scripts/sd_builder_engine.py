@@ -374,6 +374,8 @@ def package_site_set(work_dir: str, configs_dir: str, scripts_dir: str, res_mgr:
     # Copy daemon / CLI helper scripts
     helpers = [
         ("pomera-lid-watch.sh", "usr/local/sbin/pomera-lid-watch", True),
+        ("pomera-power-led.sh", "usr/local/sbin/pomera-power-led", True),
+        ("pomera-wifi-watch.sh", "usr/local/sbin/pomera-wifi-watch", True),
         ("pomera-gui-toggle.sh", "usr/local/bin/pomera-gui-toggle", True),
         ("pomera-setup-desktop.sh", "usr/local/bin/pomera-setup-desktop", True),
         ("pomera-setup-desktop-jp.sh", "usr/local/bin/pomera-setup-desktop-jp", True),
@@ -387,6 +389,12 @@ def package_site_set(work_dir: str, configs_dir: str, scripts_dir: str, res_mgr:
         subprocess.run(["cp", "-f", src_path, dst_path], check=True)
         if make_exec:
             subprocess.run(["chmod", "+x", dst_path], check=True)
+
+    # Create pomera-wifi-reconnect symlink in /usr/local/bin
+    wifi_reconnect_symlink = os.path.join(site_build, "usr/local/bin/pomera-wifi-reconnect")
+    if os.path.islink(wifi_reconnect_symlink) or os.path.exists(wifi_reconnect_symlink):
+        os.remove(wifi_reconnect_symlink)
+    os.symlink("/usr/local/sbin/pomera-wifi-watch", wifi_reconnect_symlink)
 
     # Deploy pomera-suspend binary if precompiled in _build_cache
     suspend_bin = os.path.join(work_dir, "pomera-suspend")
@@ -412,8 +420,10 @@ def package_site_set(work_dir: str, configs_dir: str, scripts_dir: str, res_mgr:
     if os.path.exists(bwfm_tgz):
         subprocess.run(["tar", "-xzf", bwfm_tgz, "-C", os.path.join(site_build, "etc/firmware")], check=True)
 
-    # 3. System configuration files
+    # 3. System configuration files & rc.d Daemons
     os.makedirs(os.path.join(site_build, "etc/rc.d"), exist_ok=True)
+
+    # 3-A. pomera_lid_watch daemon
     rc_d_lid = os.path.join(site_build, "etc/rc.d/pomera_lid_watch")
     with open(rc_d_lid, "w") as f:
         f.write("""#!/bin/ksh
@@ -429,6 +439,49 @@ rc_reload=NO
 rc_cmd $1
 """)
     os.chmod(rc_d_lid, 0o755)
+
+    # 3-B. pomera_power_led daemon
+    rc_d_led = os.path.join(site_build, "etc/rc.d/pomera_power_led")
+    with open(rc_d_led, "w") as f:
+        f.write("""#!/bin/ksh
+
+daemon="/usr/local/sbin/pomera-power-led"
+
+. /etc/rc.d/rc.subr
+
+pexp="/bin/sh ${daemon}.*"
+rc_bg=YES
+rc_reload=NO
+
+rc_cmd $1
+""")
+    os.chmod(rc_d_led, 0o755)
+
+    # 3-C. pomera_wifi_watch daemon
+    rc_d_wifi = os.path.join(site_build, "etc/rc.d/pomera_wifi_watch")
+    with open(rc_d_wifi, "w") as f:
+        f.write("""#!/bin/ksh
+
+daemon="/usr/local/sbin/pomera-wifi-watch"
+
+. /etc/rc.d/rc.subr
+
+pexp="/bin/sh ${daemon}.*"
+rc_bg=YES
+rc_reload=NO
+
+rc_cmd $1
+""")
+    os.chmod(rc_d_wifi, 0o755)
+
+    # 3-D. /etc/rc.securelevel (LED pin naming before securelevel raise)
+    rc_securelevel = os.path.join(site_build, "etc/rc.securelevel")
+    with open(rc_securelevel, "w") as f:
+        f.write("""#!/bin/sh
+gpioctl -q gpio1 8  set out red_led   >/dev/null 2>&1 || true
+gpioctl -q gpio1 12 set out green_led >/dev/null 2>&1 || true
+""")
+    os.chmod(rc_securelevel, 0o755)
 
     with open(os.path.join(site_build, "etc/doas.conf"), "w") as f:
         f.write("permit keepenv :wheel\npermit nopass :wheel cmd reboot\npermit nopass :wheel cmd wsconsctl\n")

@@ -44,6 +44,8 @@ parser.add_argument("--patch-x11", dest="patch_x11", action=argparse.BooleanOpti
                     help="Apply X11 raw keys fix (PR #4)")
 parser.add_argument("--patch-smode", dest="patch_smode", action=argparse.BooleanOptionalAction, default=True,
                     help="Apply rkdrm WSDISPLAYIO_SMODE fix for mlterm-fb framebuffer console")
+parser.add_argument("--patch-bt", dest="patch_bt", action=argparse.BooleanOptionalAction, default=True,
+                    help="Apply bcmbt 2s delay fix for Bluetooth UART attach")
 args, _ = parser.parse_known_args()
 
 if args.work_dir:
@@ -287,6 +289,30 @@ def prepare_patched_sys_archive(mgr: BuildManager) -> str:
             print("   ✅ Verified WSDISPLAYIO_SMODE in rkdrm.c")
     else:
         print("   ⏩ Skipping rkdrm SMODE patch (disabled by user configuration)")
+
+    # 4. Apply bcmbt 2s delay fix for Bluetooth UART attach
+    if args.patch_bt:
+        bt_patch = os.path.join(SCRIPT_DIR, "patches", "bcmbt_delay_2s.patch")
+        if os.path.isfile(bt_patch):
+            print("   Applying patch bcmbt_delay_2s.patch to staged tree...")
+            subprocess.run(
+                ["patch", "-p1", "--forward", "-r", "-"],
+                input=open(bt_patch, "rb").read(),
+                cwd=stage_dir,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=False
+            )
+
+        target_bcmbt = os.path.join(stage_dir, "sys", "dev", "fdt", "bcmbt_fdt.c")
+        if os.path.isfile(target_bcmbt):
+            with open(target_bcmbt, "r") as f:
+                content = f.read()
+                if "delay(2000000)" not in content:
+                    raise RuntimeError("Verification failed: bcmbt_fdt.c does not contain delay(2000000) fix!")
+            print("   ✅ Verified delay(2000000) in bcmbt_fdt.c")
+    else:
+        print("   ⏩ Skipping Bluetooth patch (disabled by user configuration)")
 
     # Inject DM250 optimized kernel configuration if available
     conf_dm250 = os.path.join(SCRIPT_DIR, "conf", "DM250")

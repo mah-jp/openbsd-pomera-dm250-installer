@@ -117,18 +117,19 @@ nano configs/user_config.env
   * `POMERA_ROOT_PASSWORD` : root パスワード（デフォルト: `pomera`）
   * `POMERA_WIFI_NETWORKS` : 接続先 Wi-Fi（**2.4GHz 帯専用**。複数指定可能、電波の強い方へ自動接続）
   * `POMERA_BOOT_TIMEOUT` : ブートローダーの待機秒数（デフォルト: `5` 秒）
-  * `POMERA_LID_INTERVAL` : 蓋開閉検知デーモンの監視間隔秒数（デフォルト: `0.5` 秒）
+  * `POMERA_LID_INTERVAL` : 蓋開閉検知デーモンの監視間隔秒数（デフォルト: `2.0` 秒）
   * `POMERA_CPU_POLICY` : CPU 動作ポリシー（`auto`: 負荷連動可変省電力 / `100` または `high`: 最高性能固定、デフォルト: `auto`）
   * `POMERA_ENABLE_SSHD` / `POMERA_ALLOW_ROOT_SSH` : SSHD 自動起動設定
   * `POMERA_CONFIRM_INSTALL` : インストール開始前の安全確認プロンプト（デフォルト: `yes`。`no` で完全無人化）
-  * `POMERA_SMART_KERNEL` : 不要な他社SoCやPCIドライバを削ぎ落としたDM250特化型カーネル（約25%削減、デフォルト: `no`。`yes` で有効化）
-  * `POMERA_PATCH_USB_HUB` : USBハブ使用時の切断・クラッシュ防止パッチ（デフォルト: `no`。`yes` で有効化）
-  * `POMERA_PATCH_X11_KEYS` : X11 GUI使用時の右Shiftおよび左Altキー修正パッチ（デフォルト: `no`。`yes` で有効化）
-  * `POMERA_PATCH_MLTERM_FB` : 高速フレームバッファ直描画 `mlterm-fb` 用カーネルパッチ（デフォルト: `no`。`yes` で有効化）
+  * `POMERA_SMART_KERNEL` : 不要な他社SoCやPCIドライバを削ぎ落としたDM250特化型カーネル（約25%削減、デフォルト: `yes`。`no` で標準カーネル）
+  * `POMERA_PATCH_USB_HUB` : USBハブ使用時の切断・クラッシュ防止パッチ（デフォルト: `yes`）
+  * `POMERA_PATCH_X11_KEYS` : X11 GUI使用時の右Shiftおよび左Altキー修正パッチ（デフォルト: `yes`）
+  * `POMERA_PATCH_MLTERM_FB` : 高速フレームバッファ直描画 `mlterm-fb` 用カーネルパッチ（デフォルト: `yes`）
+  * `POMERA_PATCH_BT` : Bluetooth UART 2秒初期化待機パッチ（AP6212A用、デフォルト: `yes`）
 
 > [!TIP]
 > **💡 スマート・カーネル検査機能**  
-> `POMERA_SMART_KERNEL`、`POMERA_PATCH_USB_HUB`、`POMERA_PATCH_X11_KEYS`、`POMERA_PATCH_MLTERM_FB` を `yes` に設定した場合、インストーラーは公式カーネル（jcs.org）のバイナリを自動検査します。公式カーネルで既に要求機能が満たされている場合はリコンパイルを行わず公式バイナリをそのまま採用（待ち時間0秒）し、未対応の場合のみ一時的な QEMU VM で安全にリコンパイルを行います（ビルド結果はキャッシュされるため次回以降も即座に再利用されます）。
+> `POMERA_SMART_KERNEL`、`POMERA_PATCH_USB_HUB`、`POMERA_PATCH_X11_KEYS`、`POMERA_PATCH_MLTERM_FB`、`POMERA_PATCH_BT` を `yes` に設定した場合、インストーラーは公式カーネル（jcs.org）のバイナリを自動検査します。公式カーネルで既に要求機能が満たされている場合はリコンパイルを行わず公式バイナリをそのまま採用（待ち時間0秒）し、未対応の場合のみ一時的な QEMU VM で安全にリコンパイルを行います（ビルド結果はキャッシュされるため次回以降も即座に再利用されます）。
 
 *(※ OpenBSD armv7 EFI ブートローダーの仕様上、ルートディスク暗号化 [softraid CRYPTO] ブートは非対応のため自動的に無効化されます)*
 
@@ -256,9 +257,12 @@ pomera-setup-desktop-jp
 | `sysctl hw.cpuspeed` | 現在の CPU 動作クロック周波数を表示（単位: MHz、最大 1200 MHz）。 |
 | `sysctl hw.perfpolicy` / `hw.setperf` | CPU 制御ポリシー（`auto`/`high`）およびクロック比率（0〜100%）を確認。 |
 | `doas rcctl [start\|stop\|restart\|check] pomera_lid_watch` | 蓋開閉省電力デーモンの起動・停止・再起動・ステータス確認。 |
-| `doas rcctl set pomera_lid_watch flags "-i 0.5 -p auto"` | 蓋検知間隔（秒）や蓋オープン時の CPU ポリシーを変更。 |
+| `doas rcctl set pomera_lid_watch flags "-i 2.0 -p auto"` | 蓋検知間隔（秒）や蓋オープン時の CPU ポリシーを変更。 |
+| `doas rcctl [start\|stop\|restart\|check] pomera_power_led` | バッテリーLEDインジケーター（充電中橙、満充電緑、残量低下赤）の常駐監視デーモン。 |
+| `doas rcctl [start\|stop\|restart\|check] pomera_wifi_watch` | Wi-Fiリンク監視＆リンク切断時の自動再接続常駐デーモン。 |
+| `doas pomera-wifi-reconnect` | Wi-Fi（`bwfm0`）インターフェースを即座に再起動してDHCPを再取得。 |
 | `doas pomera-suspend` | SoC/PLLを休止してディープサスペンドへ移行（電源ボタンや蓋開閉で復帰）。 |
-| `doas gpioctl gpio1 red_led 1` / `green_led 1` | 前面の赤/緑ステータスLEDを点灯・消灯（`0` で消灯）。 |
+| `doas gpioctl gpio1 red_led 1` / `green_led 1` | 前面の赤/緑ステータスLEDを手動で点灯・消灯（`0` で消灯）。 |
 
 ### デスクトップ＆ネットワーク
 
@@ -275,8 +279,8 @@ pomera-setup-desktop-jp
 | ツール | 説明 |
 | :--- | :--- |
 | `sudo python3 scripts/inspect_sd.py /dev/rdiskN` | 作成したSDカードのMBR、ブートローダーセクタ（LBA 64/16384）、Disklabelを物理検査。 |
-| `python3 scripts/inspect_kernel.py [kernel]` | カーネルバイナリが DM250 スマートカーネルか、USB/X11キー/mlterm-fb修正を含むかを自動監査。 |
-| `python3 scripts/build_kernel_qemu.py [--config DM250]` | QEMU ネイティブVM上でパッチ適用（USB, X11キー, mlterm-fb）・軽量特化カーネル（`DM250` / `GENERIC`）を自動ビルド。 |
+| `python3 scripts/inspect_kernel.py [kernel]` | カーネルバイナリが DM250 スマートカーネルか、USB/X11キー/mlterm-fb/Bluetooth修正を含むかを自動監査。 |
+| `python3 scripts/build_kernel_qemu.py [--config DM250]` | QEMU ネイティブVM上でパッチ適用（USB, X11キー, mlterm-fb, BT）・軽量特化カーネル（`DM250` / `GENERIC`）を自動ビルド。 |
 | `scripts/build_uboot.sh` | DM250専用のハンズフリー auto-boot U-Bootバイナリ（`uboot.img`）を単体ビルド。 |
 | `scripts/run_qemu.sh [image_path]` | 実機に挿す前に、作成したイメージをローカルPC（Mac/Linux）のQEMUシミュレータで起動テスト。 |
 

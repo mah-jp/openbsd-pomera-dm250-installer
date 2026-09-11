@@ -26,11 +26,17 @@ DOWNLOAD_ONLY=false
 BOOTLOADER_ONLY=false
 REBUILD_UBOOT=false
 BUILD_KERNEL=false
-POMERA_SMART_KERNEL="${POMERA_SMART_KERNEL:-no}"
-POMERA_PATCH_USB_HUB="${POMERA_PATCH_USB_HUB:-no}"
-POMERA_PATCH_X11_KEYS="${POMERA_PATCH_X11_KEYS:-no}"
-POMERA_PATCH_MLTERM_FB="${POMERA_PATCH_MLTERM_FB:-no}"
+POMERA_SMART_KERNEL="${POMERA_SMART_KERNEL:-yes}"
+POMERA_PATCH_USB_HUB="${POMERA_PATCH_USB_HUB:-yes}"
+POMERA_PATCH_X11_KEYS="${POMERA_PATCH_X11_KEYS:-yes}"
+POMERA_PATCH_MLTERM_FB="${POMERA_PATCH_MLTERM_FB:-yes}"
+POMERA_PATCH_BT="${POMERA_PATCH_BT:-yes}"
 POMERA_BUILD_PATCHED_KERNEL="${POMERA_BUILD_PATCHED_KERNEL:-no}"
+CLI_SMART_KERNEL=""
+CLI_PATCH_USB_HUB=""
+CLI_PATCH_X11_KEYS=""
+CLI_PATCH_MLTERM_FB=""
+CLI_PATCH_BT=""
 MODEL_TYPE="dm250"
 
 OS_NAME="$(uname -s)"
@@ -85,11 +91,17 @@ show_help() {
     echo ""
     echo "Options:"
     echo "  --us                   Build for Pomera DM250US (US model)"
-    echo "  --smart-kernel         Build & use DM250 tailored kernel (removes unused SoCs/PCI drivers)"
+    echo "  --smart-kernel         Build & use DM250 tailored kernel (removes unused SoCs/PCI drivers, Default: yes)"
     echo "  --no-smart-kernel      Use standard generic kernel"
-    echo "  --patch-mlterm-fb      Enable mlterm-fb framebuffer console patch (rkdrm SMODE)"
+    echo "  --patch-usb-hub        Enable USB Hub split transaction crash fix (Default: yes)"
+    echo "  --no-patch-usb-hub     Disable USB Hub split transaction crash fix"
+    echo "  --patch-x11-keys       Enable X11 Right-Shift & Left-Alt keys fix (Default: yes)"
+    echo "  --no-patch-x11-keys    Disable X11 Right-Shift & Left-Alt keys fix"
+    echo "  --patch-mlterm-fb      Enable mlterm-fb framebuffer console patch (rkdrm SMODE, Default: yes)"
     echo "  --no-patch-mlterm-fb   Disable mlterm-fb framebuffer console patch"
-    echo "  --build-kernel         Rebuild patched OpenBSD kernel (USB, keyboard & mlterm-fb fixes) via QEMU"
+    echo "  --patch-bt             Enable Bluetooth UART 2s delay patch (bcmbt, Default: yes)"
+    echo "  --no-patch-bt          Disable Bluetooth UART 2s delay patch"
+    echo "  --build-kernel         Rebuild patched OpenBSD kernel (USB, keyboard, mlterm-fb & BT fixes) via QEMU"
     echo "  --rebuild-uboot        Rebuild custom auto-booting U-Boot binary"
     echo "  --bootloader-only      Flash only idbloader.img & uboot.img to target without formatting"
     echo "  --download-only        Fetch all required official binaries without formatting"
@@ -111,10 +123,16 @@ parse_arguments() {
         case "$1" in
             --help|-h) show_help ;;
             --us) MODEL_TYPE="dm250us"; shift ;;
-            --smart-kernel) POMERA_SMART_KERNEL="yes"; shift ;;
-            --no-smart-kernel) POMERA_SMART_KERNEL="no"; shift ;;
-            --patch-mlterm-fb) POMERA_PATCH_MLTERM_FB="yes"; shift ;;
-            --no-patch-mlterm-fb) POMERA_PATCH_MLTERM_FB="no"; shift ;;
+            --smart-kernel) CLI_SMART_KERNEL="yes"; shift ;;
+            --no-smart-kernel) CLI_SMART_KERNEL="no"; shift ;;
+            --patch-usb-hub) CLI_PATCH_USB_HUB="yes"; shift ;;
+            --no-patch-usb-hub) CLI_PATCH_USB_HUB="no"; shift ;;
+            --patch-x11-keys) CLI_PATCH_X11_KEYS="yes"; shift ;;
+            --no-patch-x11-keys) CLI_PATCH_X11_KEYS="no"; shift ;;
+            --patch-mlterm-fb) CLI_PATCH_MLTERM_FB="yes"; shift ;;
+            --no-patch-mlterm-fb) CLI_PATCH_MLTERM_FB="no"; shift ;;
+            --patch-bt) CLI_PATCH_BT="yes"; shift ;;
+            --no-patch-bt) CLI_PATCH_BT="no"; shift ;;
             --build-kernel) BUILD_KERNEL=true; shift ;;
             --rebuild-uboot) REBUILD_UBOOT=true; shift ;;
             --bootloader-only|--flash-bootloader) BOOTLOADER_ONLY=true; shift ;;
@@ -178,12 +196,6 @@ fetch_file() {
 generate_install_configs() {
     echo ""
     echo ">> Preparing autoinstall response configuration..."
-    local prev_smart_k="${POMERA_SMART_KERNEL:-}"
-    local prev_patch_usb="${POMERA_PATCH_USB_HUB:-}"
-    local prev_patch_x11="${POMERA_PATCH_X11_KEYS:-}"
-    local prev_patch_smode="${POMERA_PATCH_MLTERM_FB:-}"
-    local prev_build_k="${POMERA_BUILD_PATCHED_KERNEL:-}"
-
     local user_config_file="${CONFIGS_DIR}/user_config.env"
     if [ -f "$user_config_file" ]; then
         echo ">> Loading custom user configuration from ${user_config_file}..."
@@ -191,11 +203,12 @@ generate_install_configs() {
         source "$user_config_file"
     fi
 
-    [ -n "$prev_smart_k" ] && [ "$prev_smart_k" != "no" ] && POMERA_SMART_KERNEL="$prev_smart_k"
-    [ -n "$prev_patch_usb" ] && [ "$prev_patch_usb" != "no" ] && POMERA_PATCH_USB_HUB="$prev_patch_usb"
-    [ -n "$prev_patch_x11" ] && [ "$prev_patch_x11" != "no" ] && POMERA_PATCH_X11_KEYS="$prev_patch_x11"
-    [ -n "$prev_patch_smode" ] && [ "$prev_patch_smode" != "no" ] && POMERA_PATCH_MLTERM_FB="$prev_patch_smode"
-    [ -n "$prev_build_k" ] && [ "$prev_build_k" != "no" ] && POMERA_BUILD_PATCHED_KERNEL="$prev_build_k"
+    # CLI arguments take strict precedence over user_config.env
+    [ -n "$CLI_SMART_KERNEL" ] && POMERA_SMART_KERNEL="$CLI_SMART_KERNEL"
+    [ -n "$CLI_PATCH_USB_HUB" ] && POMERA_PATCH_USB_HUB="$CLI_PATCH_USB_HUB"
+    [ -n "$CLI_PATCH_X11_KEYS" ] && POMERA_PATCH_X11_KEYS="$CLI_PATCH_X11_KEYS"
+    [ -n "$CLI_PATCH_MLTERM_FB" ] && POMERA_PATCH_MLTERM_FB="$CLI_PATCH_MLTERM_FB"
+    [ -n "$CLI_PATCH_BT" ] && POMERA_PATCH_BT="$CLI_PATCH_BT"
 
     local conf_user="${POMERA_USERNAME:-pomera}"
     local conf_host="${POMERA_HOSTNAME:-pomera}"
@@ -205,13 +218,14 @@ generate_install_configs() {
     local conf_sshd="${POMERA_ENABLE_SSHD:-yes}"
     local conf_rootssh="${POMERA_ALLOW_ROOT_SSH:-no}"
     local conf_confirm_install="${POMERA_CONFIRM_INSTALL:-yes}"
-    local conf_lid_interval="${POMERA_LID_INTERVAL:-0.5}"
+    local conf_lid_interval="${POMERA_LID_INTERVAL:-2.0}"
     local conf_cpu_policy="${POMERA_CPU_POLICY:-auto}"
 
-    POMERA_SMART_KERNEL="${POMERA_SMART_KERNEL:-no}"
-    POMERA_PATCH_USB_HUB="${POMERA_PATCH_USB_HUB:-no}"
-    POMERA_PATCH_X11_KEYS="${POMERA_PATCH_X11_KEYS:-no}"
-    POMERA_PATCH_MLTERM_FB="${POMERA_PATCH_MLTERM_FB:-no}"
+    POMERA_SMART_KERNEL="${POMERA_SMART_KERNEL:-yes}"
+    POMERA_PATCH_USB_HUB="${POMERA_PATCH_USB_HUB:-yes}"
+    POMERA_PATCH_X11_KEYS="${POMERA_PATCH_X11_KEYS:-yes}"
+    POMERA_PATCH_MLTERM_FB="${POMERA_PATCH_MLTERM_FB:-yes}"
+    POMERA_PATCH_BT="${POMERA_PATCH_BT:-yes}"
     POMERA_BUILD_PATCHED_KERNEL="${POMERA_BUILD_PATCHED_KERNEL:-no}"
 
     # Inject user credentials into _build_cache/install.site.env to guarantee 100% password enforcement without dirtying git configs
@@ -443,9 +457,13 @@ EOF
             want_kernel_patch=true
             check_flags+=("--check-smode")
         fi
+        if [ "$POMERA_PATCH_BT" = "yes" ]; then
+            want_kernel_patch=true
+            check_flags+=("--check-bt")
+        fi
     fi
 
-    local current_kernel_sig="CONFIG=${target_kconfig}|SMART=${POMERA_SMART_KERNEL}|USB_HUB=${POMERA_PATCH_USB_HUB}|X11_KEYS=${POMERA_PATCH_X11_KEYS}|MLTERM_FB=${POMERA_PATCH_MLTERM_FB}"
+    local current_kernel_sig="CONFIG=${target_kconfig}|SMART=${POMERA_SMART_KERNEL}|USB_HUB=${POMERA_PATCH_USB_HUB}|X11_KEYS=${POMERA_PATCH_X11_KEYS}|MLTERM_FB=${POMERA_PATCH_MLTERM_FB}|BT=${POMERA_PATCH_BT}"
     local tag_file="${WORK_DIR}/bsd.patched.tag"
     local inspect_script="${SCRIPT_DIR}/scripts/inspect_kernel.py"
 
@@ -502,6 +520,11 @@ EOF
                     build_args+=("--patch-smode")
                 else
                     build_args+=("--no-patch-smode")
+                fi
+                if [ "$POMERA_PATCH_BT" = "yes" ]; then
+                    build_args+=("--patch-bt")
+                else
+                    build_args+=("--no-patch-bt")
                 fi
 
                 python3 "${SCRIPT_DIR}/scripts/build_kernel_qemu.py" "${build_args[@]}"

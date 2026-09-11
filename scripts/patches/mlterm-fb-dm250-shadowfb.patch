@@ -1,3 +1,8 @@
+# Based on mlterm-fb patch series by 4noha (https://github.com/4noha/openbsd-pomera-dm250)
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 4noha
+# Copyright (c) 2026 Masahiko OHKUBO and Pomera DM250 OpenBSD Project Contributors
+#
 --- uitoolkit/fb/ui.h.orig	Sat Sep 23 03:27:38 2017
 +++ uitoolkit/fb/ui.h	Sat Sep 12 02:41:34 2026
 @@ -93,6 +93,15 @@

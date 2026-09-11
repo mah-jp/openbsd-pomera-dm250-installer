@@ -330,8 +330,20 @@ fi
 if [ -f /etc/rc.d/pomera_lid_watch ]; then
     chmod 755 /etc/rc.d/pomera_lid_watch
     rcctl enable pomera_lid_watch
-    conf_lid_int="${POMERA_LID_INTERVAL:-0.5}"
+    conf_lid_int="${POMERA_LID_INTERVAL:-2.0}"
     rcctl set pomera_lid_watch flags "-i ${conf_lid_int} -p ${conf_cpu_pol}"
+fi
+
+# Enable Battery LED Indicator Daemon
+if [ -f /etc/rc.d/pomera_power_led ]; then
+    chmod 755 /etc/rc.d/pomera_power_led
+    rcctl enable pomera_power_led
+fi
+
+# Enable Wi-Fi Health Monitor & Auto-Reconnect Daemon
+if [ -f /etc/rc.d/pomera_wifi_watch ]; then
+    chmod 755 /etc/rc.d/pomera_wifi_watch
+    rcctl enable pomera_wifi_watch
 fi
 
 # 10. Compile pomera-suspend utility if source is present and binary missing

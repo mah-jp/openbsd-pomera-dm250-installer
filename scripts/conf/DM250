@@ -40,6 +40,7 @@ syscon*		at fdt? early 1
 
 # Consoles & Serial UARTs (required by platform_init_cons & RK3128 console)
 com*		at fdt?			# onboard standard 16550 UARTs (RK3128 serial console)
+bcmbt*		at com?			# Broadcom Bluetooth over UART (AP6212A)
 pluart*		at fdt?			# ARM PrimeCell PL011 UART (QEMU virt console)
 cduart*		at fdt?
 exuart*		at fdt?
@@ -106,12 +107,14 @@ vioscsi*	at virtio?
 uhub*		at usb?			# USB Hubs
 uhub*		at uhub?		# USB Hubs
 urng*		at uhub?		# USB Random Number Generator
+ugen*		at uhub?		# USB Generic driver (libusb, dfu-util, userland USB)
 
 # USB Storage & Optical Media
 umass*		at uhub?		# USB Mass Storage devices
 scsibus*	at scsi?
 sd*		at scsibus?		# USB flash drives / external disks
 cd*		at scsibus?		# USB CD/DVD-ROM drives
+uk*		at scsibus?		# unknown SCSI devices
 
 # USB Human Interface Devices (HID)
 uhidev*		at uhub?		# Human Interface Devices
@@ -125,7 +128,11 @@ ujoy*		at uhidev?		# USB joystick / gamepad
 uwacom*		at uhidev?		# USB Wacom tablet
 wsmouse*	at uwacom? mux 0
 uhid*		at uhidev?		# USB generic HID support
+uhidpp*		at uhidev?		# Logitech HID++ Devices (Unifying / Bolt)
+upd*		at uhidev?		# USB Power Devices sensors
 fido*		at uhidev?		# FIDO/U2F security key support
+uts*		at uhub?		# USB touchscreen
+wsmouse*	at uts? mux 0
 
 # USB Audio & Video (Webcam & DAC)
 uaudio*		at uhub?		# USB Audio (DAC / headphone / mic)
@@ -160,12 +167,16 @@ uchcom*		at uhub?		# WinChipHead CH340/CH341 serial
 ucom*		at uchcom?
 umodem*		at uhub?		# USB Modems / CDC ACM serial
 ucom*		at umodem?
+umsm*		at uhub?		# Qualcomm MSM EVDO / 3G / 4G modems
+ucom*		at umsm?
 
 # Wireless Networking
 bwfm*		at sdmmc?		# Broadcom FullMAC (SDIO)
 bwfm*		at uhub?		# Broadcom FullMAC (USB)
 urtwn*		at uhub?		# Realtek RTL8188CU/RTL8192CU USB Wi-Fi
 rsu*		at uhub?		# Realtek RTL8188SU USB Wi-Fi
+athn*		at uhub?		# Atheros AR9002U (AR9271) USB Wi-Fi
+run*		at uhub?		# Ralink RT2700U/RT2800U/RT3000U USB Wi-Fi
 
 # GPIO "pin bus" drivers
 gpioiic*	at gpio?		# I2C bus bit-banging

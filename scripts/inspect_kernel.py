@@ -149,12 +149,33 @@ def check_smode_patch(kernel_path: str, objdump_bin: Optional[str]) -> Tuple[boo
     return False, "Unable to verify rkdrm WSDISPLAYIO_SMODE patch"
 
 
+def check_bt_patch(kernel_path: str, objdump_bin: Optional[str]) -> Tuple[bool, str]:
+    """
+    Checks if bcmbt driver uses 2s delay (2,000,000 us = 0x1e8480) after firmware upload.
+    Stock OpenBSD uses 250ms (250,000 us = 0x3d090).
+    """
+    if objdump_bin:
+        code, out = run_cmd([objdump_bin, "-d", "--disassemble-symbols=bcmbt_load_firmware", kernel_path])
+        if code == 0 and "bcmbt_load_firmware" in out:
+            # Check for 2000000 (0x1e8480 -> movw ... 0x8480 / 33920, movt ... 0x1e / 30)
+            if ("8480" in out and ("1e" in out.lower() or "30" in out)) or "2000000" in out:
+                return True, "bcmbt_load_firmware uses 2s delay (0x1e8480 / 2000000 us)"
+            if "d090" in out or "250000" in out:
+                return False, "bcmbt_load_firmware uses stock 250ms delay (0x3d090 / 250000 us)"
+            return False, "bcmbt_load_firmware delay instruction pattern unknown"
+
+        return False, "bcmbt driver not found in kernel"
+
+    return False, "Unable to verify bcmbt patch (objdump not available)"
+
+
 def main():
     parser = argparse.ArgumentParser(description="Inspect OpenBSD DM250 kernel for hardware patches and smart optimization")
     parser.add_argument("kernel", help="Path to kernel binary (bsd or bsd.patched)")
     parser.add_argument("--check-x11", action="store_true", help="Check only X11 Right-Shift / Left-Alt fix (PR #4)")
     parser.add_argument("--check-usb", action="store_true", help="Check only USB Hub split transaction fix (PR #3)")
     parser.add_argument("--check-smode", action="store_true", help="Check rkdrm WSDISPLAYIO_SMODE fix for mlterm-fb")
+    parser.add_argument("--check-bt", action="store_true", help="Check bcmbt 2s delay fix for Bluetooth UART attach")
     parser.add_argument("--check-smart", action="store_true", help="Check if kernel is optimized DM250 smart kernel")
     parser.add_argument("--check-all", action="store_true", help="Check that all hardware patches are present")
     parser.add_argument("--verbose", "-v", action="store_true", help="Print detailed inspection diagnostic messages")
@@ -172,9 +193,10 @@ def main():
     has_x11, reason_x11 = check_x11_key_patch(args.kernel, objdump_bin, nm_bin)
     has_usb, reason_usb = check_usb_hub_patch(args.kernel, objdump_bin)
     has_smode, reason_smode = check_smode_patch(args.kernel, objdump_bin)
+    has_bt, reason_bt = check_bt_patch(args.kernel, objdump_bin)
     has_smart, reason_smart = check_smart_kernel(args.kernel, nm_bin)
 
-    no_specific_checks = not (args.check_x11 or args.check_usb or args.check_smode or args.check_smart or args.check_all)
+    no_specific_checks = not (args.check_x11 or args.check_usb or args.check_smode or args.check_bt or args.check_smart or args.check_all)
 
     if args.verbose or no_specific_checks:
         print(f"=== Kernel Inspection Report: {os.path.basename(args.kernel)} ===")
@@ -187,6 +209,8 @@ def main():
         print(f"     -> Details: {reason_usb}")
         print(f"  rkdrm SMODE (mlterm-fb DUMBFB Console) : {'✅ APPLIED' if has_smode else '❌ MISSING'}")
         print(f"     -> Details: {reason_smode}")
+        print(f"  bcmbt 2s delay (Bluetooth UART Attach) : {'✅ APPLIED' if has_bt else '❌ MISSING'}")
+        print(f"     -> Details: {reason_bt}")
         print("=================================================================")
 
     # Determine exit code based on requested checks
@@ -199,8 +223,10 @@ def main():
         passed = passed and has_usb
     if args.check_smode:
         passed = passed and has_smode
+    if args.check_bt:
+        passed = passed and has_bt
     if args.check_all:
-        passed = passed and has_x11 and has_usb and has_smode
+        passed = passed and has_x11 and has_usb and has_smode and has_bt
 
     # Default if no specific check flags given
     if no_specific_checks:

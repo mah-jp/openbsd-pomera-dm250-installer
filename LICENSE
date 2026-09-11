@@ -38,7 +38,8 @@ This project builds upon and interacts with several upstream components and comm
     Binaries and scripts are fetched from upstream sources during installation under respective ISC / GPL licenses.
 
 - **4noha**:
-  - Research, kernel patches, and power management concepts for Pomera DM250:
+  - Research, kernel patches (ISC License), mlterm-fb patches (MIT License), and power management concepts for Pomera DM250:
+    Copyright (c) 2026 4noha
     https://github.com/4noha/openbsd-pomera-dm250
 
 - **Rockchip Electronics Co., Ltd.**:
