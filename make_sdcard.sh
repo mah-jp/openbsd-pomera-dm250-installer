@@ -19,6 +19,7 @@ cd "$SCRIPT_DIR"
 
 WORK_DIR="${SCRIPT_DIR}/_build_cache"
 CONFIGS_DIR="${SCRIPT_DIR}/configs"
+SCRIPTS_DIR="${SCRIPT_DIR}/scripts"
 
 TARGET_DEV=""
 BLOCK_DEV=""
@@ -704,6 +705,7 @@ select_target_device() {
     validate_target_dev "$TARGET_DEV"
 
     echo "⚠️  CRITICAL WARNING: All data on ${TARGET_DEV} will be COMPLETELY ERASED!"
+    local confirm=""
     read -r -p "Are you absolutely sure you want to format ${TARGET_DEV}? [yes/NO]: " confirm
     if [ "$confirm" != "yes" ]; then
         echo "Aborted."

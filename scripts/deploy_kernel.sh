@@ -64,6 +64,7 @@ case "$CHOICE" in
         echo "Available mounted volumes:"
         df -h | grep -E "/Volumes|/media|/mnt" || true
         echo ""
+        SD_PATH=""
         read -r -p "Enter path to SD card mount point (e.g. /Volumes/POMERA): " SD_PATH
         if [ ! -d "$SD_PATH" ]; then
             echo "❌ Path not found: $SD_PATH"
