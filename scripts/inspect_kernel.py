@@ -3,8 +3,8 @@
 inspect_kernel.py - Automated Inspection of DM250 OpenBSD Kernel Patches.
 
 Verifies whether an OpenBSD armv7 kernel binary (bsd) contains:
-1. PR #4: X11 Right-Shift & Left-Alt keys fix (gpiokeys raw mode / wskbd_rawinput)
-2. PR #3: USB Hub split transactions fix (dwc2 split_channels snapshot buffer)
+1. X11 Right-Shift & Left-Alt keys fix (gpiokeys raw mode / wskbd_rawinput)
+2. USB Hub split transactions fix (dwc2 split_channels snapshot buffer)
 
 Works independently of specific function names by inspecting disassembly patterns,
 constants, and API call references. Compatible with macOS and Linux.
@@ -172,8 +172,8 @@ def check_bt_patch(kernel_path: str, objdump_bin: Optional[str]) -> Tuple[bool, 
 def main():
     parser = argparse.ArgumentParser(description="Inspect OpenBSD DM250 kernel for hardware patches and smart optimization")
     parser.add_argument("kernel", help="Path to kernel binary (bsd or bsd.patched)")
-    parser.add_argument("--check-x11", action="store_true", help="Check only X11 Right-Shift / Left-Alt fix (PR #4)")
-    parser.add_argument("--check-usb", action="store_true", help="Check only USB Hub split transaction fix (PR #3)")
+    parser.add_argument("--check-x11", action="store_true", help="Check only X11 Right-Shift / Left-Alt fix")
+    parser.add_argument("--check-usb", action="store_true", help="Check only USB Hub split transaction fix")
     parser.add_argument("--check-smode", action="store_true", help="Check rkdrm WSDISPLAYIO_SMODE fix for mlterm-fb")
     parser.add_argument("--check-bt", action="store_true", help="Check bcmbt 2s delay fix for Bluetooth UART attach")
     parser.add_argument("--check-smart", action="store_true", help="Check if kernel is optimized DM250 smart kernel")
@@ -203,9 +203,9 @@ def main():
         print(f"  Toolchain : objdump={objdump_bin or 'none'}, nm={nm_bin or 'none'}")
         print(f"  DM250 Smart Kernel (Slim / Optimized) : {'✅ APPLIED' if has_smart else '❌ MISSING (GENERIC)'}")
         print(f"     -> Details: {reason_smart}")
-        print(f"  PR #4 (X11 Right-Shift & Left-Alt Keys) : {'✅ APPLIED' if has_x11 else '❌ MISSING'}")
+        print(f"  X11 Right-Shift & Left-Alt Keys        : {'✅ APPLIED' if has_x11 else '❌ MISSING'}")
         print(f"     -> Details: {reason_x11}")
-        print(f"  PR #3 (USB Hub Split Transactions)     : {'✅ APPLIED' if has_usb else '❌ MISSING'}")
+        print(f"  USB Hub Split Transactions             : {'✅ APPLIED' if has_usb else '❌ MISSING'}")
         print(f"     -> Details: {reason_usb}")
         print(f"  rkdrm SMODE (mlterm-fb DUMBFB Console) : {'✅ APPLIED' if has_smode else '❌ MISSING'}")
         print(f"     -> Details: {reason_smode}")

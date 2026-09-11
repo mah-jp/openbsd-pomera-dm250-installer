@@ -1,5 +1,5 @@
 From: Masahiko OHKUBO and Pomera DM250 OpenBSD Project Contributors
-Subject: gpiokeys/wskbd: pass raw scancodes to X11 for Right-Shift and Left-Alt (PR #4)
+Subject: gpiokeys/wskbd: pass raw scancodes to X11 for Right-Shift and Left-Alt
 License: ISC (this patch modifies OpenBSD source and inherits ISC; see LICENSE)
 
 On Pomera DM250, Right-Shift and Left-Alt are hardwired to SoC GPIOs rather than

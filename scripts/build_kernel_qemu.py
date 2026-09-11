@@ -39,9 +39,9 @@ parser.add_argument("--no-clean", action="store_true", help="Keep build disk ima
 parser.add_argument("--config", type=str, default="DM250", choices=["DM250", "GENERIC"],
                     help="Kernel configuration to build (default: DM250)")
 parser.add_argument("--patch-usb", dest="patch_usb", action=argparse.BooleanOptionalAction, default=True,
-                    help="Apply USB hub split transactions fix (PR #3)")
+                    help="Apply USB hub split transactions fix")
 parser.add_argument("--patch-x11", dest="patch_x11", action=argparse.BooleanOptionalAction, default=True,
-                    help="Apply X11 raw keys fix (PR #4)")
+                    help="Apply X11 raw keys fix")
 parser.add_argument("--patch-smode", dest="patch_smode", action=argparse.BooleanOptionalAction, default=True,
                     help="Apply rkdrm WSDISPLAYIO_SMODE fix for mlterm-fb framebuffer console")
 parser.add_argument("--patch-bt", dest="patch_bt", action=argparse.BooleanOptionalAction, default=True,
@@ -201,7 +201,7 @@ def prepare_patched_sys_archive(mgr: BuildManager) -> str:
 
     target_dwc2 = os.path.join(stage_dir, "sys", "dev", "usb", "dwc2")
 
-    # 1. Apply USB hub split transaction fix (PR #3) if enabled
+    # 1. Apply USB hub split transaction fix if enabled
     if args.patch_usb:
         dwc2_cache_dir = os.path.join(CACHE_DIR, "sys", "dev", "usb", "dwc2")
         if os.path.isdir(dwc2_cache_dir):
@@ -234,7 +234,7 @@ def prepare_patched_sys_archive(mgr: BuildManager) -> str:
     else:
         print("   ⏩ Skipping USB hub patch (disabled by user configuration)")
 
-    # 2. Apply X11 raw keys fix (PR #4) if enabled
+    # 2. Apply X11 raw keys fix if enabled
     if args.patch_x11:
         x11_patch = os.path.join(SCRIPT_DIR, "patches", "gpiokeys_rawkbd_fix.patch")
         if os.path.isfile(x11_patch):

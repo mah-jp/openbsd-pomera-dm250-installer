@@ -1,5 +1,5 @@
 From: Masahiko OHKUBO and Pomera DM250 OpenBSD Project Contributors
-Subject: dwc2: avoid list corruption and panic during split transactions on USB hubs (PR #3)
+Subject: dwc2: avoid list corruption and panic during split transactions on USB hubs
 License: ISC (this patch modifies OpenBSD source and inherits ISC; see LICENSE)
 
 Snapshot pending split channels into a local buffer before invoking dwc2_hc_n_intr().
