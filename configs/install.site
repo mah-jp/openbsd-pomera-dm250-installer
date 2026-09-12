@@ -226,41 +226,47 @@ Section "Monitor"
 EndSection
 EOF
 
-# 7.5 Install Offline Workspace Packages if bundled
+# 7.5 Stage Offline Workspace Packages if bundled
 if [ "${POMERA_WORKSPACE:-yes}" != "no" ]; then
-    PKG_CACHE_DIR=""
-    for pdir in /packages /mnt/packages /mnt2/packages; do
-        if [ -d "$pdir" ] && ls "$pdir"/*.tgz >/dev/null 2>&1; then
-            PKG_CACHE_DIR="$pdir"
-            break
-        fi
-    done
-
-    # If running inside target chroot, locate and mount installer SD card partition
-    SD_PKG_MNT=""
-    if [ -z "$PKG_CACHE_DIR" ]; then
-        mkdir -p /mnt_sd_pkg
-        for sdev in /dev/sd0a /dev/sd1a /dev/sd2a; do
-            if [ -e "$sdev" ] && mount -o ro "$sdev" /mnt_sd_pkg 2>/dev/null; then
-                if [ -d "/mnt_sd_pkg/packages" ] && ls /mnt_sd_pkg/packages/*.tgz >/dev/null 2>&1; then
-                    PKG_CACHE_DIR="/mnt_sd_pkg/packages"
-                    SD_PKG_MNT="/mnt_sd_pkg"
-                    break
-                else
-                    umount /mnt_sd_pkg 2>/dev/null || echo ">> [install.site] scanning next partition..."
-                fi
+    if [ -d /var/cache/packages ] && ls /var/cache/packages/*.tgz >/dev/null 2>&1; then
+        echo ">> [install.site] Offline workspace packages already staged at /var/cache/packages."
+    else
+        PKG_CACHE_DIR=""
+        for pdir in /packages /mnt/packages /mnt2/packages; do
+            if [ -d "$pdir" ] && ls "$pdir"/*.tgz >/dev/null 2>&1; then
+                PKG_CACHE_DIR="$pdir"
+                break
             fi
         done
-    fi
 
-    if [ -n "$PKG_CACHE_DIR" ]; then
-        echo ">> [install.site] Installing Pomera Workspace packages from offline cache ($PKG_CACHE_DIR)..."
-        PKG_PATH="$PKG_CACHE_DIR" pkg_add -I -D unsigned vim curl git mlterm noto-cjk dmenu 2>/dev/null || echo ">> [install.site] Offline packages processed."
-    fi
+        # If running inside target chroot, locate and mount installer SD card partition
+        SD_PKG_MNT=""
+        if [ -z "$PKG_CACHE_DIR" ]; then
+            mkdir -p /mnt_sd_pkg
+            for sdev in /dev/sd0a /dev/sd1a /dev/sd2a; do
+                if [ -e "$sdev" ] && mount -o ro "$sdev" /mnt_sd_pkg 2>/dev/null; then
+                    if [ -d "/mnt_sd_pkg/packages" ] && ls /mnt_sd_pkg/packages/*.tgz >/dev/null 2>&1; then
+                        PKG_CACHE_DIR="/mnt_sd_pkg/packages"
+                        SD_PKG_MNT="/mnt_sd_pkg"
+                        break
+                    else
+                        umount /mnt_sd_pkg 2>/dev/null || echo ">> [install.site] scanning next partition..."
+                    fi
+                fi
+            done
+        fi
 
-    if [ -n "$SD_PKG_MNT" ]; then
-        umount "$SD_PKG_MNT" 2>/dev/null || echo ">> [install.site] SD package partition unmounted."
-        rmdir "$SD_PKG_MNT" 2>/dev/null || echo ">> [install.site] SD package mount point cleaned."
+        if [ -n "$PKG_CACHE_DIR" ]; then
+            echo ">> [install.site] Staging offline workspace packages to /var/cache/packages..."
+            mkdir -p /var/cache/packages
+            cp -f "$PKG_CACHE_DIR"/*.tgz /var/cache/packages/ 2>/dev/null || echo ">> [install.site] Offline packages processed."
+            echo "   -> Packages staged successfully for post-boot workspace setup."
+        fi
+
+        if [ -n "$SD_PKG_MNT" ]; then
+            umount "$SD_PKG_MNT" 2>/dev/null || echo ">> [install.site] SD package partition unmounted."
+            rmdir "$SD_PKG_MNT" 2>/dev/null || echo ">> [install.site] SD package mount point cleaned."
+        fi
     fi
     if [ -d /packages ]; then
         rm -rf /packages 2>/dev/null
@@ -529,9 +535,25 @@ if [ ! -x /usr/local/sbin/pomera-suspend ] && [ -f /usr/local/share/pomera/pomer
     fi
 fi
 
-# Set simple MOTD welcome message
+# Set friendly MOTD welcome message
 cat << 'EOF' >> /etc/motd
-Welcome to OpenBSD on Pomera DM250!
+
+==========================================================
+🎉 Welcome to OpenBSD on King Jim Pomera DM250!
+==========================================================
+First-Time Setup:
+  1. Workspace (Vim, tmux, mlterm, fonts, cwm):
+     $ pomera-setup-workspace
+
+  2. Japanese Input (uim-anthy):
+     $ pomera-setup-japanese
+
+Key Shortcuts:
+  - Alt + F1 / Alt + F2 : Adjust backlight brightness
+  - startx              : Launch X11 GUI desktop (cwm)
+  - doas pomera-gui-toggle gui : Enable auto-start GUI (xenodm)
+==========================================================
+
 EOF
 
 # Final flush of all buffers to physical media

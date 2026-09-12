@@ -41,7 +41,7 @@ The installer SD builder (`make_sdcard.sh`) works on:
 
 > [!WARNING]
 > **⚠️ Ensure battery is sufficiently charged beforehand**  
-> Due to the DM250 hardware design, a completely drained (0%) battery may lack sufficient power to boot reliably even when a USB cable is connected. Start the installation process (which takes approximately 10-15 minutes including OS sets and offline packages) with a healthy battery charge. If using Wi-Fi and the Type-C port is available, keeping a USB charger connected during installation provides extra safety.
+> Due to the DM250 hardware design, a completely drained (0%) battery may lack sufficient power to boot reliably even when a USB cable is connected. Start the installation process (which takes approximately 2-3 minutes) with a healthy battery charge. If using Wi-Fi and the Type-C port is available, keeping a USB charger connected during installation provides extra safety.
 
 ### Host Dependencies
 
@@ -83,10 +83,11 @@ sudo pacman -S --needed curl python qemu-system-aarch64 edk2-arm
   1. Insert SD -> Turn ON Pomera with [Power Button] (hold 3~4s)
   2. Hands-free auto-boot into installer kernel
   3. Type 'yes' to confirm installation
-  (Autoinstall runs, extracts sets, and powers off upon completion)
+  (Autoinstall runs, stages packages, and powers off cleanly in ~2-3 minutes)
   ↓
-[Phase 3: Out-of-the-box Workspace / Optional Japanese IME]
-  - Pre-bundled with Vim, tmux, mlterm, Noto CJK, and tailored dotfiles ready on first boot!
+[Phase 3: Post-Boot Workspace & Japanese IME Setup]
+  - Log in and simply run the setup commands shown on screen!
+  - Setup workspace: $ pomera-setup-workspace
   - Optional Japanese IME setup: $ pomera-setup-japanese
 ```
 
@@ -225,8 +226,8 @@ sudo ./make_sdcard.sh /dev/rdisk4
 
 ### Step 3: Workspace & Japanese IME Setup
 
-> Step 3 allows re-configuring the pre-bundled workspace environment or adding Japanese IME (`uim-anthy`) directly on the device without needing an external PC.
-> *(Note: When `--workspace` is enabled during SD creation, Vim, tmux, mlterm, Noto CJK, cwm, and dotfiles are already fully configured upon first boot!)*
+> Base system components, Wi-Fi auto-connect, USB-NIC, lid daemon, and tailored dotfiles are already configured during Step 2.
+> For reliability and speed, offline packages (Vim, tmux, mlterm, Noto CJK, cwm, etc.) are safely staged into `/var/cache/packages`. Running `pomera-setup-workspace` upon first login finishes the installation cleanly without memory constraints. Everything works standalone and completely offline on the DM250!
 
 #### 1. Workspace & Dev Environment Setup (`pomera-setup-workspace`)
 ```bash

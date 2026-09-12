@@ -48,7 +48,7 @@ done
 
 if [ -n "$PKG_DIR" ]; then
     echo "📦 Found offline package cache at $PKG_DIR. Installing locally..."
-    $DOAS env PKG_PATH="$PKG_DIR" pkg_add -I vim curl git mlterm noto-fonts noto-cjk dmenu
+    $DOAS env PKG_PATH="$PKG_DIR" pkg_add -I vim curl git mlterm noto-cjk dmenu
 else
     echo ">> Checking internet connectivity for package download..."
     if ! ping -c 1 -w 3 1.1.1.1 >/dev/null 2>&1 && ! ping -c 1 -w 3 8.8.8.8 >/dev/null 2>&1; then
@@ -67,7 +67,7 @@ else
 
     # Install Packages online
     echo ">> Installing workspace packages (Vim, curl, git, mlterm, fonts, dmenu)..."
-    $DOAS pkg_add -I vim curl git mlterm noto-fonts noto-cjk dmenu
+    $DOAS pkg_add -I vim curl git mlterm noto-cjk dmenu
 fi
 
 # 4. Deploy 1024x600 Optimized Dotfiles
@@ -281,4 +281,9 @@ echo "     Run 'pomera-setup-japanese' to configure uim-anthy!"
 echo "  3. Optional display modes:"
 echo "     Enable graphical login : $DOAS /usr/local/bin/pomera-gui-toggle gui"
 echo "     Revert to CUI console  : $DOAS /usr/local/bin/pomera-gui-toggle cui"
+
+if [ -d "/var/cache/packages" ]; then
+    echo "💡 Storage Tip: Offline packages are cached at /var/cache/packages (~180MB)."
+    echo "   To reclaim disk space, you can run: $DOAS rm -rf /var/cache/packages"
+fi
 echo ""
