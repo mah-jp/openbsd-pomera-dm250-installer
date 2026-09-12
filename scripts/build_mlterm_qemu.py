@@ -333,7 +333,7 @@ tar -xzf /mlterm-3.8.3.tar.gz
 cd mlterm-3.8.3
 echo ">> Applying Pomera baseline shadowfb patch..."
 patch -p0 < /mlterm-fb-dm250-shadowfb.patch
-./configure --with-gui=fb --enable-utmp --with-imagelib=none
+./configure --with-gui=fb --enable-utmp --with-imagelib=none --disable-dl-ctl
 make -j4
 make install
 cp -f /usr/local/bin/mlterm-fb /usr/local/bin/mlterm-fb.orig
@@ -349,7 +349,7 @@ cd mlterm-3.8.3
 echo ">> Applying Pomera turbocharged optimization patch..."
 patch -p0 < /mlterm-fb-dm250-optimized.patch
 export CFLAGS="-O2 -pipe -mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=softfp"
-./configure --with-gui=fb --enable-utmp --with-imagelib=none \
+./configure --with-gui=fb --enable-utmp --with-imagelib=none --disable-dl-ctl \
     --disable-ssh2 --disable-fribidi --disable-ind --disable-kbd --disable-dnd --without-tools
 make -j4
 make install
@@ -363,9 +363,11 @@ ls -lh /usr/local/bin/mlterm-fb /usr/local/bin/mlterm-fb-pomera
 echo ">> Packaging both binaries and runtime libraries..."
 cd /
 files_to_pack="usr/local/bin/mlterm-fb usr/local/bin/mlterm-fb-pomera usr/local/lib/libmef.so.* usr/local/lib/libpobl.so.*"
-if [ -f /usr/local/lib/libmlterm_coreotl.so ]; then
-    files_to_pack="$files_to_pack usr/local/lib/libmlterm_coreotl.so"
-fi
+for lib in usr/local/lib/libmlterm* usr/local/lib/mef; do
+    if [ -e "/$lib" ]; then
+        files_to_pack="$files_to_pack $lib"
+    fi
+done
 tar -czf /mnt_fat/mlterm-fb-dm250.tar.gz $files_to_pack
 
 echo ">> Exported to FAT partition:"

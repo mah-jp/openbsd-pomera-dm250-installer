@@ -578,11 +578,19 @@ EOF
 
     # Build or verify Pomera-optimized mlterm-fb archive via QEMU
     local mlterm_tar="${WORK_DIR}/mlterm-fb-dm250.tar.gz"
+    local needs_mlterm_build=false
     if [ "$REBUILD_MLTERM" = true ] || [ ! -f "$mlterm_tar" ]; then
+        needs_mlterm_build=true
+    elif ! tar -ztf "$mlterm_tar" 2>/dev/null | grep -q "mlterm-fb-pomera"; then
+        echo ">> Existing mlterm archive is outdated (missing mlterm-fb-pomera). Scheduling rebuild..."
+        needs_mlterm_build=true
+    fi
+
+    if [ "$needs_mlterm_build" = true ]; then
         if [ "$DOWNLOAD_ONLY" = false ] || [ "$REBUILD_MLTERM" = true ]; then
             echo ""
             echo "=== [mlterm-fb Build] Compiling Pomera-optimized mlterm-fb via QEMU ==="
-            python3 "${SCRIPT_DIR}/scripts/build_mlterm_qemu.py" --output "$mlterm_tar"
+            python3 "${SCRIPT_DIR}/scripts/build_mlterm_qemu.py" --force --output "$mlterm_tar"
         fi
     fi
 }
