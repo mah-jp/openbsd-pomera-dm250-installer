@@ -743,15 +743,15 @@ flash_bootloader_sectors_host() {
 
         echo "Writing directly to SD raw device: $raw_target"
         diskutil unmountDisk "$target" 2>/dev/null || true
-        sudo dd if="$idbloader" of="$raw_target" bs=512 seek=64 conv=notrunc
+        sudo -p "🔐 [sudo] 母艦 (%u) のログインパスワード: " dd if="$idbloader" of="$raw_target" bs=512 seek=64 conv=notrunc
         diskutil unmountDisk "$target" 2>/dev/null || true
-        sudo dd if="$uboot" of="$raw_target" bs=512 seek=16384 conv=notrunc
+        sudo -p "🔐 [sudo] 母艦 (%u) のログインパスワード: " dd if="$uboot" of="$raw_target" bs=512 seek=16384 conv=notrunc
         diskutil unmountDisk "$target" 2>/dev/null || true
         sync
     elif [ -b "$target" ]; then
         echo "Writing directly to SD block device: $target"
-        sudo dd if="$idbloader" of="$target" bs=512 seek=64 conv=notrunc,fdatasync
-        sudo dd if="$uboot" of="$target" bs=512 seek=16384 conv=notrunc,fdatasync
+        sudo -p "🔐 [sudo] 母艦 (%u) のログインパスワード: " dd if="$idbloader" of="$target" bs=512 seek=64 conv=notrunc,fdatasync
+        sudo -p "🔐 [sudo] 母艦 (%u) のログインパスワード: " dd if="$uboot" of="$target" bs=512 seek=16384 conv=notrunc,fdatasync
         sync
     else
         echo "Writing directly to image file: $target"
@@ -781,6 +781,22 @@ execute_builder() {
         # On Linux, unmount any active partitions on the target drive to prevent kernel write conflicts
         if command -v umount >/dev/null 2>&1; then
             umount "${target_drive}"* 2>/dev/null || true
+        fi
+    fi
+
+    # Ensure sudo privileges with clear explanation before prompting for password
+    if [ -b "$target_drive" ] || [ -c "$target_drive" ] || [[ "$target_drive" =~ ^/dev/ ]]; then
+        if ! sudo -n true 2>/dev/null; then
+            echo ""
+            echo "=========================================================="
+            echo "🔐 [母艦の管理者パスワード (sudo) の確認]"
+            echo "   SDカード物理ドライブ (${target_drive}) への直接書き込みおよび"
+            echo "   QEMU VM 実行のため、お使いのPC (母艦) のログインパスワード"
+            echo "   (sudo password) を入力してください。"
+            echo "   (※ ポメラ内のパスワードではありません)"
+            echo "=========================================================="
+            sudo -p "🔐 [sudo] 母艦 (%u) のログインパスワード: " -v
+            echo ""
         fi
     fi
 
