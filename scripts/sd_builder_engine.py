@@ -718,6 +718,7 @@ case "$_ans" in
         echo "Powering off system..." >/dev/ttyC0
         sync
         sync
+        mount -u -o ro / 2>/dev/null || true
         halt -p
         exit 0
         ;;

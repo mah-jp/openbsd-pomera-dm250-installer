@@ -134,20 +134,21 @@ if [ "$1" = "shutdown" ]; then
     exit 0
 fi
 
-# 1. FIRST: Mount writable tmpfs (tmpfs works even when root / is strictly Read-Only!)
-mkdir -p /tmp /var/run /var/log /mnt /mnt2 /tmp/ai /tmp/i 2>/dev/null || true
-mount_tmpfs -s 32M tmpfs /tmp 2>/dev/null || true
-mount_tmpfs -s 16M tmpfs /var/run 2>/dev/null || true
-chmod 1777 /tmp 2>/dev/null || true
-mkdir -p /tmp/ai /tmp/i /tmp/dev 2>/dev/null || true
+# 1. Discover root device and character device
+_rootdev=$(mount | grep ' on / ' | cut -d' ' -f1)
+[ -z "$_rootdev" ] && _rootdev="/dev/sd0a"
+_rrootdev=$(echo "$_rootdev" | sed -e 's,dev/,dev/r,')
+[ ! -e "$_rrootdev" ] && _rrootdev="/dev/rsd0a"
 
-# 2. SECOND: Initialize essential device nodes so fsck and mount can locate /dev/sd0a
+# 2. Repair root filesystem on character device (fsck requires raw device to repair)
+fsck -y -f "$_rrootdev" >/dev/null 2>&1 || fsck_ffs -y -f /dev/rsd0a >/dev/null 2>&1 || true
+
+# 3. Remount root Read-Write with force flag to guarantee writeability
+mount -u -f -w / 2>/dev/null || mount -u -o rw -f / 2>/dev/null || mount -uw / 2>/dev/null || true
+
+# 4. Initialize essential device nodes and console
 cd /dev && sh ./MAKEDEV all >/dev/null 2>&1 || true
 wsconsctl keyboard.encoding=jp >/dev/null 2>&1 || true
-
-# 3. THIRD: Repair dirty root filesystem with guaranteed existing device nodes and remount Read-Write
-fsck -y /dev/sd0a >/dev/null 2>&1 || fsck -y / >/dev/null 2>&1 || true
-mount -u -o rw /dev/sd0a / 2>/dev/null || mount -u -o rw / 2>/dev/null || mount -uw / 2>/dev/null || true
 EOF
 @CONFIRM_SECTION@
 cat << 'EOF_LAUNCH' >> /mnt/etc/rc
@@ -162,13 +163,19 @@ cp -f /install.conf /auto_install.conf 2>/dev/null || true
 
 echo "=========================================================="
 echo ">> [Pomera DM250] OpenBSD Autoinstall (v@TOOL_VERSION@)"
-/install -af /install.conf </dev/null >/dev/ttyC0 2>&1
+if ! /install -af /install.conf </dev/null >/dev/ttyC0 2>&1; then
+    echo "" >/dev/ttyC0
+    echo "❌ [ERROR] Autoinstall aborted with an error!" >/dev/ttyC0
+    echo "   Entering emergency shell. Type 'exit' to halt." >/dev/ttyC0
+    /bin/sh </dev/ttyC0 >/dev/ttyC0 2>&1
+fi
 
 echo "" >/dev/ttyC0
 echo ">> Flushing all storage buffers (DO NOT remove SD card yet)..." >/dev/ttyC0
 sync
 sync
 sync
+mount -u -o ro / 2>/dev/null || true
 sleep 2
 
 echo "==========================================================" >/dev/ttyC0
@@ -178,6 +185,8 @@ echo "👉 You can now safely REMOVE the SD card." >/dev/ttyC0
 echo "==========================================================" >/dev/ttyC0
 echo -n "Press Enter to power off... " >/dev/ttyC0
 read -r _done </dev/ttyC0 2>/dev/null || true
+sync
+mount -u -o ro / 2>/dev/null || true
 halt -p
 EOF_LAUNCH
 chmod +x /mnt/etc/rc
