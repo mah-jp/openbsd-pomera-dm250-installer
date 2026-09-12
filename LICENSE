@@ -40,7 +40,7 @@ This project builds upon and interacts with several upstream components and comm
   - Wi-Fi NVRAM configuration parameter template for Broadcom AP6212 / BCM43430 (`configs/brcmfmac43430-sdio.rockchip,pomera-dm250.txt`).
 
 - **4noha**:
-  - Research, kernel patches (`scripts/patches/bcmbt_delay_2s.patch`, `scripts/patches/rkdrm_wsdisplay_smode.patch` under the ISC License), mlterm-fb patches (`scripts/patches/mlterm-fb-dm250-shadowfb.patch` under the MIT License), Bluetooth PAN tethering research, and power management concepts for Pomera DM250:
+  - Research, kernel patches (`scripts/patches/bcmbt_delay_2s.patch`, `scripts/patches/rkdrm_wsdisplay_smode.patch` under the ISC License), mlterm-fb patches (`scripts/patches/mlterm-fb-dm250-shadowfb.patch` and `scripts/patches/mlterm-fb-dm250-optimized.patch` under the MIT License), Bluetooth PAN tethering research, and power management concepts for Pomera DM250:
     Copyright (c) 2026 4noha
     https://github.com/4noha/openbsd-pomera-dm250
 
@@ -56,3 +56,11 @@ This project builds upon and interacts with several upstream components and comm
 - **Rockchip Electronics Co., Ltd.**:
   - Bootloader miniloader and DDR initialization binaries (`rkbin`) are fetched directly from Rockchip's official repositories.
 
+---
+
+### Disclaimer & Trademarks
+
+- "Pomera" and "ポメラ" are registered trademarks of KING JIM CO., LTD. (株式会社キングジム).
+- This project is an independent, unofficial volunteer open-source research and engineering effort. It is neither affiliated with, endorsed by, nor supported by KING JIM CO., LTD.
+- Please DO NOT contact KING JIM CO., LTD. or official device support regarding this software or any issues arising from its use.
+- This software is provided "as is", without warranty of any kind. Use at your own risk. The authors and contributors shall not be held liable for any hardware malfunction, data loss, voided warranties, or damages resulting from the use of this software.

@@ -219,6 +219,11 @@ generate_install_configs() {
         source "$user_config_file"
     fi
 
+    # Respect POMERA_MODEL from user_config.env if not explicitly overridden by CLI
+    if [ -n "${POMERA_MODEL:-}" ] && [ "$MODEL_TYPE" = "dm250" ]; then
+        MODEL_TYPE="$POMERA_MODEL"
+    fi
+
     # CLI arguments take strict precedence over user_config.env
     [ -n "${CLI_SMART_KERNEL:-}" ] && POMERA_SMART_KERNEL="$CLI_SMART_KERNEL"
     [ -n "${CLI_PATCH_USB_HUB:-}" ] && POMERA_PATCH_USB_HUB="$CLI_PATCH_USB_HUB"

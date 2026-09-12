@@ -310,8 +310,17 @@ pomera-setup-japanese
 
 - **Joshua Stein (jcs)**: [OpenBSD on Pomera DM250](https://jcs.org/2026/04/09/openbsd-dm250) のカーネル・U-Boot・ディスプレイドライバ開発
 - **4noha**: [openbsd-pomera-dm250](https://github.com/4noha/openbsd-pomera-dm250) ツールチェーン、カーネルパッチ、バッテリー/蓋スクリプト、Bluetooth PAN研究
+- **ARAKI Ken**: 多言語端末エミュレータ [mlterm](https://github.com/arakiken/mlterm) の開発（フレームバッファ直描画コンソール `mlterm-fb` の中核）
 - **ichinomoto**: DM250実機ハックの安全性を確立した [EKESETE](https://github.com/ichinomoto/dm250_ekesete) eMMCバックアップツールの開発と先駆的研究
 - **mah-jp**: [pomera-dm250-backup-restore-tool](https://github.com/mah-jp/pomera-dm250-backup-restore-tool) U-Boot UMS バックアップ/リカバリツール
+
+---
+
+## ⚠️ 免責事項・商標について
+
+- 「ポメラ」および「Pomera」は、株式会社キングジムの登録商標です。
+- 本プロジェクトは個人有志による非公式の研究・開発成果であり、株式会社キングジム様とは一切関係ありません。本ソフトウェアおよび手順に関して、**メーカー（株式会社キングジム様）へのお問い合わせは固くお断りいたします**。
+- 本ソフトウェアの使用や導入に伴い生じた機器の故障、データの破損・消失、メーカー保証の失効などについて、作者およびプロジェクト貢献者は一切の責任を負いかねます。すべて自己責任の上でご利用ください。
 
 ---
 

@@ -311,8 +311,18 @@ pomera-setup-japanese
 
 - **Joshua Stein (jcs)**: [OpenBSD on Pomera DM250](https://jcs.org/2026/04/09/openbsd-dm250) kernel, U-Boot, and display patches.
 - **4noha**: [openbsd-pomera-dm250](https://github.com/4noha/openbsd-pomera-dm250) toolchain, kernel patches, battery/lid scripts, and Bluetooth PAN research.
+- **ARAKI Ken**: Author of [mlterm](https://github.com/arakiken/mlterm) (the foundation of the direct framebuffer console `mlterm-fb`).
 - **ichinomoto**: Pioneering research and the [EKESETE](https://github.com/ichinomoto/dm250_ekesete) eMMC backup tool, which established safe experimental procedures on physical Pomera DM250 hardware.
 - **mah-jp**: [pomera-dm250-backup-restore-tool](https://github.com/mah-jp/pomera-dm250-backup-restore-tool) for U-Boot UMS backup/recovery.
+
+---
+
+## ⚠️ Disclaimer & Trademarks
+
+- "Pomera" and "ポメラ" are registered trademarks of KING JIM CO., LTD. (株式会社キングジム).
+- This project is an independent, unofficial volunteer open-source research and engineering effort. It is neither affiliated with, endorsed by, nor supported by KING JIM CO., LTD.
+- Please **DO NOT** contact KING JIM CO., LTD. or official device support regarding this software or any issues arising from its use.
+- This software is provided "as is", without warranty of any kind. Use at your own risk. The authors and contributors shall not be held liable for any hardware malfunction, data loss, voided warranties, or damages resulting from the use of this software.
 
 ---
 
