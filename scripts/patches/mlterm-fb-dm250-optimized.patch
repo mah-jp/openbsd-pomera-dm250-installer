@@ -32,7 +32,8 @@ diff -ruN /var/folders/c4/c4s6pqxn3fggxffkhf1lyy0h0000gn/T/tmpp9swg37r/orig/mlte
 -#undef NEED_DISPLAY_SYNC_EVERY_TIME
 +#define NEED_DISPLAY_SYNC_EVERY_TIME
  #define DRAW_SCREEN_IN_PIXELS
- #undef NO_DRAW_IMAGE_STRING
+-#undef NO_DRAW_IMAGE_STRING
++#define NO_DRAW_IMAGE_STRING
  /*
 diff -ruN /var/folders/c4/c4s6pqxn3fggxffkhf1lyy0h0000gn/T/tmpp9swg37r/orig/mlterm-3.8.3/uitoolkit/fb/ui_display.c /var/folders/c4/c4s6pqxn3fggxffkhf1lyy0h0000gn/T/tmpp9swg37r/mod/mlterm-3.8.3/uitoolkit/fb/ui_display.c
 --- uitoolkit/fb/ui_display.c.orig	Sat Sep 23 03:27:38 2017
