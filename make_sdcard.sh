@@ -812,8 +812,9 @@ execute_builder() {
     echo "      (Internal storage will only be modified after you explicitly confirm 'yes')"
     echo "   4. System will partition eMMC, extract all sets, and configure your system."
     echo "   5. When 'ALL OPERATIONS COMPLETED SUCCESSFULLY!' appears:"
-    echo "      Remove the SD card and press [Enter] to power off."
-    echo "   6. Turn ON Pomera to start OpenBSD from internal storage!"
+    echo "      - Remove the SD card."
+    echo "      - Press [Enter] to reboot directly into OpenBSD from eMMC!"
+    echo "      (Or choose 'h' to halt; hold Power Button 3-4s to turn off power completely)"
 }
 
 main() {

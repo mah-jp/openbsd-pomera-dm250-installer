@@ -188,8 +188,8 @@ sudo ./make_sdcard.sh /dev/rdisk4
    *(※ `N` や空Enterを入力するとインストールを直ちに中断し、メンテナンスメニューへ安全に移行します。本体eMMCは一切変更されません)*
 4. 以降は完全手放しでインストールが走り、内蔵eMMC（`sd1`）の自動初期化、ベースセット導入、`site79.tgz`（DM250カスタムカーネル `/bsd` 配置、`reorder_kernel` 事前無効化、複数SSID Wi-Fi / USB-NIC DHCP設定、蓋開閉監視デーモン登録）がすべて自動実行されます。
 5. 画面に `🎉 ALL OPERATIONS COMPLETED SUCCESSFULLY!` が表示されたら：
-   **SDカードをポメラから抜き、キーボードで [Enter] を押して電源を切ります**。
-6. 電源ボタンを押すと、内蔵ストレージから OpenBSD が起動します（`[Pomera DM250] Starting OpenBSD from Internal Storage...`）！
+   **SDカードをポメラから抜き、キーボードで [Enter] を押すと内蔵eMMCからOpenBSDが自動起動します**！  
+   *(※ 電源を完全に切りたい場合は `h` を選択後、本体の［電源ボタン］を3〜4秒長押ししてください)*
 
 > [!TIP]
 > **💡 既にカスタムOS（OpenBSD等）がインストール済みの状態からSDカードを起動する場合**

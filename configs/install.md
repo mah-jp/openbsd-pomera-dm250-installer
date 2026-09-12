@@ -197,15 +197,31 @@ EOF
 	echo "=========================================================="
 	echo "🎉 Pomera DM250 OpenBSD Installation 100% Complete!"
 	echo "🔒 All storage buffers are safely synced to physical media."
-	echo "👉 You can now safely REMOVE the SD card."
+	echo "👉 Please REMOVE the SD card now."
 	echo "=========================================================="
-	echo -n "Press Enter to power off... "
-	read -r _finish </dev/ttyC0 2>/dev/null || _finish=""
-	echo ""
-	echo ">> Powering off system..."
-	sync
-	sync
-	halt -p
+	echo "Select next action:"
+	echo "  (r) Reboot into OpenBSD from eMMC [Default - Press Enter]"
+	echo "  (h) Halt system (Hold Power button 3-4s to turn off power)"
+	echo -n "Choice [r]: "
+	read -r _choice </dev/ttyC0 2>/dev/null || _choice="r"
+	case "$_choice" in
+		h|H|halt)
+			echo ""
+			echo ">> System halted safely."
+			echo "💡 Note: Hold the [Power Button] for 3-4 seconds to turn off power completely."
+			sync
+			sync
+			wsconsctl display.brightness=0 2>/dev/null || echo ">> Backlight off."
+			halt -p
+			;;
+		*)
+			echo ""
+			echo ">> Rebooting into OpenBSD from eMMC..."
+			sync
+			sync
+			reboot
+			;;
+	esac
 }
 
 md_consoleinfo() {
