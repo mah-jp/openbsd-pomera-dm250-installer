@@ -743,15 +743,15 @@ flash_bootloader_sectors_host() {
 
         echo "Writing directly to SD raw device: $raw_target"
         diskutil unmountDisk "$target" 2>/dev/null || true
-        sudo -p "🔐 [sudo] 母艦 (%u) のログインパスワード: " dd if="$idbloader" of="$raw_target" bs=512 seek=64 conv=notrunc
+        sudo -p "🔐 [sudo] Password for host user %u: " dd if="$idbloader" of="$raw_target" bs=512 seek=64 conv=notrunc
         diskutil unmountDisk "$target" 2>/dev/null || true
-        sudo -p "🔐 [sudo] 母艦 (%u) のログインパスワード: " dd if="$uboot" of="$raw_target" bs=512 seek=16384 conv=notrunc
+        sudo -p "🔐 [sudo] Password for host user %u: " dd if="$uboot" of="$raw_target" bs=512 seek=16384 conv=notrunc
         diskutil unmountDisk "$target" 2>/dev/null || true
         sync
     elif [ -b "$target" ]; then
         echo "Writing directly to SD block device: $target"
-        sudo -p "🔐 [sudo] 母艦 (%u) のログインパスワード: " dd if="$idbloader" of="$target" bs=512 seek=64 conv=notrunc,fdatasync
-        sudo -p "🔐 [sudo] 母艦 (%u) のログインパスワード: " dd if="$uboot" of="$target" bs=512 seek=16384 conv=notrunc,fdatasync
+        sudo -p "🔐 [sudo] Password for host user %u: " dd if="$idbloader" of="$target" bs=512 seek=64 conv=notrunc,fdatasync
+        sudo -p "🔐 [sudo] Password for host user %u: " dd if="$uboot" of="$target" bs=512 seek=16384 conv=notrunc,fdatasync
         sync
     else
         echo "Writing directly to image file: $target"
@@ -789,13 +789,13 @@ execute_builder() {
         if ! sudo -n true 2>/dev/null; then
             echo ""
             echo "=========================================================="
-            echo "🔐 [母艦の管理者パスワード (sudo) の確認]"
-            echo "   SDカード物理ドライブ (${target_drive}) への直接書き込みおよび"
-            echo "   QEMU VM 実行のため、お使いのPC (母艦) のログインパスワード"
-            echo "   (sudo password) を入力してください。"
-            echo "   (※ ポメラ内のパスワードではありません)"
+            echo "🔐 [Host Administrator Privileges Required (sudo)]"
+            echo "   Direct low-level access to SD card drive (${target_drive})"
+            echo "   and running the throwaway QEMU VM requires host superuser privileges."
+            echo "   Please enter your host PC login password (sudo password)."
+            echo "   (Note: This is your computer's password, NOT the Pomera password)"
             echo "=========================================================="
-            sudo -p "🔐 [sudo] 母艦 (%u) のログインパスワード: " -v
+            sudo -p "🔐 [sudo] Password for host user %u: " -v
             echo ""
         fi
     fi
