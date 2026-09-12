@@ -543,6 +543,7 @@ keyboard.map+=keysym Caps_Lock = Control_L
 keyboard.map+=keycode 139 = Mode_switch
 keyboard.map+=keycode 103 = Up Up Prior Prior
 keyboard.map+=keycode 108 = Down Down Next Next
+keyboard.map+=keycode 14 = BackSpace
 """)
 
     with open(os.path.join(site_build, "etc/sysctl.conf"), "w") as f:
