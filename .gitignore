@@ -1,5 +1,6 @@
 # Build cache and generated images
 _build_cache/
+bin/
 *.img
 *.iso
 *.sock

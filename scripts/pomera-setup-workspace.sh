@@ -75,6 +75,9 @@ if [ -f /usr/local/share/pomera/mlterm-fb-dm250.tar.gz ]; then
     echo ">> Applying Pomera-optimized mlterm-fb (shadowfb + DECSET 2026)..."
     $DOAS tar -xzf /usr/local/share/pomera/mlterm-fb-dm250.tar.gz -C /
     $DOAS chmod 4755 /usr/local/bin/mlterm-fb
+else
+    echo ">> Note: /usr/local/share/pomera/mlterm-fb-dm250.tar.gz not found."
+    echo "   Using standard package mlterm. (Run make_sdcard.sh with QEMU builder to enable shadowfb)"
 fi
 
 # 4. Deploy 1024x600 Optimized Dotfiles

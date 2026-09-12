@@ -424,9 +424,13 @@ def package_site_set(work_dir: str, configs_dir: str, scripts_dir: str, res_mgr:
         os.makedirs(os.path.join(site_build, "usr/local/share/pomera"), exist_ok=True)
         subprocess.run(["cp", "-f", suspend_src, os.path.join(site_build, "usr/local/share/pomera/pomera-suspend.c")], check=True)
 
-    # Deploy patched mlterm-fb and runtime libraries if pre-bundled
-    mlterm_archive = os.path.join(os.path.dirname(scripts_dir), "bin/mlterm-fb-dm250.tar.gz")
+    # Deploy patched mlterm-fb and runtime libraries from build cache if present
+    mlterm_archive = os.path.join(work_dir, "mlterm-fb-dm250.tar.gz")
+    if not os.path.exists(mlterm_archive):
+        mlterm_archive = os.path.join(os.path.dirname(scripts_dir), "_build_cache/mlterm-fb-dm250.tar.gz")
+
     if os.path.exists(mlterm_archive):
+        logger.info(f"Bundling Pomera-optimized mlterm-fb from {mlterm_archive}")
         subprocess.run(["tar", "-xzf", mlterm_archive, "-C", site_build], check=True)
         mlterm_bin_path = os.path.join(site_build, "usr/local/bin/mlterm-fb")
         if os.path.exists(mlterm_bin_path):

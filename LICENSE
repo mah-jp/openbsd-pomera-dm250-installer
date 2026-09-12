@@ -44,8 +44,15 @@ This project builds upon and interacts with several upstream components and comm
     Copyright (c) 2026 4noha
     https://github.com/4noha/openbsd-pomera-dm250
 
+- **mlterm (ARAKI Ken)**:
+  - Multilingual terminal emulator (`mlterm`):
+    Copyright (c) 2000-2026 ARAKI Ken. All rights reserved.
+    Distributed under the BSD-style License. Source code is fetched dynamically during the build process:
+    https://github.com/arakiken/mlterm / https://mlterm.sourceforge.net/
+
 - **ichinomoto**:
   - Pioneering research and the EKESETE eMMC backup tool, which established safe experimental procedures on physical Pomera DM250 hardware.
 
 - **Rockchip Electronics Co., Ltd.**:
   - Bootloader miniloader and DDR initialization binaries (`rkbin`) are fetched directly from Rockchip's official repositories.
+

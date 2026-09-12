@@ -30,6 +30,7 @@ DOWNLOAD_ONLY=false
 BOOTLOADER_ONLY=false
 REBUILD_UBOOT=false
 BUILD_KERNEL=false
+REBUILD_MLTERM=false
 POMERA_SMART_KERNEL="${POMERA_SMART_KERNEL:-yes}"
 POMERA_PATCH_USB_HUB="${POMERA_PATCH_USB_HUB:-yes}"
 POMERA_PATCH_X11_KEYS="${POMERA_PATCH_X11_KEYS:-yes}"
@@ -110,6 +111,7 @@ show_help() {
     echo "  --workspace            Pre-bundle offline workspace packages (Vim, curl, git, mlterm, Noto CJK, dmenu, Default: yes)"
     echo "  --no-workspace         Do not bundle offline packages (minimal installer)"
     echo "  --build-kernel         Rebuild patched OpenBSD kernel (USB, keyboard, mlterm-fb & BT fixes) via QEMU"
+    echo "  --rebuild-mlterm       Rebuild patched mlterm-fb (shadowfb & Noto font engine) via QEMU"
     echo "  --rebuild-uboot        Rebuild custom auto-booting U-Boot binary"
     echo "  --bootloader-only      Flash only idbloader.img & uboot.img to target without formatting"
     echo "  --download-only        Fetch all required official binaries without formatting"
@@ -120,6 +122,7 @@ show_help() {
     echo "  $0 --smart-kernel      # Build & use DM250 optimized kernel (~4MB)"
     echo "  $0 --patch-mlterm-fb   # Build kernel with mlterm-fb framebuffer patch"
     echo "  $0 --build-kernel      # Recompile patched kernel in QEMU"
+    echo "  $0 --rebuild-mlterm    # Recompile patched mlterm-fb in QEMU"
     echo "  sudo $0 /dev/sdb       # Flash directly to SD card on Linux"
     echo "  $0 /dev/rdisk4         # Flash directly to SD card on macOS"
     echo "  $0 --rebuild-uboot     # Force rebuild auto-booting U-Boot"
@@ -144,6 +147,7 @@ parse_arguments() {
             --workspace) CLI_WORKSPACE="yes"; shift ;;
             --no-workspace) CLI_WORKSPACE="no"; shift ;;
             --build-kernel) BUILD_KERNEL=true; shift ;;
+            --rebuild-mlterm) REBUILD_MLTERM=true; shift ;;
             --rebuild-uboot) REBUILD_UBOOT=true; shift ;;
             --bootloader-only|--flash-bootloader) BOOTLOADER_ONLY=true; shift ;;
             --download-only) DOWNLOAD_ONLY=true; shift ;;
@@ -448,6 +452,9 @@ EOF
         python3 "${SCRIPTS_DIR}/fetch_packages.py" --dest "${WORK_DIR}/packages"
     fi
 
+    # Fetch official mlterm source for QEMU / offline building
+    fetch_file "https://downloads.sourceforge.net/project/mlterm/01release/mlterm-3.8.3/mlterm-3.8.3.tar.gz" "${WORK_DIR}/mlterm-3.8.3.tar.gz"
+
     # Always fetch upstream official kernel to a protected cache location
     fetch_file "${JCS_MIRROR}/bsd" "${WORK_DIR}/bsd.official"
 
@@ -566,6 +573,16 @@ EOF
 
     local dm250_dtb="${WORK_DIR}/kingjim-dm250.dtb"
     python3 "${SCRIPT_DIR}/scripts/extract_dtb.py" "${WORK_DIR}/uboot.img" "${dm250_dtb}"
+
+    # Build or verify Pomera-optimized mlterm-fb archive via QEMU
+    local mlterm_tar="${WORK_DIR}/mlterm-fb-dm250.tar.gz"
+    if [ "$REBUILD_MLTERM" = true ] || [ ! -f "$mlterm_tar" ]; then
+        if [ "$DOWNLOAD_ONLY" = false ] || [ "$REBUILD_MLTERM" = true ]; then
+            echo ""
+            echo "=== [mlterm-fb Build] Compiling Pomera-optimized mlterm-fb via QEMU ==="
+            python3 "${SCRIPT_DIR}/scripts/build_mlterm_qemu.py" --output "$mlterm_tar"
+        fi
+    fi
 }
 
 list_external_disks_darwin() {
