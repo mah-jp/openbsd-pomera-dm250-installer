@@ -285,6 +285,7 @@ ftp -o /mnt/bsd http://10.0.2.2:{http_port}/bsd_generic
 ftp -o /mnt/mnt_fat/efi/boot/BOOTARM.EFI http://10.0.2.2:{http_port}/BOOTARM.EFI
 ftp -o /mnt/mlterm-3.8.3.tar.gz http://10.0.2.2:{http_port}/mlterm-3.8.3.tar.gz
 ftp -o /mnt/mlterm-fb-dm250-shadowfb.patch http://10.0.2.2:{http_port}/mlterm-fb-dm250-shadowfb.patch
+ftp -o /mnt/mlterm-fb-dm250-optimized.patch http://10.0.2.2:{http_port}/mlterm-fb-dm250-optimized.patch
 
 tar -xzphf /mnt/base79.tgz -C /mnt
 tar -xzphf /mnt/comp79.tgz -C /mnt
@@ -325,36 +326,43 @@ EOF_RCCONF
 
 cat << 'EOF_RC' > /mnt/etc/rc.local
 echo "=========================================================="
-echo ">> [QEMU-ARMV7] Building mlterm-fb for Pomera DM250..."
+echo ">> [QEMU-ARMV7] Building [1/2] Baseline mlterm-fb..."
 echo "=========================================================="
 cd /usr/src
 tar -xzf /mlterm-3.8.3.tar.gz
 cd mlterm-3.8.3
-echo ">> Applying Pomera shadowfb + font engine patch..."
+echo ">> Applying Pomera baseline shadowfb patch..."
 patch -p0 < /mlterm-fb-dm250-shadowfb.patch
-
-echo ">> Configuring mlterm-fb..."
 ./configure --with-gui=fb --enable-utmp --with-imagelib=none
-
-echo ">> Compiling mlterm-fb..."
 make -j4
-
-echo ">> Installing to local tree..."
 make install
-
-if [ ! -f /usr/local/bin/mlterm-fb ]; then
-    echo "❌ Build failed! mlterm-fb not found."
-    sync
-    sleep 2
-    halt -p
-fi
-
-echo ">> Stripping binaries..."
+cp -f /usr/local/bin/mlterm-fb /usr/local/bin/mlterm-fb.orig
 strip /usr/local/bin/mlterm-fb
 
-echo ">> Packaging mlterm-fb and runtime libraries..."
+echo "=========================================================="
+echo ">> [QEMU-ARMV7] Building [2/2] Optimized mlterm-fb-pomera..."
+echo "=========================================================="
+cd /usr/src
+rm -rf mlterm-3.8.3
+tar -xzf /mlterm-3.8.3.tar.gz
+cd mlterm-3.8.3
+echo ">> Applying Pomera turbocharged optimization patch..."
+patch -p0 < /mlterm-fb-dm250-optimized.patch
+export CFLAGS="-O2 -pipe -mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=softfp"
+./configure --with-gui=fb --enable-utmp --with-imagelib=none \
+    --disable-ssh2 --disable-fribidi --disable-ind --disable-kbd --disable-dnd --without-tools
+make -j4
+make install
+cp -f /usr/local/bin/mlterm-fb /usr/local/bin/mlterm-fb-pomera
+cp -f /usr/local/bin/mlterm-fb.orig /usr/local/bin/mlterm-fb
+strip /usr/local/bin/mlterm-fb-pomera
+
+echo ">> Verifying binaries:"
+ls -lh /usr/local/bin/mlterm-fb /usr/local/bin/mlterm-fb-pomera
+
+echo ">> Packaging both binaries and runtime libraries..."
 cd /
-files_to_pack="usr/local/bin/mlterm-fb usr/local/lib/libmef.so.* usr/local/lib/libpobl.so.*"
+files_to_pack="usr/local/bin/mlterm-fb usr/local/bin/mlterm-fb-pomera usr/local/lib/libmef.so.* usr/local/lib/libpobl.so.*"
 if [ -f /usr/local/lib/libmlterm_coreotl.so ]; then
     files_to_pack="$files_to_pack usr/local/lib/libmlterm_coreotl.so"
 fi

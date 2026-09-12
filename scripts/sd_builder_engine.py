@@ -10,6 +10,8 @@ SPDX-License-Identifier: MIT
 
 import os
 import sys
+
+sys.dont_write_bytecode = True
 import io
 import time
 import socket
@@ -430,11 +432,12 @@ def package_site_set(work_dir: str, configs_dir: str, scripts_dir: str, res_mgr:
         mlterm_archive = os.path.join(os.path.dirname(scripts_dir), "_build_cache/mlterm-fb-dm250.tar.gz")
 
     if os.path.exists(mlterm_archive):
-        logger.info(f"Bundling Pomera-optimized mlterm-fb from {mlterm_archive}")
+        print(f">> Bundling Pomera-optimized mlterm-fb from {mlterm_archive}")
         subprocess.run(["tar", "-xzf", mlterm_archive, "-C", site_build], check=True)
-        mlterm_bin_path = os.path.join(site_build, "usr/local/bin/mlterm-fb")
-        if os.path.exists(mlterm_bin_path):
-            subprocess.run(["chmod", "4755", mlterm_bin_path], check=True)
+        for bin_name in ["mlterm-fb", "mlterm-fb-pomera"]:
+            bin_path = os.path.join(site_build, f"usr/local/bin/{bin_name}")
+            if os.path.exists(bin_path):
+                subprocess.run(["chmod", "4755", bin_path], check=True)
         os.makedirs(os.path.join(site_build, "usr/local/share/pomera"), exist_ok=True)
         subprocess.run(["cp", "-f", mlterm_archive, os.path.join(site_build, "usr/local/share/pomera/mlterm-fb-dm250.tar.gz")], check=True)
 

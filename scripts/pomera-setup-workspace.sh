@@ -74,7 +74,16 @@ fi
 if [ -f /usr/local/share/pomera/mlterm-fb-dm250.tar.gz ]; then
     echo ">> Applying Pomera-optimized mlterm-fb (shadowfb + DECSET 2026)..."
     $DOAS tar -xzf /usr/local/share/pomera/mlterm-fb-dm250.tar.gz -C /
-    $DOAS chmod 4755 /usr/local/bin/mlterm-fb
+    for bin in /usr/local/bin/mlterm-fb /usr/local/bin/mlterm-fb-pomera; do
+        if [ -f "$bin" ]; then
+            $DOAS chmod 4755 "$bin"
+        fi
+    done
+    if [ -f /usr/local/bin/mlterm-fb-pomera ]; then
+        echo "   ✅ Dual mlterm-fb setup active:"
+        echo "      - /usr/local/bin/mlterm-fb        (Baseline verified shadowfb)"
+        echo "      - /usr/local/bin/mlterm-fb-pomera (Turbocharged: dirty scanlines + NEON SIMD + fast alpha)"
+    fi
 else
     echo ">> Note: /usr/local/share/pomera/mlterm-fb-dm250.tar.gz not found."
     echo "   Using standard package mlterm. (Run make_sdcard.sh with QEMU builder to enable shadowfb)"
@@ -83,7 +92,7 @@ fi
 # 4. Deploy 1024x600 Optimized Dotfiles
 
 # 4.1 ~/.profile
-echo ">> Configuring $TARGET_HOME/.profile (UTF-8, editor)..."
+echo ">> Configuring $TARGET_HOME/.profile (UTF-8, editor, dual mlterm aliases)..."
 cat << 'EOF' > "$TARGET_HOME/.profile"
 export LANG=ja_JP.UTF-8
 export LC_CTYPE=ja_JP.UTF-8
@@ -91,6 +100,8 @@ export TERM=xterm-256color
 export EDITOR=vim
 export PAGER=less
 alias ll='ls -la'
+alias mlterm-base='/usr/local/bin/mlterm-fb'
+alias mlterm-opt='/usr/local/bin/mlterm-fb-pomera'
 EOF
 chown "$TARGET_USER" "$TARGET_HOME/.profile"
 chmod 0644 "$TARGET_HOME/.profile"
@@ -279,18 +290,21 @@ echo "=========================================================="
 echo "🎉 Pomera Workspace & Writing Environment Ready!"
 echo "=========================================================="
 echo ""
-echo "How to use your workspace:"
-echo "  1. Start GUI workspace : run 'startx'"
-echo "     - Alt + Enter    : Open terminal (mlterm)"
-echo "     - Alt + F1 / F2  : Adjust screen brightness (F1: Dim, F2: Brighten)"
-echo "     - Alt + Up / Down: Adjust screen brightness"
-echo "     - Ctrl + Alt + q : Close current window"
-echo "     - Ctrl + Alt + BackSpace : Exit GUI to CUI"
-echo "  2. Setup Japanese Input (IME):"
-echo "     Run 'pomera-setup-japanese' to configure uim-anthy!"
-echo "  3. Optional display modes:"
-echo "     Enable graphical login : $DOAS /usr/local/bin/pomera-gui-toggle gui"
-echo "     Revert to CUI console  : $DOAS /usr/local/bin/pomera-gui-toggle cui"
+echo "How to use your workspace:
+  1. CUI Framebuffer Terminal (fastest, direct hardware console):
+     - Run 'mlterm-opt'  (or mlterm-fb-pomera) for the turbocharged dirty-scanline build
+     - Run 'mlterm-base' (or mlterm-fb) for the baseline shadowfb build
+  2. Start GUI workspace : run 'startx'
+     - Alt + Enter    : Open terminal (mlterm)
+     - Alt + F1 / F2  : Adjust screen brightness (F1: Dim, F2: Brighten)
+     - Alt + Up / Down: Adjust screen brightness
+     - Ctrl + Alt + q : Close current window
+     - Ctrl + Alt + BackSpace : Exit GUI to CUI
+  3. Setup Japanese Input (IME):
+     Run 'pomera-setup-japanese' to configure uim-anthy!
+  4. Optional display modes:
+     Enable graphical login : $DOAS /usr/local/bin/pomera-gui-toggle gui
+     Revert to CUI console  : $DOAS /usr/local/bin/pomera-gui-toggle cui"
 
 if [ -d "/var/cache/packages" ]; then
     echo "💡 Storage Tip: Offline packages are cached at /var/cache/packages (~180MB)."

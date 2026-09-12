@@ -9,6 +9,9 @@ SPDX-License-Identifier: MIT
 
 import os
 import sys
+
+sys.dont_write_bytecode = True
+
 from sd_builder_engine import run_qemu_builder
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))

@@ -14,6 +14,7 @@
 # =====================================================================
 
 set -euo pipefail
+export PYTHONDONTWRITEBYTECODE=1
 
 TOOL_VERSION="1.0.0"
 
@@ -62,6 +63,7 @@ fix_file_ownership() {
 cleanup_on_exit() {
     local exit_code=$?
     fix_file_ownership "${CONFIGS_DIR}"
+    rm -rf "${SCRIPTS_DIR}/__pycache__" 2>/dev/null || fix_file_ownership "${SCRIPTS_DIR}/__pycache__"
     if [ -d "${WORK_DIR}" ]; then
         for f in "${WORK_DIR}"/*; do
             if [ -f "$f" ]; then
