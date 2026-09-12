@@ -70,6 +70,13 @@ else
     $DOAS pkg_add -I vim curl git mlterm noto-cjk dmenu
 fi
 
+# 3. Restore patched mlterm-fb (zero-tearing shadowfb & Noto font engine) if bundled
+if [ -f /usr/local/share/pomera/mlterm-fb-dm250.tar.gz ]; then
+    echo ">> Applying Pomera-optimized mlterm-fb (shadowfb + DECSET 2026)..."
+    $DOAS tar -xzf /usr/local/share/pomera/mlterm-fb-dm250.tar.gz -C /
+    $DOAS chmod 4755 /usr/local/bin/mlterm-fb
+fi
+
 # 4. Deploy 1024x600 Optimized Dotfiles
 
 # 4.1 ~/.profile
@@ -234,8 +241,8 @@ hl_white=#f1f1f0
 EOF
 
 cat << 'EOF' > "$TARGET_HOME/.mlterm/aafont"
-DEFAULT = DejaVu Sans Mono
-ISO10646_UCS4_1 = DejaVu Sans Mono
+DEFAULT = Noto Sans Mono CJK JP
+ISO10646_UCS4_1 = Noto Sans Mono CJK JP
 ISO10646_UCS4_1_FULLWIDTH = Noto Sans Mono CJK JP
 EOF
 chown -R "$TARGET_USER" "$TARGET_HOME/.mlterm"

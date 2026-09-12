@@ -363,30 +363,51 @@ chmod 0644 "/home/${TARGET_USER}/.cwmrc"
 # ~/.mlterm configuration
 mkdir -p "/home/${TARGET_USER}/.mlterm"
 cat << 'EOF' > "/home/${TARGET_USER}/.mlterm/main"
-fontsize = 15
-line_space = 2
+# --- Display & Font ---
+use_aafont = true
+use_variable_column_width = false
+fade_ratio = 100
+fontsize = 18
+line_space = 0
+letter_space = 2
+col_size_of_width_a = 1
+unicode_full_width = false
+unicode_full_width_areas = U+1F000-1FAFF
 scrollbar_mode = none
-use_anti_alias = true
+
+# --- Modern Color & VT Settings ---
+termtype = xterm-256color
+vt_color_mode = true
+use_ansi_colors = true
 use_bold_font = true
-use_login_shell = true
-box_drawing_font = unicode
-fg_color = #c0caf5
-bg_color = #1a1b26
+use_italic_font = true
+use_alt_buffer = true
+use_clipboard = true
+
+# --- Theme (iTerm2 Tango Dark) ---
+fg_color = #ffffff
+bg_color = #000000
+cursor_fg_color = #000000
+cursor_bg_color = #ffffff
 EOF
 
 cat << 'EOF' > "/home/${TARGET_USER}/.mlterm/color"
-black=#15161e
-red=#f7768e
-green=#9ece6a
-yellow=#e0af68
-blue=#7aa2f7
-magenta=#bb9af7
-cyan=#7dcfff
-white=#a9b1d6
-hl_black=#414868
-hl_red=#f7768e
-hl_green=#73daca
-hl_yellow=#e0af68
+# iTerm2 Tango Dark Color Palette for mlterm
+# Standard 8 Colors (0-7)
+black=#000000
+red=#d81e00
+green=#5ea702
+yellow=#cfae00
+blue=#427ab3
+magenta=#89658e
+cyan=#00a7aa
+white=#dbded8
+
+# High-Intensity / Bold Colors (8-15)
+hl_black=#686a66
+hl_red=#f54235
+hl_green=#99e343
+hl_yellow=#fdeb61
 hl_blue=#84b0d8
 hl_magenta=#bc94b7
 hl_cyan=#37e6e8
@@ -394,8 +415,8 @@ hl_white=#f1f1f0
 EOF
 
 cat << 'EOF' > "/home/${TARGET_USER}/.mlterm/aafont"
-DEFAULT = DejaVu Sans Mono
-ISO10646_UCS4_1 = DejaVu Sans Mono
+DEFAULT = Noto Sans Mono CJK JP
+ISO10646_UCS4_1 = Noto Sans Mono CJK JP
 ISO10646_UCS4_1_FULLWIDTH = Noto Sans Mono CJK JP
 EOF
 chown -R "${TARGET_USER}:staff" "/home/${TARGET_USER}/.mlterm"

@@ -424,6 +424,16 @@ def package_site_set(work_dir: str, configs_dir: str, scripts_dir: str, res_mgr:
         os.makedirs(os.path.join(site_build, "usr/local/share/pomera"), exist_ok=True)
         subprocess.run(["cp", "-f", suspend_src, os.path.join(site_build, "usr/local/share/pomera/pomera-suspend.c")], check=True)
 
+    # Deploy patched mlterm-fb and runtime libraries if pre-bundled
+    mlterm_archive = os.path.join(os.path.dirname(scripts_dir), "bin/mlterm-fb-dm250.tar.gz")
+    if os.path.exists(mlterm_archive):
+        subprocess.run(["tar", "-xzf", mlterm_archive, "-C", site_build], check=True)
+        mlterm_bin_path = os.path.join(site_build, "usr/local/bin/mlterm-fb")
+        if os.path.exists(mlterm_bin_path):
+            subprocess.run(["chmod", "4755", mlterm_bin_path], check=True)
+        os.makedirs(os.path.join(site_build, "usr/local/share/pomera"), exist_ok=True)
+        subprocess.run(["cp", "-f", mlterm_archive, os.path.join(site_build, "usr/local/share/pomera/mlterm-fb-dm250.tar.gz")], check=True)
+
     # 2. Firmware NVRAM text
     nvram_src = os.path.join(configs_dir, "brcmfmac43430-sdio.rockchip,pomera-dm250.txt")
     if os.path.exists(nvram_src):
