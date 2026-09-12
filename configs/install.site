@@ -262,6 +262,12 @@ if [ "${POMERA_WORKSPACE:-yes}" != "no" ]; then
         umount "$SD_PKG_MNT" 2>/dev/null || echo ">> [install.site] SD package partition unmounted."
         rmdir "$SD_PKG_MNT" 2>/dev/null || echo ">> [install.site] SD package mount point cleaned."
     fi
+    if [ -d /packages ]; then
+        rm -rf /packages 2>/dev/null
+    fi
+    if [ -d /mnt_sd_pkg ]; then
+        rm -rf /mnt_sd_pkg 2>/dev/null
+    fi
 fi
 
 # Determine workspace locale based on model type (US model -> en_US.UTF-8, JP model -> ja_JP.UTF-8)

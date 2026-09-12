@@ -93,6 +93,16 @@ EOF
 		umount /mnt/mnt
 		echo "EFI boot binaries and boot.conf installed successfully on ${_disk}i."
 	fi
+
+	# Copy offline workspace packages to target eMMC so chroot /mnt /install.site can install them
+	for _pkgsrc in /packages /mnt2/packages; do
+		if [ -d "$_pkgsrc" ] && ls "$_pkgsrc"/*.tgz >/dev/null 2>&1; then
+			echo ">> Copying offline packages from ${_pkgsrc} to /mnt/packages..."
+			mkdir -p /mnt/packages
+			cp -f "$_pkgsrc"/*.tgz /mnt/packages/ 2>/dev/null
+			break
+		fi
+	done
 }
 
 md_prep_fdisk() {
