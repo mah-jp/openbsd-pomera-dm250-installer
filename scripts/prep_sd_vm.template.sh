@@ -174,31 +174,11 @@ sleep 2
 echo "==========================================================" >/dev/ttyC0
 echo "🎉 ALL OPERATIONS COMPLETED SUCCESSFULLY!" >/dev/ttyC0
 echo "🔒 All disk buffers safely flushed. Storage is 100% clean." >/dev/ttyC0
-echo "👉 Please REMOVE the SD card now." >/dev/ttyC0
+echo "👉 You can now safely REMOVE the SD card." >/dev/ttyC0
 echo "==========================================================" >/dev/ttyC0
-echo "Select next action:" >/dev/ttyC0
-echo "  (r) Reboot into OpenBSD from eMMC [Default - Press Enter]" >/dev/ttyC0
-echo "  (h) Halt system (Hold Power button 3-4s to turn off power)" >/dev/ttyC0
-echo -n "Choice [r]: " >/dev/ttyC0
-read -r _post_act </dev/ttyC0 2>/dev/null || _post_act="r"
-case "$_post_act" in
-    h|H|halt)
-        echo "" >/dev/ttyC0
-        echo ">> System halted safely." >/dev/ttyC0
-        echo "💡 Note: Hold the [Power Button] for 3-4 seconds to turn off power completely." >/dev/ttyC0
-        sync
-        sync
-        wsconsctl display.brightness=0 >/dev/null 2>&1 || true
-        halt -p
-        ;;
-    *)
-        echo "" >/dev/ttyC0
-        echo ">> Rebooting into OpenBSD from eMMC..." >/dev/ttyC0
-        sync
-        sync
-        reboot
-        ;;
-esac
+echo -n "Press Enter to power off... " >/dev/ttyC0
+read -r _done </dev/ttyC0 2>/dev/null || true
+halt -p
 EOF_LAUNCH
 chmod +x /mnt/etc/rc
 

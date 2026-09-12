@@ -190,8 +190,8 @@ sudo ./make_sdcard.sh /dev/rdisk4
    - Installs OpenBSD base sets and X11
    - Executes `site79.tgz` hook to install the custom DM250 kernel (`/bsd`), disable `reorder_kernel`, configure Multi-SSID Wi-Fi / USB-NIC DHCP, and enable lid power management.
 5. When `🎉 ALL OPERATIONS COMPLETED SUCCESSFULLY!` appears on screen:
-   **Eject the SD card** and press **`[Enter]`** to reboot directly into OpenBSD on internal eMMC!  
-   *(※ To power off completely, choose `h`, then hold the [Power Button] for 3–4 seconds).*
+   **Eject the SD card** and press **`[Enter]`** to power off.
+6. Turn ON Pomera to start OpenBSD from internal storage (`[Pomera DM250] Starting OpenBSD from Internal Storage...`)!
 
 > [!TIP]
 > **💡 Booting from SD card when a custom OS (OpenBSD, etc.) is already installed**
