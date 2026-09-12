@@ -8,6 +8,9 @@
 #   - Execution: bootefi 0x62000000
 #
 # Conforms to pomera-dm250-backup-restore-tool build standards.
+#
+# Copyright (c) 2026 Masahiko OHKUBO and Pomera DM250 OpenBSD Project Contributors
+# SPDX-License-Identifier: MIT
 # =====================================================================
 
 set -euo pipefail

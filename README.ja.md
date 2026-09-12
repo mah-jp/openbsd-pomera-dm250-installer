@@ -17,7 +17,7 @@
 | **🌐 充実のネットワーク (2.4GHz Wi-Fi)** | 内蔵 Wi-Fi (`bwfm0`、2.4GHz専用、複数SSID自動切替)、スマホテザリング用 Bluetooth PAN (`pomera-bt-pan`)、USB-Ethernet (`ure0`, `axe0`, `axen0`, `urndis0`, `cdce0`) に標準対応。 |
 | **💻 CUI & GUI デュアル対応** | 標準は超軽量・高速な CUI (wsconsコンソール / VT100 / tmux)。フレームバッファ直描画の超高速日本語コンソール `mlterm-fb` に対応し、`pomera-gui-toggle` で軽量X11デスクトップ (`xenodm` + `cwm` + `mlterm`) へもワンタッチ切替可能。 |
 | **🖱️ USB周辺機器プラグ＆プレイ** | USB Type-C OTG経由で標準的なUSBマウス、キーボード、有線LANアダプタを挿すだけで即認識。 |
-| **🛡️ 100%原状復帰可能な安全設計** | [pomera-dm250-recovery-tool](https://github.com/mah-jp/pomera-dm250-recovery-tool) と連携し、導入前に純正eMMCの完全バックアップを取得可能。いつでも工場出荷時に戻せます。 |
+| **🛡️ 100%原状復帰可能な安全設計** | [pomera-dm250-backup-restore-tool](https://github.com/mah-jp/pomera-dm250-backup-restore-tool) と連携し、導入前に純正eMMCの完全バックアップを取得可能。いつでも工場出荷時に戻せます。 |
 | **🛠️ パッチ自動検査＆スマートビルド** | USBハブ安定化、X11キー修正、mlterm-fb直描画用カーネルパッチ（SMODE）を選択可能。公式カーネルを自動検査し、未修正時のみQEMUリコンパイルを実行、対応済みなら0秒で公式版を採用。 |
 | **🤖 ネイティブQEMUエンジン自動構築** | 一時的な OpenBSD QEMU VM を介して本物の disklabel/FFS を生成。`user_config.env` による事前設定（Wi-Fi・パスワード・省電力）で実機インストールも完全自動で完走。 |
 
@@ -34,11 +34,15 @@ SDカード作成スクリプト（`make_sdcard.sh`）は以下の環境で動�
 
 ## 🧰 必要な機材・前提環境
 
-1. **ポメラ DM250 / DM250X / DM250XY / DM250US 本体**（十分充電されていること）
+1. **ポメラ DM250 / DM250X / DM250XY / DM250US 本体**（事前に十分充電されていること。目安50%以上、満充電推奨）
 2. **SDカード**（2 GB 〜 32 GB の標準SDまたはmicroSD＋アダプタ）
 3. **母艦PC**（macOS または Linux）
 4. **USB Type-C ケーブル**（データ転送対応）
 5. *(推奨)* USB Type-A to Type-C 変換アダプタ および USB有線LANアダプタ（USB-NIC）
+
+> [!WARNING]
+> **⚠️ 事前に本体バッテリーを十分に充電してください**  
+> ポメラDM250はハードウェアの特性上、バッテリーが完全放電（0%）すると起動電力の不足によりUSB給電下でも起動が不安定になる場合があります。インストール作業（OSベースセットおよびパッケージ展開を含め所要約10〜15分程度）は、十分にバッテリー残量がある状態で開始してください。なお、Wi-Fi利用時などType-Cポートが空いている場合は、USB充電器を接続して給電しながら作業するとより安全です。
 
 ### 母艦PCの事前準備（ツールインストール）
 
@@ -70,7 +74,7 @@ sudo pacman -S --needed curl python qemu-system-aarch64 edk2-arm
 
 ```
 [Phase 0: セーフティネット (推奨)]
-  pomera-dm250-recovery-tool で純正eMMCのフルバックアップを取得
+  pomera-dm250-backup-restore-tool で純正eMMCのフルバックアップを取得
   ↓
 [Phase 1: カスタム設定 & インストーラSDの作成]
   1. configs/user_config.env で Wi-Fi やパスワードを設定
@@ -91,11 +95,11 @@ sudo pacman -S --needed curl python qemu-system-aarch64 edk2-arm
 
 ### Step 0: 純正eMMCのバックアップ（強く推奨）
 
-作業前に、[pomera-dm250-recovery-tool](https://github.com/mah-jp/pomera-dm250-recovery-tool) を使ってポメラの内部eMMCをPCへ丸ごとバックアップしておきます。
+作業前に、[pomera-dm250-backup-restore-tool](https://github.com/mah-jp/pomera-dm250-backup-restore-tool) を使ってポメラの内部eMMCをPCへ丸ごとバックアップしておきます。
 
 ```bash
-git clone https://github.com/mah-jp/pomera-dm250-recovery-tool.git
-cd pomera-dm250-recovery-tool
+git clone https://github.com/mah-jp/pomera-dm250-backup-restore-tool.git
+cd pomera-dm250-backup-restore-tool
 ./prepare_sdcard.sh /dev/sdX
 # ポメラをUMSモードで起動して backup_emmc.sh を実行
 ```
@@ -116,7 +120,7 @@ nano configs/user_config.env
 * **設定可能な項目**:
   * `POMERA_USERNAME` / `POMERA_USER_PASSWORD` : ユーザー名とパスワード（デフォルト: `pomera` / `pomera`）
   * `POMERA_ROOT_PASSWORD` : root パスワード（デフォルト: `pomera`）
-  * `POMERA_WIFI_NETWORKS` : 接続先 Wi-Fi（**2.4GHz 帯専用**。複数指定可能、電波の強い方へ自動接続）
+  * `POMERA_WIFI_NETWORKS` : 接続先 Wi-Fi（**2.4GHz 帯専用**。複数指定可能、電波の強い方へ自動接続。※内蔵AP6212の仕様上、5GHz帯［-Aや-5Gなど］には非対応ですので必ず2.4GHz帯のSSIDを指定してください）
   * `POMERA_BOOT_TIMEOUT` : ブートローダーの待機秒数（デフォルト: `5` 秒）
   * `POMERA_LID_INTERVAL` : 蓋開閉検知デーモンの監視間隔秒数（デフォルト: `2.0` 秒）
   * `POMERA_CPU_POLICY` : CPU 動作ポリシー（`auto`: 負荷連動可変省電力 / `100` または `high`: 最高性能固定、デフォルト: `auto`）
@@ -189,7 +193,20 @@ sudo ./make_sdcard.sh /dev/rdisk4
 4. 以降は完全手放しでインストールが走り、内蔵eMMC（`sd1`）の自動初期化、ベースセット導入、`site79.tgz`（DM250カスタムカーネル `/bsd` 配置、`reorder_kernel` 事前無効化、複数SSID Wi-Fi / USB-NIC DHCP設定、蓋開閉監視デーモン登録）がすべて自動実行されます。
 5. 画面に `🎉 ALL OPERATIONS COMPLETED SUCCESSFULLY!` が表示されたら：
    **SDカードをポメラから抜き、キーボードで [Enter] を押して電源を切ります**。
-6. 電源ボタンを押すと、内蔵ストレージから OpenBSD が起動します（`[Pomera DM250] Starting OpenBSD from Internal Storage...`）！
+6. 電源ボタンを押すと、内蔵ストレージから OpenBSD が起動します（`[Pomera DM250] Starting OpenBSD from Internal Storage...`）。
+7. 画面にログインプロンプトが表示されます：
+   ```text
+   OpenBSD/armv7 (pomera.my.domain) (console)
+
+   login: 
+   ```
+   ユーザー名 **`pomera`**、パスワード **`pomera`**（または `configs/user_config.env` で指定した値）を入力してログインします。
+
+> [!TIP]
+> **💡 CUI と GUI (X11) の使い分け**  
+> - **一時的に X11 GUI デスクトップを起動する**: ログイン後、`startx` を実行します。
+> - **次回起動時からも常にグラフィカルログイン (xenodm) にする**: `doas pomera-gui-toggle gui` を実行します。
+> - **超軽量・高解像度日本語コンソール (CUI) のまま使う**: そのままコンソールや tmux、`mlterm-fb` をお使いください。いつでも `doas pomera-gui-toggle cui` でCUI固定に戻せます。
 
 > [!TIP]
 > **💡 既にカスタムOS（OpenBSD等）がインストール済みの状態からSDカードを起動する場合**
@@ -272,9 +289,12 @@ pomera-setup-japanese
 | `pomera-setup-japanese` | 日本語入力システム (`uim`/`uim-anthy`) および XIM 設定を自動セットアップ。 |
 | `pomera-font [udev\|moraler\|noto]` | ターミナルフォント（斜線ゼロ入り UDEV Gothic、Moralerspace、Noto）をワンタッチ切替（X11版 / `mlterm-fb` 共通）。 |
 | `doas pomera-gui-toggle [gui\|cui\|toggle]` | CUIコンソールとX11 GUIモード（`xenodm`/`cwm`）を即座に切り替え。 |
-| `doas pomera-bt-pan connect <BD_ADDR>` | スマホのBluetoothテザリング（PAN）にワンタッチ接続。 |
+| `doas pomera-bt-pan connect <BD_ADDR>` | スマホのBluetoothテザリング（PAN）にワンタッチ接続（※要4noha氏のpanctlデーモン）。 |
 
-### ホストPC側での診断・シミュレーターツール
+### 🔧 ホストPC側での診断・シミュレーターツール (上級者・開発向け)
+
+> [!NOTE]
+> 以下のツールは `make_sdcard.sh` が内部で自動的に呼び出すため、通常のインストール作業でユーザーが手動実行する必要はありません。トラブルシューティングや個別検証を行いたい場合にご利用ください。
 
 | ツール | 説明 |
 | :--- | :--- |
@@ -289,7 +309,8 @@ pomera-setup-japanese
 ## 🤝 謝辞・クレジット
 
 - **Joshua Stein (jcs)**: [OpenBSD on Pomera DM250](https://jcs.org/2026/04/09/openbsd-dm250) のカーネル・U-Boot・ディスプレイドライバ開発
-- **4noha**: [openbsd-pomera-dm250](https://github.com/4noha/openbsd-pomera-dm250) ツールチェーンおよびバッテリー/蓋スクリプト
+- **4noha**: [openbsd-pomera-dm250](https://github.com/4noha/openbsd-pomera-dm250) ツールチェーン、カーネルパッチ、バッテリー/蓋スクリプト、Bluetooth PAN研究
+- **ichinomoto**: DM250実機ハックの安全性を確立した [EKESETE](https://github.com/ichinomoto/dm250_ekesete) eMMCバックアップツールの開発と先駆的研究
 - **mah-jp**: [pomera-dm250-backup-restore-tool](https://github.com/mah-jp/pomera-dm250-backup-restore-tool) U-Boot UMS バックアップ/リカバリツール
 
 ---

@@ -34,10 +34,14 @@ The installer SD builder (`make_sdcard.sh`) works on:
 
 ## 🧰 Prerequisites & Hardware
 
-1. **King Jim Pomera DM250 / DM250X / DM250XY / DM250US** (adequately charged)
+1. **King Jim Pomera DM250 / DM250X / DM250XY / DM250US** (adequately charged in advance; 50%+ recommended)
 2. **SD Card** (2 GB to 32 GB standard SD or microSD with adapter)
 3. **Host PC** (macOS or Linux)
 4. **USB Type-C Cable** & optional USB-A to Type-C adapter / USB-NIC
+
+> [!WARNING]
+> **⚠️ Ensure battery is sufficiently charged beforehand**  
+> Due to the DM250 hardware design, a completely drained (0%) battery may lack sufficient power to boot reliably even when a USB cable is connected. Start the installation process (which takes approximately 10-15 minutes including OS sets and offline packages) with a healthy battery charge. If using Wi-Fi and the Type-C port is available, keeping a USB charger connected during installation provides extra safety.
 
 ### Host Dependencies
 
@@ -115,7 +119,7 @@ nano configs/user_config.env
 * **Customizable Parameters**:
   * `POMERA_USERNAME` / `POMERA_USER_PASSWORD` : Account username & password (Default: `pomera` / `pomera`)
   * `POMERA_ROOT_PASSWORD` : Root administrator password (Default: `pomera`)
-  * `POMERA_WIFI_NETWORKS` : List of Wi-Fi SSIDs & passwords (**2.4GHz band only**; automatically connects to the strongest available network)
+  * `POMERA_WIFI_NETWORKS` : List of Wi-Fi SSIDs & passwords (**2.4GHz band only**; automatically connects to the strongest available network. Note: The onboard AP6212 chip does NOT support 5GHz bands [-A or -5G], only 2.4GHz bands [-G or -2G])
   * `POMERA_BOOT_TIMEOUT` : Bootloader countdown delay in seconds (Default: `5`)
   * `POMERA_LID_INTERVAL` : Lid daemon polling interval in seconds (Default: `2.0`)
   * `POMERA_CPU_POLICY` : CPU performance scaling policy (`auto`: dynamic load-based scaling / `100` or `high`: maximum clock lock, Default: `auto`)
@@ -191,7 +195,20 @@ sudo ./make_sdcard.sh /dev/rdisk4
    - Executes `site79.tgz` hook to install the custom DM250 kernel (`/bsd`), disable `reorder_kernel`, configure Multi-SSID Wi-Fi / USB-NIC DHCP, and enable lid power management.
 5. When `🎉 ALL OPERATIONS COMPLETED SUCCESSFULLY!` appears on screen:
    **Eject the SD card** and press **`[Enter]`** to power off.
-6. Turn ON Pomera to start OpenBSD from internal storage (`[Pomera DM250] Starting OpenBSD from Internal Storage...`)!
+6. Turn ON Pomera to start OpenBSD from internal storage (`[Pomera DM250] Starting OpenBSD from Internal Storage...`).
+7. A login prompt will appear on console:
+   ```text
+   OpenBSD/armv7 (pomera.my.domain) (console)
+
+   login: 
+   ```
+   Log in with username **`pomera`** and password **`pomera`** (or your custom credentials set in `configs/user_config.env`).
+
+> [!TIP]
+> **💡 Choosing Between CUI and GUI (X11)**  
+> - **Launch X11 GUI desktop temporarily**: Run `startx` after logging in.
+> - **Enable permanent graphical login (xenodm)**: Run `doas pomera-gui-toggle gui`.
+> - **Stay in distraction-free CUI**: Continue using the console, tmux, or high-speed CJK terminal `mlterm-fb`. You can always lock back to CUI anytime with `doas pomera-gui-toggle cui`.
 
 > [!TIP]
 > **💡 Booting from SD card when a custom OS (OpenBSD, etc.) is already installed**
@@ -272,9 +289,12 @@ pomera-setup-japanese
 | `pomera-setup-japanese` | Automatically set up Japanese IME (`uim`/`uim-anthy`) and XIM integration. |
 | `pomera-font [udev\|moraler\|noto]` | Instantly switch terminal fonts (slashed-zero UDEV Gothic, Moralerspace, or Noto) for both X11 and `mlterm-fb`. |
 | `doas pomera-gui-toggle [gui\|cui\|toggle]` | Switch between CUI console and X11 GUI mode (`xenodm`/`cwm`). |
-| `doas pomera-bt-pan connect <BD_ADDR>` | Connect to smartphone Bluetooth Tethering (PAN). |
+| `doas pomera-bt-pan connect <BD_ADDR>` | Connect to smartphone Bluetooth Tethering (PAN) (requires 4noha's panctl daemon). |
 
-### Host PC Diagnostics & Simulator Tools
+### 🔧 Host PC Diagnostics & Simulator Tools (Advanced / Developers)
+
+> [!NOTE]
+> The tools below are orchestrated automatically by `make_sdcard.sh` and do NOT need to be run manually during standard installation. They are provided for troubleshooting, development, and modular verification.
 
 | Tool | Description |
 | :--- | :--- |
@@ -289,7 +309,8 @@ pomera-setup-japanese
 ## 🤝 Acknowledgements & Credits
 
 - **Joshua Stein (jcs)**: [OpenBSD on Pomera DM250](https://jcs.org/2026/04/09/openbsd-dm250) kernel, U-Boot, and display patches.
-- **4noha**: [openbsd-pomera-dm250](https://github.com/4noha/openbsd-pomera-dm250) toolchain and battery/lid scripts.
+- **4noha**: [openbsd-pomera-dm250](https://github.com/4noha/openbsd-pomera-dm250) toolchain, kernel patches, battery/lid scripts, and Bluetooth PAN research.
+- **ichinomoto**: Pioneering research and the [EKESETE](https://github.com/ichinomoto/dm250_ekesete) eMMC backup tool, which established safe experimental procedures on physical Pomera DM250 hardware.
 - **mah-jp**: [pomera-dm250-backup-restore-tool](https://github.com/mah-jp/pomera-dm250-backup-restore-tool) for U-Boot UMS backup/recovery.
 
 ---

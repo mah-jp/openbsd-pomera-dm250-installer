@@ -2,6 +2,9 @@
 # =====================================================================
 # Pomera DM250 OpenBSD Installer SD Builder (Native OpenBSD QEMU Engine)
 #
+# Copyright (c) 2026 Masahiko OHKUBO and Pomera DM250 OpenBSD Project Contributors
+# SPDX-License-Identifier: MIT
+#
 # Supported Host OS: macOS (Apple Silicon / Intel), Linux (amd64 / arm64)
 # Features:
 # - Clean, transparent, zero prebuilt-blob architecture: fetches official OpenBSD & jcs binaries

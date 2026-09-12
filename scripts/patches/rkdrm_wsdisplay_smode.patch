@@ -1,6 +1,6 @@
 From: 4noha
 Subject: rkdrm: accept WSDISPLAYIO_SMODE so mlterm-fb can use DUMBFB
-License: ISC (this patch modifies OpenBSD source and inherits ISC; see ../LICENSE-ISC)
+License: ISC (this patch modifies OpenBSD source and inherits ISC; see LICENSE)
 
 DM250: rkdrm: accept WSDISPLAYIO_SMODE so mlterm-fb runs.
 

@@ -1,6 +1,6 @@
 From: 4noha
 Subject: bcmbt_fdt: extend post-firmware HCI reset delay from 250ms to 2s
-License: ISC (this patch modifies OpenBSD source and inherits ISC; see ../LICENSE-ISC)
+License: ISC (this patch modifies OpenBSD source and inherits ISC; see LICENSE)
 
 DM250 (AP6212A / Broadcom BCM43430) cannot complete post-firmware HCI
 Reset within the upstream 250ms window. Extend the post-firmware quiet

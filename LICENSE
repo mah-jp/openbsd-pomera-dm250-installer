@@ -37,11 +37,15 @@ This project builds upon and interacts with several upstream components and comm
   - Custom DM250 OpenBSD kernel patches, U-Boot, and device tree (DTB) support:
     https://jcs.org/2026/04/09/openbsd-dm250
     Binaries and scripts are fetched from upstream sources during installation under respective ISC / GPL licenses.
+  - Wi-Fi NVRAM configuration parameter template for Broadcom AP6212 / BCM43430 (`configs/brcmfmac43430-sdio.rockchip,pomera-dm250.txt`).
 
 - **4noha**:
-  - Research, kernel patches (`scripts/patches/bcmbt_delay_2s.patch`, `scripts/patches/rkdrm_wsdisplay_smode.patch` under the ISC License), mlterm-fb patches (`scripts/patches/mlterm-fb-dm250-shadowfb.patch` under the MIT License), and power management concepts for Pomera DM250:
+  - Research, kernel patches (`scripts/patches/bcmbt_delay_2s.patch`, `scripts/patches/rkdrm_wsdisplay_smode.patch` under the ISC License), mlterm-fb patches (`scripts/patches/mlterm-fb-dm250-shadowfb.patch` under the MIT License), Bluetooth PAN tethering research, and power management concepts for Pomera DM250:
     Copyright (c) 2026 4noha
     https://github.com/4noha/openbsd-pomera-dm250
+
+- **ichinomoto**:
+  - Pioneering research and the EKESETE eMMC backup tool, which established safe experimental procedures on physical Pomera DM250 hardware.
 
 - **Rockchip Electronics Co., Ltd.**:
   - Bootloader miniloader and DDR initialization binaries (`rkbin`) are fetched directly from Rockchip's official repositories.

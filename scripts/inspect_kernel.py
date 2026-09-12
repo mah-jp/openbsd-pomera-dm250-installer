@@ -13,6 +13,9 @@ Exit codes:
   0: Requested patch(es) are present in the kernel
   1: One or more requested patches are MISSING
   2: Error executing inspection (e.g. file not found or invalid format)
+
+Copyright (c) 2026 Masahiko OHKUBO and Pomera DM250 OpenBSD Project Contributors
+SPDX-License-Identifier: MIT
 """
 
 import os

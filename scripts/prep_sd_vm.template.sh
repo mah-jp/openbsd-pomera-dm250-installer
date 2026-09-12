@@ -1,6 +1,9 @@
 #!/bin/ksh
 # prep_sd_vm.template.sh - OpenBSD QEMU Guest SD Preparation & Provisioning Script Template
 # Automatically populated and executed in throwaway VM during ./make_sdcard.sh
+#
+# Copyright (c) 2026 Masahiko OHKUBO and Pomera DM250 OpenBSD Project Contributors
+# SPDX-License-Identifier: MIT
 set -eu
 
 say() { echo; echo "=== $* ==="; }

@@ -7,6 +7,9 @@ U-Boot embedded bootcmd, and OpenBSD Partition 4 Disklabel magic & checksum.
 Usage:
     python3 scripts/inspect_sd.py _build_cache/virtual_emmc.img
     sudo python3 scripts/inspect_sd.py /dev/rdiskN
+
+Copyright (c) 2026 Masahiko OHKUBO and Pomera DM250 OpenBSD Project Contributors
+SPDX-License-Identifier: MIT
 """
 
 import sys

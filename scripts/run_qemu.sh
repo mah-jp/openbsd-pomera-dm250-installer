@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # =====================================================================
 # run_qemu.sh - Run OpenBSD ARMv7 QEMU Simulator with USB Storage
+#
+# Copyright (c) 2026 Masahiko OHKUBO and Pomera DM250 OpenBSD Project Contributors
+# SPDX-License-Identifier: MIT
 # =====================================================================
 
 set -euo pipefail

@@ -36,7 +36,7 @@ connect_pan() {
         dhclient tap0
         echo "✅ Connected to Bluetooth Tethering!"
     else
-        echo "⚠️ panctl not found. Please install via: doas pkg_add panctl"
+        echo "⚠️ panctl not found. Please build and install panctl from: https://github.com/4noha/openbsd-pomera-dm250"
         exit 1
     fi
 }
