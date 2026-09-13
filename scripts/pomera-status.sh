@@ -54,20 +54,22 @@ done
 get_status() {
     # 1. Battery percentage & charging state
     bat_pct="N/A"
-    bat_icon="🔋"
     is_charging="no"
+    bat_disp="N/A"
+    pct_num=""
     
     if raw_pct=$(sysctl -n hw.sensors.simplebat0.percent0 2>/dev/null); then
         # Format "94.50%" -> "94%"
-        bat_pct=$(echo "$raw_pct" | awk -F. '{print $1}')"%"
         pct_num=$(echo "$raw_pct" | awk -F. '{print $1}')
+        bat_pct="${pct_num}%"
         
-        # Check charging state from sensors output
-        if sysctl hw.sensors.simplebat0 2>/dev/null | grep -qi "charging"; then
+        # Check raw0 and current0 status from sensor: strictly match "charging" vs "discharging"
+        bat_state=$(sysctl hw.sensors.simplebat0 2>/dev/null | awk -F'[()]' '/raw0=/ {print $2}')
+        if [ "$bat_state" = "charging" ] || sysctl hw.sensors.simplebat0 2>/dev/null | grep -q 'battery charging'; then
             is_charging="yes"
-            bat_icon="⚡"
-        elif [ -n "$pct_num" ] && [ "$pct_num" -le 20 ] 2>/dev/null; then
-            bat_icon="🪫"
+            bat_disp="${bat_pct} ⚡"
+        else
+            bat_disp="${bat_pct}"
         fi
     fi
 
@@ -101,21 +103,27 @@ get_status() {
         tmux)
             # tmux status-right format with colors
             if [ "$is_charging" = "yes" ]; then
-                bat_fmt="#[fg=yellow]⚡ ${bat_pct}#[default]"
+                bat_fmt="#[fg=yellow]${bat_disp}#[default]"
+            elif [ -n "$pct_num" ] && [ "$pct_num" -le 20 ] 2>/dev/null; then
+                bat_fmt="#[fg=red]${bat_disp}#[default]"
             else
-                bat_fmt="#[fg=green]🔋 ${bat_pct}#[default]"
+                bat_fmt="#[fg=green]${bat_disp}#[default]"
             fi
-            cpu_fmt="#[fg=cyan]⚙️ ${cpu_mhz}MHz#[default]"
+            cpu_fmt="#[fg=cyan]${cpu_mhz}MHz#[default]"
             if [ "$wifi_ssid" = "off" ]; then
-                wifi_fmt="#[fg=brightblack]📶 off#[default]"
+                wifi_fmt="#[fg=brightblack]WiFi: off#[default]"
             else
-                wifi_fmt="#[fg=blue]📶 ${wifi_ssid}#[default]"
+                wifi_fmt="#[fg=blue]${wifi_ssid}#[default]"
             fi
             echo "${bat_fmt} | ${cpu_fmt} | ${wifi_fmt} | #[fg=white]${time_str}#[default]"
             ;;
         short)
-            # Compact format: 95%⚡ 1200MHz HONEYTRAP 13:48
-            echo "${bat_pct}${bat_icon} ${cpu_mhz}M ${wifi_ssid} ${time_str}"
+            # Compact format: 95% 1200M HONEYTRAP 13:48 (or 95%⚡)
+            if [ "$is_charging" = "yes" ]; then
+                echo "${bat_pct}⚡ ${cpu_mhz}M ${wifi_ssid} ${time_str}"
+            else
+                echo "${bat_pct} ${cpu_mhz}M ${wifi_ssid} ${time_str}"
+            fi
             ;;
         json)
             printf '{"battery":"%s","charging":%s,"cpuspeed_mhz":%s,"policy":"%s","wifi":"%s","signal":"%s","time":"%s"}\n' \
@@ -132,10 +140,17 @@ get_status() {
             if [ "$wifi_ssid" != "off" ] && [ -n "$wifi_sig" ]; then
                 wifi_disp="${wifi_ssid} (${wifi_sig})"
             else
-                wifi_disp="${wifi_ssid}"
+                wifi_disp="WiFi: ${wifi_ssid}"
             fi
-            printf "\033[1;32m%s %s\033[0m | \033[1;36m⚙️  %sMHz (%s)\033[0m | \033[1;34m📶 %s\033[0m | \033[1;37m%s\033[0m\n" \
-                "$bat_icon" "$bat_pct" "$cpu_mhz" "$cpu_pol" "$wifi_disp" "$time_str"
+            if [ "$is_charging" = "yes" ]; then
+                bat_color="\033[1;33m"
+            elif [ -n "$pct_num" ] && [ "$pct_num" -le 20 ] 2>/dev/null; then
+                bat_color="\033[1;31m"
+            else
+                bat_color="\033[1;32m"
+            fi
+            printf "${bat_color}%s\033[0m | \033[1;36m%sMHz (%s)\033[0m | \033[1;34m%s\033[0m | \033[1;37m%s\033[0m\n" \
+                "$bat_disp" "$cpu_mhz" "$cpu_pol" "$wifi_disp" "$time_str"
             ;;
     esac
 }
