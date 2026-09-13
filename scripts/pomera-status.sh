@@ -52,30 +52,33 @@ while [ $# -gt 0 ]; do
 done
 
 get_status() {
-    # 1. Battery percentage & charging state
+    # 1. CPU clock speed & performance policy (sample FIRST to capture idle clock before forks)
+    cpu_mhz=$(sysctl -n hw.cpuspeed 2>/dev/null || echo "1200")
+    cpu_pol=$(sysctl -n hw.perfpolicy 2>/dev/null || echo "auto")
+
+    # 2. Battery percentage & charging state (pure shell parsing to minimize forks)
     bat_pct="N/A"
     is_charging="no"
     bat_disp="N/A"
     pct_num=""
     
     if raw_pct=$(sysctl -n hw.sensors.simplebat0.percent0 2>/dev/null); then
-        # Format "94.50%" -> "94%"
-        pct_num=$(echo "$raw_pct" | awk -F. '{print $1}')
+        # Format "98.00%..." -> "98"
+        pct_num="${raw_pct%%.*}"
         bat_pct="${pct_num}%"
         
-        # Check raw0 and current0 status from sensor: strictly match "charging" vs "discharging"
-        bat_state=$(sysctl hw.sensors.simplebat0 2>/dev/null | awk -F'[()]' '/raw0=/ {print $2}')
-        if [ "$bat_state" = "charging" ] || sysctl hw.sensors.simplebat0 2>/dev/null | grep -q 'battery charging'; then
-            is_charging="yes"
-            bat_disp="${bat_pct} ⚡"
-        else
-            bat_disp="${bat_pct}"
-        fi
+        # Check raw0 status strictly matching "(charging)" vs "(discharging)"
+        raw_state=$(sysctl -n hw.sensors.simplebat0.raw0 2>/dev/null)
+        case "$raw_state" in
+            *"(charging)"*)
+                is_charging="yes"
+                bat_disp="${bat_pct} ⚡"
+                ;;
+            *)
+                bat_disp="${bat_pct}"
+                ;;
+        esac
     fi
-
-    # 2. CPU clock speed & performance policy
-    cpu_mhz=$(sysctl -n hw.cpuspeed 2>/dev/null || echo "1200")
-    cpu_pol=$(sysctl -n hw.perfpolicy 2>/dev/null || echo "auto")
 
     # 3. Wi-Fi SSID & Signal
     wifi_ssid=""
@@ -101,7 +104,7 @@ get_status() {
     # Output formatting by mode
     case "$MODE" in
         tmux)
-            # tmux status-right format with colors
+            # tmux status-right format with colors (SSID hidden for privacy: online / offline)
             if [ "$is_charging" = "yes" ]; then
                 bat_fmt="#[fg=yellow]${bat_disp}#[default]"
             elif [ -n "$pct_num" ] && [ "$pct_num" -le 20 ] 2>/dev/null; then
@@ -111,18 +114,20 @@ get_status() {
             fi
             cpu_fmt="#[fg=cyan]${cpu_mhz}MHz#[default]"
             if [ "$wifi_ssid" = "off" ]; then
-                wifi_fmt="#[fg=brightblack]WiFi: off#[default]"
+                wifi_fmt="#[fg=brightblack]offline#[default]"
             else
-                wifi_fmt="#[fg=blue]${wifi_ssid}#[default]"
+                wifi_fmt="#[fg=blue]online#[default]"
             fi
             echo "${bat_fmt} | ${cpu_fmt} | ${wifi_fmt} | #[fg=white]${time_str}#[default]"
             ;;
         short)
-            # Compact format: 95% 1200M HONEYTRAP 13:48 (or 95%⚡)
+            # Compact format: 95% 1200M online 13:48 (or 95%⚡)
+            wifi_short="offline"
+            [ "$wifi_ssid" != "off" ] && wifi_short="online"
             if [ "$is_charging" = "yes" ]; then
-                echo "${bat_pct}⚡ ${cpu_mhz}M ${wifi_ssid} ${time_str}"
+                echo "${bat_pct}⚡ ${cpu_mhz}M ${wifi_short} ${time_str}"
             else
-                echo "${bat_pct} ${cpu_mhz}M ${wifi_ssid} ${time_str}"
+                echo "${bat_pct} ${cpu_mhz}M ${wifi_short} ${time_str}"
             fi
             ;;
         json)
