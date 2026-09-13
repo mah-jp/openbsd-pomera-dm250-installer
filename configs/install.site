@@ -301,6 +301,7 @@ alias ll='ls -la'
 alias mlterm-base='/usr/local/bin/mlterm-fb'
 alias mlterm-opt='/usr/local/bin/mlterm-fb-pomera'
 alias mlterm-ja='/usr/local/bin/mlterm-opt -M uim:anthy'
+alias pstat='pomera-status'
 EOF
 chown "${TARGET_USER}:staff" "/home/${TARGET_USER}/.profile"
 chmod 0644 "/home/${TARGET_USER}/.profile"

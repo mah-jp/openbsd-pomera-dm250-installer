@@ -290,6 +290,7 @@ pomera-setup-japanese
 
 | Command | Description |
 | :--- | :--- |
+| `pomera-status [OPTIONS]` (or `pstat`) | Display one-line battery percentage/charging, CPU clock/policy, Wi-Fi SSID, and time (`--tmux`, `--short`, `--json`, `-w`). |
 | `pomera-brightness [up\|down\|<%>]` | Adjust backlight brightness manually (`Alt+F1`/`Alt+F2` in tmux). |
 | `sysctl hw.sensors.simplebat0` | Display battery voltage, charging/discharging status, and capacity percentage (`percent0`). |
 | `sysctl -n hw.sensors.simplebat0.percent0` | Quickly output battery percentage only (e.g. `96.00%`). |

@@ -105,6 +105,7 @@ alias ll='ls -la'
 alias mlterm-base='/usr/local/bin/mlterm-fb'
 alias mlterm-opt='/usr/local/bin/mlterm-fb-pomera'
 alias mlterm-ja='/usr/local/bin/mlterm-opt -M uim:anthy'
+alias pstat='pomera-status'
 EOF
 chown "$TARGET_USER" "$TARGET_HOME/.profile"
 chmod 0644 "$TARGET_HOME/.profile"
@@ -139,7 +140,9 @@ bind C-a send-prefix
 # Compact status bar design for 600px height (Tango Dark palette)
 set -g status-style bg='#2e3436',fg='#ffffff'
 set -g status-left '#[fg=#729fcf,bold][#S] '
-set -g status-right '#[fg=#fce94f]%m/%d %H:%M '
+set -g status-right-length 80
+set -g status-interval 5
+set -g status-right '#(/usr/local/bin/pomera-status --tmux) '
 set -g status-position bottom
 
 # Vim-style pane navigation

@@ -277,6 +277,7 @@ pomera-setup-japanese
 
 | コマンド | 説明 |
 | :--- | :--- |
+| `pomera-status [OPTIONS]` (または `pstat`) | バッテリー残量・充電状態・CPUクロック・Wi-Fi接続・時刻をワンライナー表示（`--tmux`, `--short`, `--json`, `-w` 対応）。 |
 | `pomera-brightness [up\|down\|<%>]` | 画面のバックライト明るさを手動調整（`Alt+F1`/`Alt+F2` でも操作可能）。 |
 | `sysctl hw.sensors.simplebat0` | バッテリー電圧・充電状態・残量パーセント（`percent0`）を表示。 |
 | `sysctl -n hw.sensors.simplebat0.percent0` | バッテリー残量パーセントのみをサクッと取得（例: `96.00%`）。 |
