@@ -137,7 +137,7 @@ set -g default-terminal "xterm-256color"
 # Compact status bar design for 600px height (Tango Dark palette)
 set -g status-style bg='#2e3436',fg='#ffffff'
 set -g status-left '#[fg=#729fcf,bold][#S] '
-set -g status-interval 3
+set -g status-interval 5
 set -g status-right-length 80
 set -g status-right '#(/usr/local/bin/pomera-status --tmux)'
 set -g status-position bottom
@@ -163,7 +163,9 @@ cat << 'EOF' > "$TARGET_HOME/.mlterm/main"
 use_aafont = true
 use_variable_column_width = false
 fade_ratio = 100
-fontsize = 18
+fontsize = 17
+inner_border = 0
+border = 0
 line_space = 0
 letter_space = 2
 col_size_of_width_a = 1

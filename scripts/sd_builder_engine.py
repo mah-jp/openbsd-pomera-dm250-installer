@@ -399,6 +399,7 @@ def package_site_set(work_dir: str, configs_dir: str, scripts_dir: str, res_mgr:
         ("pomera-brightness.sh", "usr/local/bin/pomera-brightness", True),
         ("pomera-bt-pan.sh", "usr/local/bin/pomera-bt-pan", True),
         ("pomera-status.sh", "usr/local/bin/pomera-status", True),
+        ("pomera-tune.sh", "usr/local/bin/pomera-tune", True),
     ]
     for src_name, dst_rel, make_exec in helpers:
         src_path = os.path.join(scripts_dir, src_name)
