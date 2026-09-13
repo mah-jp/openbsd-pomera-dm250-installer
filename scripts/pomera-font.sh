@@ -19,6 +19,7 @@ case "${1:-}" in
     udev)
         cat << 'EOF' > "$AAFONT_FILE"
 DEFAULT = UDEV Gothic JPDOC
+ISO10646_UCS4_1 = UDEV Gothic JPDOC
 ISO10646_UCS4_1_FULLWIDTH = UDEV Gothic JPDOC
 EOF
         echo "✅ Switched mlterm font to: UDEV Gothic JPDOC (Slashed Zero 0/)"

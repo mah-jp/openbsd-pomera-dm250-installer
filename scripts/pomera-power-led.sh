@@ -14,7 +14,7 @@
 # - Discharging (normal):  Off    (Red: 0, Green: 0)
 # - Low Battery (<= 15%):  Red    (Red: 1, Green: 0)
 
-POLL_INTERVAL=5
+POLL_INTERVAL=10
 FULL_BAT=95
 LOW_BAT=15
 
@@ -34,10 +34,17 @@ gpioctl -q gpio1 12 set out green_led >/dev/null 2>&1 || true
 last_state=""
 
 while true; do
-    percent=$(sysctl -n hw.sensors.simplebat0.percent0 2>/dev/null | awk '{print int($1)}')
-    raw_status=$(sysctl -n hw.sensors.simplebat0.raw0 2>/dev/null | awk -F'[()]' '{print $2}')
+    # Zero-fork query: fetch percentage and status in a single sysctl call
+    raw_bat=$(sysctl -n hw.sensors.simplebat0.percent0 hw.sensors.simplebat0.raw0 2>/dev/null)
+    percent="${raw_bat%%.*}"
 
-    if [ -n "$percent" ]; then
+    case "$raw_bat" in
+        *"(charging)"*) raw_status="charging" ;;
+        *"(full)"*)     raw_status="full" ;;
+        *)              raw_status="discharging" ;;
+    esac
+
+    if [ -n "$percent" ] && [ "$percent" -eq "$percent" ] 2>/dev/null; then
         case "$raw_status" in
             charging)
                 if [ "$percent" -ge "$FULL_BAT" ]; then

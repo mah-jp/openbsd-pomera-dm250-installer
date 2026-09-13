@@ -103,7 +103,7 @@ while true; do
             # Lid is CLOSED
             if [ "$LID_STATE" != "closed" ]; then
                 LID_STATE="closed"
-                CLOSED_EPOCH=$(date +%s)
+                CLOSED_EPOCH=${SECONDS:-0}
                 
                 # 0. Remember current screen brightness before blanking
                 save_brightness
@@ -115,9 +115,8 @@ while true; do
                 sysctl hw.perfpolicy=manual >/dev/null 2>&1 || true
                 sysctl hw.setperf=0 >/dev/null 2>&1 || true
             else
-                # Check timeout for long-term sleep
-                now=$(date +%s)
-                elapsed=$((now - CLOSED_EPOCH))
+                # Check timeout for long-term sleep (zero-fork via $SECONDS)
+                elapsed=$((${SECONDS:-0} - CLOSED_EPOCH))
                 if [ "$elapsed" -ge "$SUSPEND_TIMEOUT" ]; then
                     if [ -x /usr/local/sbin/pomera-suspend ]; then
                         /usr/local/sbin/pomera-suspend
@@ -138,10 +137,9 @@ while true; do
                 
                 # 2. Restore screen backlight to previously saved brightness level
                 wsconsctl display.brightness="${SAVED_BRIGHTNESS}%" >/dev/null 2>&1 || wsconsctl display.brightness=100 >/dev/null 2>&1 || true
-            else
-                # While open, dynamically track brightness if changed by user
-                save_brightness
             fi
+            # (Zero-overhead: do not query wsconsctl repeatedly while open;
+            #  brightness is updated on lid close or directly by pomera-brightness)
             ;;
     esac
     

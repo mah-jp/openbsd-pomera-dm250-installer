@@ -16,18 +16,18 @@
 #    when the link drops, with safety delay on sleep resume.
 
 INTERFACE="bwfm0"
-POLL_INTERVAL=10
+POLL_INTERVAL=15
 DOWN_RETRY_TIMEOUT=15
-RESUME_THRESHOLD=20
+RESUME_THRESHOLD=25
 RESUME_SETTLE=5
 
 reconnect_wifi() {
-    echo ">> [pomera-wifi] Cycling ${INTERFACE} interface..."
+    logger -t pomera-wifi "Cycling ${INTERFACE} interface..." 2>/dev/null || true
     ifconfig "${INTERFACE}" down 2>/dev/null || true
     sleep 1
     ifconfig "${INTERFACE}" up 2>/dev/null || true
 
-    echo ">> [pomera-wifi] Requesting DHCP lease on ${INTERFACE}..."
+    logger -t pomera-wifi "Requesting DHCP lease on ${INTERFACE}..." 2>/dev/null || true
     pkill -f "dhclient.*${INTERFACE}" 2>/dev/null || true
     if [ -f /etc/hostname."${INTERFACE}" ]; then
         sh /etc/netstart "${INTERFACE}" >/dev/null 2>&1 || dhclient "${INTERFACE}"
@@ -37,10 +37,10 @@ reconnect_wifi() {
 
     # Check result
     if ifconfig "${INTERFACE}" 2>/dev/null | grep -q "status: active"; then
-        echo "✅ [pomera-wifi] ${INTERFACE} connected successfully."
+        logger -t pomera-wifi "${INTERFACE} connected successfully." 2>/dev/null || true
         return 0
     else
-        echo "⚠️ [pomera-wifi] ${INTERFACE} link not active yet."
+        logger -t pomera-wifi "${INTERFACE} link not active yet." 2>/dev/null || true
         return 1
     fi
 }
@@ -53,38 +53,27 @@ if [ "$BASENAME" = "pomera-wifi-reconnect" ] || [ "${1:-}" = "-r" ] || [ "${1:-}
 fi
 
 # Daemon Mode
-echo ">> Starting pomera-wifi-watch daemon on ${INTERFACE} (interval: ${POLL_INTERVAL}s)..."
-
 down_since=0
 
 while true; do
-    t0=$(date +%s)
+    t0=${SECONDS:-0}
     sleep "$POLL_INTERVAL"
-    t1=$(date +%s)
+    t1=${SECONDS:-0}
     elapsed=$((t1 - t0))
 
     # Detect wake-from-sleep: if sleep took longer than expected, settle before touching Wi-Fi
     if [ "$elapsed" -gt "$RESUME_THRESHOLD" ]; then
-        echo ">> [pomera-wifi] System resume detected (slept ${elapsed}s). Settling ${RESUME_SETTLE}s..."
         sleep "$RESUME_SETTLE"
         down_since=0
     fi
 
-    # Check if interface exists
-    if ! ifconfig "${INTERFACE}" >/dev/null 2>&1; then
-        sleep "$POLL_INTERVAL"
-        continue
-    fi
-
-    # Check Wi-Fi link status
+    # Fast single-call link check (combines existence & status into 1 command)
     if ifconfig "${INTERFACE}" 2>/dev/null | grep -q "status: active"; then
         down_since=0
     else
         if [ "$down_since" -eq 0 ]; then
             down_since=$t1
-            echo ">> [pomera-wifi] Link is down. Monitoring (retry timeout: ${DOWN_RETRY_TIMEOUT}s)..."
         elif [ $((t1 - down_since)) -ge "$DOWN_RETRY_TIMEOUT" ]; then
-            echo ">> [pomera-wifi] Link has been down for $((t1 - down_since))s. Attempting auto-reconnect..."
             reconnect_wifi
             down_since=$t1
         fi

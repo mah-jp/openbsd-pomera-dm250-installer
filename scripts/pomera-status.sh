@@ -56,14 +56,11 @@ get_battery() {
     is_charging="no"
     bat_disp="N/A"
     pct_num=""
-    if raw_pct=$(sysctl -n hw.sensors.simplebat0.percent0 2>/dev/null); then
-        # Format "98.00%..." -> "98"
-        pct_num="${raw_pct%%.*}"
+    if raw_bat=$(sysctl -n hw.sensors.simplebat0.percent0 hw.sensors.simplebat0.raw0 2>/dev/null); then
+        pct_num="${raw_bat%%.*}"
         bat_pct="${pct_num}%"
         
-        # Check raw0 status strictly matching "(charging)" vs "(discharging)"
-        raw_state=$(sysctl -n hw.sensors.simplebat0.raw0 2>/dev/null)
-        case "$raw_state" in
+        case "$raw_bat" in
             *"(charging)"*)
                 is_charging="yes"
                 bat_disp="${bat_pct} ⚡"
@@ -73,6 +70,17 @@ get_battery() {
                 ;;
         esac
     fi
+}
+
+get_cpu_full() {
+    raw_cpu=$(sysctl -n vm.loadavg hw.perfpolicy hw.cpuspeed 2>/dev/null)
+    IFS='
+' read -r raw_load cpu_pol cpu_mhz << EOF
+$raw_cpu
+EOF
+    cpu_load="${raw_load%% *}"
+    [ -z "$cpu_pol" ] && cpu_pol="auto"
+    [ -z "$cpu_mhz" ] && cpu_mhz="1200"
 }
 
 get_wifi_full() {
@@ -98,7 +106,7 @@ get_status() {
 
     case "$MODE" in
         tmux)
-            # Battery only (no CPU sysctl queries)
+            # Battery only (1 fast sysctl call, no CPU queries)
             get_battery
             if [ "$is_charging" = "yes" ]; then
                 bat_fmt="#[fg=yellow]${bat_disp}#[default]"
@@ -139,10 +147,7 @@ get_status() {
 
         json)
             get_battery
-            raw_load=$(sysctl -n vm.loadavg 2>/dev/null || echo "0.00 0.00 0.00")
-            cpu_load="${raw_load%% *}"
-            cpu_pol=$(sysctl -n hw.perfpolicy 2>/dev/null || echo "auto")
-            cpu_mhz=$(sysctl -n hw.cpuspeed 2>/dev/null || echo "1200")
+            get_cpu_full
             get_wifi_full
 
             printf '{"battery":"%s","charging":%s,"load":"%s","cpuspeed_mhz":%s,"policy":"%s","wifi":"%s","signal":"%s","time":"%s"}\n' \
@@ -159,10 +164,7 @@ get_status() {
         *)
             # Pretty CLI format
             get_battery
-            raw_load=$(sysctl -n vm.loadavg 2>/dev/null || echo "0.00 0.00 0.00")
-            cpu_load="${raw_load%% *}"
-            cpu_pol=$(sysctl -n hw.perfpolicy 2>/dev/null || echo "auto")
-            cpu_mhz=$(sysctl -n hw.cpuspeed 2>/dev/null || echo "1200")
+            get_cpu_full
             get_wifi_full
 
             if [ "$wifi_ssid" != "off" ] && [ -n "$wifi_sig" ]; then

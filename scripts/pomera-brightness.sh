@@ -29,7 +29,8 @@ if [ -z "$cur_raw" ]; then
     exit 1
 fi
 
-cur=$(echo "$cur_raw" | tr -d '%' | cut -d. -f1)
+cur="${cur_raw%%%*}"
+cur="${cur%%.*}"
 
 case "${1:-}" in
     up|+)
