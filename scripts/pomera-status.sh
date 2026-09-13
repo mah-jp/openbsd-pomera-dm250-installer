@@ -75,12 +75,21 @@ get_status() {
     cpu_mhz=$(sysctl -n hw.cpuspeed 2>/dev/null || echo "1200")
     cpu_pol=$(sysctl -n hw.perfpolicy 2>/dev/null || echo "auto")
 
-    # 3. Wi-Fi SSID
+    # 3. Wi-Fi SSID & Signal
     wifi_ssid=""
+    wifi_sig=""
     if ifconfig bwfm0 >/dev/null 2>&1; then
-        wifi_ssid=$(ifconfig bwfm0 2>/dev/null | awk '/nwid / {for(i=1;i<=NF;i++) if($i=="nwid") {print $(i+1); exit}}')
-        # Strip optional quotes
-        wifi_ssid=$(echo "$wifi_ssid" | tr -d '"')
+        is_active=""
+        raw_ssid=""
+        eval "$(ifconfig bwfm0 2>/dev/null | awk '
+            /status: active/ { print "is_active=1" }
+            /join / { for(i=1;i<=NF;i++) if($i=="join") { print "raw_ssid=" $(i+1); break } }
+            /nwid / { for(i=1;i<=NF;i++) if($i=="nwid") { print "raw_ssid=" $(i+1); break } }
+            /-[0-9]+dBm/ { for(i=1;i<=NF;i++) if($i ~ /-[0-9]+dBm/) { print "wifi_sig=" $i; break } }
+        ')"
+        if [ "$is_active" = "1" ] && [ -n "$raw_ssid" ]; then
+            wifi_ssid=$(echo "$raw_ssid" | tr -d '"')
+        fi
     fi
     [ -z "$wifi_ssid" ] && wifi_ssid="off"
 
@@ -109,18 +118,24 @@ get_status() {
             echo "${bat_pct}${bat_icon} ${cpu_mhz}M ${wifi_ssid} ${time_str}"
             ;;
         json)
-            printf '{"battery":"%s","charging":%s,"cpuspeed_mhz":%s,"policy":"%s","wifi":"%s","time":"%s"}\n' \
+            printf '{"battery":"%s","charging":%s,"cpuspeed_mhz":%s,"policy":"%s","wifi":"%s","signal":"%s","time":"%s"}\n' \
                 "$bat_pct" \
                 "$([ "$is_charging" = "yes" ] && echo "true" || echo "false")" \
                 "$cpu_mhz" \
                 "$cpu_pol" \
                 "$wifi_ssid" \
+                "$wifi_sig" \
                 "$time_str"
             ;;
         *)
             # Pretty CLI format
+            if [ "$wifi_ssid" != "off" ] && [ -n "$wifi_sig" ]; then
+                wifi_disp="${wifi_ssid} (${wifi_sig})"
+            else
+                wifi_disp="${wifi_ssid}"
+            fi
             printf "\033[1;32m%s %s\033[0m | \033[1;36m⚙️  %sMHz (%s)\033[0m | \033[1;34m📶 %s\033[0m | \033[1;37m%s\033[0m\n" \
-                "$bat_icon" "$bat_pct" "$cpu_mhz" "$cpu_pol" "$wifi_ssid" "$time_str"
+                "$bat_icon" "$bat_pct" "$cpu_mhz" "$cpu_pol" "$wifi_disp" "$time_str"
             ;;
     esac
 }
