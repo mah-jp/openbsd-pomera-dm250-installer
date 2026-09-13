@@ -56,4 +56,7 @@ case "${1:-}" in
 esac
 
 run_wsconsctl display.brightness="${new}%" >/dev/null
+if [ -w /var/run/pomera_brightness ]; then
+    echo "${new}" > /var/run/pomera_brightness 2>/dev/null || true
+fi
 echo "Brightness: ${cur}% -> ${new}%"

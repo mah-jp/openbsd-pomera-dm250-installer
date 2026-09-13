@@ -333,7 +333,7 @@ tar -xzf /mlterm-3.9.5.tar.gz
 cd mlterm-3.9.5
 echo ">> Applying Pomera baseline shadowfb patch..."
 patch -p1 < /mlterm-fb-dm250-shadowfb.patch
-./configure --prefix=/usr/local --sysconfdir=/etc --with-gui=fb --with-type-engines=xcore --disable-shared --enable-static --disable-nls
+./configure --prefix=/usr/local --sysconfdir=/etc --with-gui=fb --with-type-engines=xcore --enable-shared --disable-static --disable-nls --enable-skk
 make -j4
 make install
 cp -f /usr/local/bin/mlterm-fb /usr/local/bin/mlterm-fb.orig
@@ -349,7 +349,7 @@ cd mlterm-3.9.5
 echo ">> Applying Pomera turbocharged optimization patch..."
 patch -p1 < /mlterm-fb-dm250-optimized.patch
 export CFLAGS="-O2 -pipe -mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=softfp"
-./configure --prefix=/usr/local --sysconfdir=/etc --with-gui=fb --with-type-engines=xcore --disable-shared --enable-static --disable-nls
+./configure --prefix=/usr/local --sysconfdir=/etc --with-gui=fb --with-type-engines=xcore --enable-shared --disable-static --disable-nls --enable-skk
 make -j4
 make install
 cp -f /usr/local/bin/mlterm-fb /usr/local/bin/mlterm-fb-pomera
@@ -363,12 +363,12 @@ ln -sf mlterm-fb-pomera /usr/local/bin/mlterm-opt
 echo ">> Verifying binaries:"
 ls -lh /usr/local/bin/mlterm-fb /usr/local/bin/mlterm-fb-pomera /usr/local/bin/mlterm-base /usr/local/bin/mlterm-opt
 
-echo ">> Packaging both binaries and runtime libraries..."
+echo ">> Packaging both binaries, runtime shared libraries, and input plugins..."
 cd /
 files_to_pack="usr/local/bin/mlterm-fb usr/local/bin/mlterm-fb-pomera usr/local/bin/mlterm-base usr/local/bin/mlterm-opt"
-for lib in usr/local/lib/libmef.so.* usr/local/lib/libpobl.so.* usr/local/lib/libmlterm* usr/local/lib/mef; do
-    if [ -e "/$lib" ]; then
-        files_to_pack="$files_to_pack $lib"
+for item in usr/local/lib/libmef.so.* usr/local/lib/libpobl.so.* usr/local/lib/libmlterm* usr/local/lib/mlterm usr/local/lib/mef; do
+    if [ -e "/$item" ]; then
+        files_to_pack="$files_to_pack $item"
     fi
 done
 tar -czf /mnt_fat/mlterm-fb-dm250.tar.gz $files_to_pack

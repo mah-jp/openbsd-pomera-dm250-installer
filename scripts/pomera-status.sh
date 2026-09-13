@@ -51,19 +51,11 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-get_status() {
-    # 1. CPU load average, performance policy & speed (zero forks)
-    raw_load=$(sysctl -n vm.loadavg 2>/dev/null || echo "0.00 0.00 0.00")
-    cpu_load="${raw_load%% *}"
-    cpu_pol=$(sysctl -n hw.perfpolicy 2>/dev/null || echo "auto")
-    cpu_mhz=$(sysctl -n hw.cpuspeed 2>/dev/null || echo "1200")
-
-    # 2. Battery percentage & charging state (pure shell parsing to minimize forks)
+get_battery() {
     bat_pct="N/A"
     is_charging="no"
     bat_disp="N/A"
     pct_num=""
-    
     if raw_pct=$(sysctl -n hw.sensors.simplebat0.percent0 2>/dev/null); then
         # Format "98.00%..." -> "98"
         pct_num="${raw_pct%%.*}"
@@ -81,9 +73,10 @@ get_status() {
                 ;;
         esac
     fi
+}
 
-    # 3. Wi-Fi SSID & Signal
-    wifi_ssid=""
+get_wifi_full() {
+    wifi_ssid="off"
     wifi_sig=""
     if ifconfig bwfm0 >/dev/null 2>&1; then
         is_active=""
@@ -98,15 +91,15 @@ get_status() {
             wifi_ssid=$(echo "$raw_ssid" | tr -d '"')
         fi
     fi
-    [ -z "$wifi_ssid" ] && wifi_ssid="off"
+}
 
-    # 4. Time
+get_status() {
     time_str=$(date +'%H:%M')
 
-    # Output formatting by mode
     case "$MODE" in
         tmux)
-            # tmux status-right format with colors (stable load average + policy, SSID hidden)
+            # Battery only (no CPU sysctl queries)
+            get_battery
             if [ "$is_charging" = "yes" ]; then
                 bat_fmt="#[fg=yellow]${bat_disp}#[default]"
             elif [ -n "$pct_num" ] && [ "$pct_num" -le 20 ] 2>/dev/null; then
@@ -114,25 +107,44 @@ get_status() {
             else
                 bat_fmt="#[fg=green]${bat_disp}#[default]"
             fi
-            cpu_fmt="#[fg=cyan]${cpu_load} (${cpu_pol})#[default]"
-            if [ "$wifi_ssid" = "off" ]; then
-                wifi_fmt="#[fg=brightblack]offline#[default]"
-            else
+
+            # Fast Wi-Fi active check (zero awk / SSID parsing overhead)
+            if ifconfig bwfm0 2>/dev/null | grep -q 'status: active'; then
                 wifi_fmt="#[fg=blue]online#[default]"
+            else
+                wifi_fmt="#[fg=brightblack]offline#[default]"
             fi
-            echo "${bat_fmt} | ${cpu_fmt} | ${wifi_fmt} | #[fg=white]${time_str}#[default]"
+
+            # Output: [Wi-Fi] | [Battery] | [Time]
+            echo "${wifi_fmt} | ${bat_fmt} | #[fg=white]${time_str}#[default] "
             ;;
+
         short)
-            # Compact format: 95% 0.15(auto) online 13:48 (or 95%⚡)
-            wifi_short="offline"
-            [ "$wifi_ssid" != "off" ] && wifi_short="online"
+            get_battery
+            raw_load=$(sysctl -n vm.loadavg 2>/dev/null || echo "0.00 0.00 0.00")
+            cpu_load="${raw_load%% *}"
+
+            if ifconfig bwfm0 2>/dev/null | grep -q 'status: active'; then
+                wifi_short="online"
+            else
+                wifi_short="offline"
+            fi
+
             if [ "$is_charging" = "yes" ]; then
                 echo "${bat_pct}⚡ ${cpu_load} ${wifi_short} ${time_str}"
             else
                 echo "${bat_pct} ${cpu_load} ${wifi_short} ${time_str}"
             fi
             ;;
+
         json)
+            get_battery
+            raw_load=$(sysctl -n vm.loadavg 2>/dev/null || echo "0.00 0.00 0.00")
+            cpu_load="${raw_load%% *}"
+            cpu_pol=$(sysctl -n hw.perfpolicy 2>/dev/null || echo "auto")
+            cpu_mhz=$(sysctl -n hw.cpuspeed 2>/dev/null || echo "1200")
+            get_wifi_full
+
             printf '{"battery":"%s","charging":%s,"load":"%s","cpuspeed_mhz":%s,"policy":"%s","wifi":"%s","signal":"%s","time":"%s"}\n' \
                 "$bat_pct" \
                 "$([ "$is_charging" = "yes" ] && echo "true" || echo "false")" \
@@ -143,8 +155,16 @@ get_status() {
                 "$wifi_sig" \
                 "$time_str"
             ;;
+
         *)
             # Pretty CLI format
+            get_battery
+            raw_load=$(sysctl -n vm.loadavg 2>/dev/null || echo "0.00 0.00 0.00")
+            cpu_load="${raw_load%% *}"
+            cpu_pol=$(sysctl -n hw.perfpolicy 2>/dev/null || echo "auto")
+            cpu_mhz=$(sysctl -n hw.cpuspeed 2>/dev/null || echo "1200")
+            get_wifi_full
+
             if [ "$wifi_ssid" != "off" ] && [ -n "$wifi_sig" ]; then
                 wifi_disp="${wifi_ssid} (${wifi_sig})"
             else

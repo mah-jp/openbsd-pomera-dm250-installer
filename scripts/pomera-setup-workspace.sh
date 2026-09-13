@@ -137,7 +137,9 @@ set -g default-terminal "xterm-256color"
 # Compact status bar design for 600px height (Tango Dark palette)
 set -g status-style bg='#2e3436',fg='#ffffff'
 set -g status-left '#[fg=#729fcf,bold][#S] '
-set -g status-right '#[fg=#fce94f]%m/%d %H:%M '
+set -g status-interval 3
+set -g status-right-length 80
+set -g status-right '#(/usr/local/bin/pomera-status --tmux)'
 set -g status-position bottom
 
 # Vim-style pane navigation

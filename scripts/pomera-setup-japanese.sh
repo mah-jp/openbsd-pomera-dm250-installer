@@ -1,16 +1,17 @@
 #!/bin/sh
-# pomera-setup-japanese - Automated Japanese Input (IME) Setup for Pomera DM250
+# pomera-setup-japanese - Automated Japanese Input (SKK) Setup for Pomera DM250
 #
 # Copyright (c) 2026 Masahiko OHKUBO and Pomera DM250 OpenBSD Project Contributors
 # SPDX-License-Identifier: MIT
 #
-# Sets up uim-anthy for direct, inline Japanese input under mlterm-fb (CUI console).
-# Toggle Japanese input via: Shift + Space, Ctrl + Space, or Zenkaku/Hankaku key.
+# Sets up built-in SKK with large dictionary (SKK-JISYO.L) for ultra-fast,
+# zero-lag inline Japanese input under mlterm-fb (CUI console).
+# Toggle Japanese input via: Shift + Space, Ctrl + Space.
 
 set -e
 
 echo "=========================================================="
-echo "🌸 Pomera DM250 Japanese Input Setup (mlterm-fb + uim-anthy)"
+echo "🌸 Pomera DM250 Japanese Input Setup (mlterm-fb + SKK)"
 echo "=========================================================="
 
 # 1. Determine target user and home directory
@@ -36,90 +37,111 @@ fi
 
 echo ">> Target User : $TARGET_USER ($TARGET_HOME)"
 
-# 2. Check for local offline package cache or internet connectivity
-PKG_DIR=""
-for d in /packages /mnt/packages /var/cache/packages; do
-    if [ -d "$d" ] && ls "$d"/anthy*.tgz >/dev/null 2>&1; then
-        PKG_DIR="$d"
-        break
-    fi
-done
-
-if [ -n "$PKG_DIR" ]; then
-    echo "📦 Found offline package cache at $PKG_DIR. Installing anthy / uim locally..."
-    $DOAS env PKG_PATH="$PKG_DIR" pkg_add -I anthy uim 2>/dev/null || $DOAS env PKG_PATH="$PKG_DIR" pkg_add -I anthy
+# 2. Check and install SKK dictionary (SKK-JISYO.L)
+SKK_DICT="/usr/local/share/skk/SKK-JISYO.L"
+if [ -f "$SKK_DICT" ]; then
+    echo "✅ Found SKK Large Dictionary at $SKK_DICT."
 else
-    echo ">> Checking internet connectivity..."
-    if ! ping -c 1 -w 3 1.1.1.1 >/dev/null 2>&1 && ! ping -c 1 -w 3 8.8.8.8 >/dev/null 2>&1; then
-        echo "⚠️  Internet connection could not be verified!"
-        echo "   Please connect to Wi-Fi before running this script."
-        printf "Continue anyway? [y/N]: "
-        read -r ans
-        case "$ans" in
-            [yY]*) ;;
-            *) echo "Setup aborted."; exit 1 ;;
-        esac
-    fi
+    echo ">> SKK dictionary not found. Searching packages..."
+    PKG_DIR=""
+    for d in /packages /mnt/packages /var/cache/packages; do
+        if [ -d "$d" ] && ls "$d"/skk-jisyo*.tgz >/dev/null 2>&1; then
+            PKG_DIR="$d"
+            break
+        fi
+    done
 
-    # 3. Install Anthy dictionary and IME engine packages online
-    echo ">> Installing Japanese input method (anthy, uim)..."
-    $DOAS pkg_add -I anthy uim 2>/dev/null || $DOAS pkg_add -I anthy
+    if [ -n "$PKG_DIR" ]; then
+        echo "📦 Found offline package cache at $PKG_DIR. Installing skk-jisyo locally..."
+        $DOAS env PKG_PATH="$PKG_DIR" pkg_add -I skk-jisyo
+    else
+        echo ">> Checking internet connectivity..."
+        if ! ping -c 1 -w 3 1.1.1.1 >/dev/null 2>&1 && ! ping -c 1 -w 3 8.8.8.8 >/dev/null 2>&1; then
+            echo "⚠️  Internet connection could not be verified!"
+            echo "   Please connect to Wi-Fi or mount installation media before running this script."
+            printf "Continue anyway? [y/N]: "
+            read -r ans
+            case "$ans" in
+                [yY]*) ;;
+                *) echo "Setup aborted."; exit 1 ;;
+            esac
+        fi
+
+        echo ">> Installing skk-jisyo package online..."
+        $DOAS pkg_add -I skk-jisyo
+    fi
 fi
 
-# 4. Configure ~/.uim (Key bindings: Shift+Space, Ctrl+Space, Zenkaku_Hankaku)
-echo ">> Configuring $TARGET_HOME/.uim..."
-cat << 'EOF' > "$TARGET_HOME/.uim"
-;; Pomera DM250 Japanese Input Configuration (uim-anthy)
-(define default-im-name 'anthy)
-
-;; Keybindings to toggle Japanese input mode
-(define generic-on-key?
-  (lambda (key key-state)
-    (or (shift-key-mask key-state)
-        (control-key-mask key-state)
-        (char-equal? key "Zenkaku_Hankaku"))))
-
-(define-key generic-on-key '("<Shift> " "<Control> " "Zenkaku_Hankaku"))
-(define-key generic-off-key '("<Shift> " "<Control> " "Zenkaku_Hankaku"))
-(define-key anthy-on-key '("<Shift> " "<Control> " "Zenkaku_Hankaku"))
-(define-key anthy-off-key '("<Shift> " "<Control> " "Zenkaku_Hankaku"))
-(define-key anthy-utf8-on-key '("<Shift> " "<Control> " "Zenkaku_Hankaku"))
-(define-key anthy-utf8-off-key '("<Shift> " "<Control> " "Zenkaku_Hankaku"))
-EOF
-chown "$TARGET_USER" "$TARGET_HOME/.uim"
-chmod 0644 "$TARGET_HOME/.uim"
-
-# 5. Enable direct uim-anthy inline input method in ~/.mlterm/main
-echo ">> Configuring direct inline IME in $TARGET_HOME/.mlterm/main..."
+# 3. Configure ~/.mlterm/key (Key bindings: Shift+Space, Ctrl+Space for IME toggle)
+echo ">> Configuring $TARGET_HOME/.mlterm/key..."
 mkdir -p "$TARGET_HOME/.mlterm"
+
+cat << 'EOF' > "$TARGET_HOME/.mlterm/key"
+# Pomera DM250 Japanese IME Toggle Keybindings
+Shift+space = im_toggle
+Control+space = im_toggle
+EOF
+
+# 4. Configure ~/.mlterm/main (Enable SKK input method with large dictionary)
+echo ">> Configuring SKK input method in $TARGET_HOME/.mlterm/main..."
 if [ -f "$TARGET_HOME/.mlterm/main" ]; then
     sed -i '/^input_method *=/d' "$TARGET_HOME/.mlterm/main"
 fi
-echo "input_method = uim:anthy" >> "$TARGET_HOME/.mlterm/main"
+cat << EOF >> "$TARGET_HOME/.mlterm/main"
+
+# --- Japanese Input Method (SKK) ---
+input_method = skk:dict=${SKK_DICT}
+EOF
+
+# 5. Configure ~/.mlterm/skk optional preferences
+cat << 'EOF' > "$TARGET_HOME/.mlterm/skk"
+# Pomera DM250 SKK Preferences
+# Sticky shift key or additional dictionary configurations can be specified here.
+EOF
+
+# Set proper permissions for .mlterm directory
 chown -R "$TARGET_USER" "$TARGET_HOME/.mlterm"
 chmod 0700 "$TARGET_HOME/.mlterm"
-[ -f "$TARGET_HOME/.mlterm/main" ] && chmod 0600 "$TARGET_HOME/.mlterm/main"
+chmod 0600 "$TARGET_HOME/.mlterm/main" "$TARGET_HOME/.mlterm/key" "$TARGET_HOME/.mlterm/skk"
 
-# 6. Ensure Japanese locale and mlterm-ja alias in ~/.profile
+# Ensure mlterm framebuffer binaries have setuid root to access /dev/ttyC0
+[ -f /usr/local/bin/mlterm-fb ] && $DOAS chmod 4755 /usr/local/bin/mlterm-fb
+[ -f /usr/local/bin/mlterm-fb-pomera ] && $DOAS chmod 4755 /usr/local/bin/mlterm-fb-pomera
+
+# 6. Ensure Japanese locale, SKK_DICTIONARY, and aliases in ~/.profile
 echo ">> Configuring CUI Japanese environment in $TARGET_HOME/.profile..."
 if [ -f "$TARGET_HOME/.profile" ]; then
+    sed -i '/export SKK_DICTIONARY=/d' "$TARGET_HOME/.profile"
     sed -i '/alias mlterm-ja=/d' "$TARGET_HOME/.profile"
-    echo "alias mlterm-ja='/usr/local/bin/mlterm-opt -M uim:anthy'" >> "$TARGET_HOME/.profile"
+    sed -i '/alias mlterm-skk=/d' "$TARGET_HOME/.profile"
+
+    cat << EOF >> "$TARGET_HOME/.profile"
+export SKK_DICTIONARY="${SKK_DICT}"
+alias mlterm-ja='/usr/local/bin/mlterm-opt -M skk:dict=${SKK_DICT}'
+alias mlterm-skk='/usr/local/bin/mlterm-opt -M skk:dict=${SKK_DICT}'
+EOF
 fi
 
 echo "=========================================================="
-echo "🎉 Japanese Input Setup Complete (Direct Inline uim-anthy)!"
+echo "🎉 Japanese Input Setup Complete (Direct Inline SKK)!"
 echo "=========================================================="
 echo ""
-echo "How to use Japanese input on Pomera DM250:"
-echo "  1. Start terminal directly:"
+echo "How to use SKK on Pomera DM250:"
+echo "  1. Launch terminal:"
 echo "     $ mlterm-opt"
 echo "     (or launch '$ mlterm-ja')"
 echo ""
-echo "  2. Toggle Japanese Input directly inline:"
+echo "  2. Toggle Japanese Mode ON / OFF:"
 echo "     - Press [Shift + Space] or [Ctrl + Space]"
-echo "     - Press [半角 / 全角] key"
+echo "     - When active, '[かな]' appears at cursor/status."
 echo ""
-echo "  3. Beautiful inline kana-kanji conversion right at cursor position!"
-echo "     Enjoy distraction-free, zero-lag Japanese writing!"
+echo "  3. Fast Typing Rules:"
+echo "     - Hiragana   : Type lowercase (e.g. 'nihongo' -> 'にほんご')"
+echo "     - Kanji      : Type FIRST letter capitalized with Shift"
+echo "                    (e.g. 'Nihon' -> '▽にほん' -> press [Space] -> '日本')"
+echo "     - Okurigana  : Type word start with Shift, then okurigana start with Shift"
+echo "                    (e.g. 'Omo' + 'I' -> '▽おも*い' -> press [Space] -> '思い')"
+echo "     - Katakana   : Press 'q' to toggle Hiragana <-> Katakana"
+echo "     - Confirm    : Press [Enter] or [Ctrl + j] (or just keep typing)"
+echo "     - Cancel     : Press [Ctrl + g]"
 echo ""

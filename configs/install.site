@@ -300,16 +300,18 @@ export PAGER=less
 alias ll='ls -la'
 alias mlterm-base='/usr/local/bin/mlterm-fb'
 alias mlterm-opt='/usr/local/bin/mlterm-fb-pomera'
-alias mlterm-ja='/usr/local/bin/mlterm-opt -M uim:anthy'
+alias mlterm-ja='/usr/local/bin/mlterm-opt -M skk:dict=/usr/local/share/skk/SKK-JISYO.L'
+alias mlterm-skk='/usr/local/bin/mlterm-opt -M skk:dict=/usr/local/share/skk/SKK-JISYO.L'
 alias pstat='pomera-status'
+export SKK_DICTIONARY="/usr/local/share/skk/SKK-JISYO.L"
 EOF
 chown "${TARGET_USER}:staff" "/home/${TARGET_USER}/.profile"
 chmod 0644 "/home/${TARGET_USER}/.profile"
 [ -d /etc/skel ] && cp -f "/home/${TARGET_USER}/.profile" /etc/skel/.profile
 
-# Ensure /usr/local/bin/mlterm-base and mlterm-opt symlinks exist
-[ -f /usr/local/bin/mlterm-fb ] && ln -sf mlterm-fb /usr/local/bin/mlterm-base
-[ -f /usr/local/bin/mlterm-fb-pomera ] && ln -sf mlterm-fb-pomera /usr/local/bin/mlterm-opt
+# Ensure /usr/local/bin/mlterm-base and mlterm-opt symlinks and setuid root exist
+[ -f /usr/local/bin/mlterm-fb ] && ln -sf mlterm-fb /usr/local/bin/mlterm-base && chmod 4755 /usr/local/bin/mlterm-fb
+[ -f /usr/local/bin/mlterm-fb-pomera ] && ln -sf mlterm-fb-pomera /usr/local/bin/mlterm-opt && chmod 4755 /usr/local/bin/mlterm-fb-pomera
 
 # ~/.vimrc
 cat << 'EOF' > "/home/${TARGET_USER}/.vimrc"
@@ -331,18 +333,24 @@ chmod 0644 "/home/${TARGET_USER}/.vimrc"
 
 # ~/.tmux.conf
 cat << 'EOF' > "/home/${TARGET_USER}/.tmux.conf"
+# Pomera DM250 (1024x600) Optimized tmux configuration
 set -g default-terminal "xterm-256color"
 
+# Compact status bar design for 600px height (Tango Dark palette)
 set -g status-style bg='#2e3436',fg='#ffffff'
 set -g status-left '#[fg=#729fcf,bold][#S] '
-set -g status-right '#[fg=#fce94f]%m/%d %H:%M '
+set -g status-interval 3
+set -g status-right-length 80
+set -g status-right '#(/usr/local/bin/pomera-status --tmux)'
 set -g status-position bottom
 
+# Vim-style pane navigation
 bind h select-pane -L
 bind j select-pane -D
 bind k select-pane -U
 bind l select-pane -R
 
+# Alt+F1 / Alt+F2 for backlight brightness adjustment (no prefix needed)
 bind-key -n M-F1 run-shell "/usr/local/bin/pomera-brightness down"
 bind-key -n M-F2 run-shell "/usr/local/bin/pomera-brightness up"
 EOF
@@ -379,6 +387,9 @@ fg_color = #ffffff
 bg_color = #000000
 cursor_fg_color = #000000
 cursor_bg_color = #ffffff
+
+# --- Japanese Input Method (SKK) ---
+input_method = skk:dict=/usr/local/share/skk/SKK-JISYO.L
 EOF
 
 cat << 'EOF' > "/home/${TARGET_USER}/.mlterm/color"
@@ -409,9 +420,20 @@ DEFAULT = Noto Sans Mono CJK JP
 ISO10646_UCS4_1 = Noto Sans Mono CJK JP
 ISO10646_UCS4_1_FULLWIDTH = Noto Sans Mono CJK JP
 EOF
+
+cat << 'EOF' > "/home/${TARGET_USER}/.mlterm/key"
+# Pomera DM250 Japanese IME Toggle Keybindings
+Shift+space = im_toggle
+Control+space = im_toggle
+EOF
+
+cat << 'EOF' > "/home/${TARGET_USER}/.mlterm/skk"
+# Pomera DM250 SKK Preferences
+EOF
+
 chown -R "${TARGET_USER}:staff" "/home/${TARGET_USER}/.mlterm"
 chmod 0700 "/home/${TARGET_USER}/.mlterm"
-chmod 0600 "/home/${TARGET_USER}/.mlterm/main" "/home/${TARGET_USER}/.mlterm/color" "/home/${TARGET_USER}/.mlterm/aafont"
+chmod 0600 "/home/${TARGET_USER}/.mlterm/main" "/home/${TARGET_USER}/.mlterm/color" "/home/${TARGET_USER}/.mlterm/aafont" "/home/${TARGET_USER}/.mlterm/key" "/home/${TARGET_USER}/.mlterm/skk"
 
 
 
