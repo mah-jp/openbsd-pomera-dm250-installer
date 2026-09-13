@@ -1,12 +1,7 @@
-# Based on mlterm-fb patch series by 4noha (https://github.com/4noha/openbsd-pomera-dm250)
-# Turbocharged Pomera DM250 Optimization Patch for mlterm 3.9.5
-# (Dirty Scanlines, Low-Latency DECSET 2026, OpenBSD wskbdutil compatibility)
-# SPDX-License-Identifier: MIT
-# Copyright (c) 2026 4noha
-# Copyright (c) 2026 Masahiko OHKUBO and Pomera DM250 OpenBSD Project Contributors
-#
---- uitoolkit/fb/ui.h.orig
-+++ uitoolkit/fb/ui.h
+diff --git a/uitoolkit/fb/ui.h b/uitoolkit/fb/ui.h
+index edd477e..ad76bd8 100644
+--- a/uitoolkit/fb/ui.h
++++ b/uitoolkit/fb/ui.h
 @@ -102,6 +102,17 @@ typedef struct {
  
    size_t plane_offset[8];
@@ -37,30 +32,10 @@
  /*
   * libpthread is not linked to mlterm explicitly for now.
   *
---- uitoolkit/fb/ui_font.h.orig
-+++ uitoolkit/fb/ui_font.h
-@@ -11,10 +11,15 @@ int ui_modify_bitmaps(XFontStruct *xfont, u_char **bitmaps, u_int num,
- u_char *ui_get_bitmap(XFontStruct *xfont, u_char *ch, size_t len, int use_ot_layout,
-                       int get_space_glyph, XFontStruct **compl_xfont);
- 
--#define ui_get_bitmap_line(xfont, bitmap, offset_bytes, bitmap_line) \
--  ((bitmap) &&                                                       \
--   memcmp(((bitmap_line) = (bitmap) + (offset_bytes)), "\x0\x0\x0",  \
--          (xfont)->glyph_width_bytes) != 0)
-+static inline int ui_is_bitmap_line_non_zero(const u_char *p, size_t len) {
-+  size_t i;
-+  for (i = 0; i < len; i++) {
-+    if (p[i]) return 1;
-+  }
-+  return 0;
-+}
-+
-+#define ui_get_bitmap_line(xfont, bitmap, offset_bytes, bitmap_line)   ((bitmap) &&    ui_is_bitmap_line_non_zero(((bitmap_line) = (bitmap) + (offset_bytes)),                               (xfont)->glyph_width_bytes))
- 
- /* x & 7 == x % 8 */
- #define ui_get_bitmap_cell(bitmap_line, x) ((bitmap_line)[(x) / 8] & (1 << (8 - ((x)&7) - 1)))
---- uitoolkit/fb/ui_display.c.orig
-+++ uitoolkit/fb/ui_display.c
+diff --git a/uitoolkit/fb/ui_display.c b/uitoolkit/fb/ui_display.c
+index 378f8ca..ea39a85 100644
+--- a/uitoolkit/fb/ui_display.c
++++ b/uitoolkit/fb/ui_display.c
 @@ -7,6 +7,7 @@
  #include <fcntl.h>     /* open */
  #include <sys/mman.h>  /* mmap */
@@ -121,7 +96,7 @@
      close(_display.fb_fd);
  
      free(_disp.roots);
-@@ -1632,6 +1668,54 @@ int ui_display_remove_root(ui_display_t *disp, ui_window_t *root) {
+@@ -1632,6 +1668,63 @@ int ui_display_remove_root(ui_display_t *disp, ui_window_t *root) {
    return 0;
  }
  
@@ -156,9 +131,12 @@
 +  if (_display.real_fb && _display.fb_dirty) {
 +    int min_y = _display.dirty_min_y;
 +    int max_y = _display.dirty_max_y;
++
 +    if (min_y < 0) min_y = 0;
 +    if (max_y >= _disp.height) max_y = _disp.height - 1;
++
 +    if (min_y <= max_y) {
++      /* Full-screen fast path */
 +      if (min_y == 0 && max_y == _disp.height - 1) {
 +        memcpy(_display.real_fb, _display.fb, _display.smem_len);
 +      } else {
@@ -172,6 +150,7 @@
 +        }
 +      }
 +    }
++
 +    _display.fb_dirty = 0;
 +    _display.dirty_min_y = _disp.height;
 +    _display.dirty_max_y = -1;
@@ -181,7 +160,7 @@
  void ui_display_idling(ui_display_t *disp) {
    u_int count;
  
-@@ -2130,6 +2184,7 @@ void ui_display_fill_with(int x, int y, u_int width, u_int height, u_int8_t pixe
+@@ -2130,6 +2223,7 @@ void ui_display_fill_with(int x, int y, u_int width, u_int height, u_int8_t pixe
        return;
      }
  
@@ -189,7 +168,7 @@
      for (y_off = 0; y_off < height; y_off++) {
        memset(buf, pixel, width);
        memcpy(fb, buf, width);
-@@ -2146,6 +2201,7 @@ void ui_display_copy_lines2(int src_x, int src_y, int dst_x, int dst_y, u_int wi
+@@ -2146,6 +2240,7 @@ void ui_display_copy_lines2(int src_x, int src_y, int dst_x, int dst_y, u_int wi
    int num_planes;
    int plane;
  
@@ -197,8 +176,10 @@
    /* XXX cheap implementation. */
    restore_hidden_region();
  
---- uitoolkit/fb/ui_display_wscons.c.orig
-+++ uitoolkit/fb/ui_display_wscons.c
+diff --git a/uitoolkit/fb/ui_display_wscons.c b/uitoolkit/fb/ui_display_wscons.c
+index cd87976..0325229 100644
+--- a/uitoolkit/fb/ui_display_wscons.c
++++ b/uitoolkit/fb/ui_display_wscons.c
 @@ -290,7 +290,12 @@ static int open_display(u_int depth /* used on luna68k alone. */
    int mode;
    int wstype;
@@ -235,7 +216,7 @@
    if (_disp.depth < 15) {
      if (vinfo.depth >= 2 && _disp.depth == 1) {
        int num_colors;
-@@ -708,7 +723,11 @@ static int open_display(u_int depth /* used on luna68k alone. */
+@@ -708,7 +728,11 @@ static int open_display(u_int depth /* used on luna68k alone. */
    return 1;
  
  error:
@@ -248,8 +229,62 @@
      munmap(_display.fb, _display.smem_len);
      _display.fb = _display.fb_base = NULL;
    }
---- uitoolkit/fb/wskbdutil.c.orig
-+++ uitoolkit/fb/wskbdutil.c
+diff --git a/uitoolkit/fb/ui_font.h b/uitoolkit/fb/ui_font.h
+index 568f094..e4659c5 100644
+--- a/uitoolkit/fb/ui_font.h
++++ b/uitoolkit/fb/ui_font.h
+@@ -11,10 +11,15 @@ int ui_modify_bitmaps(XFontStruct *xfont, u_char **bitmaps, u_int num,
+ u_char *ui_get_bitmap(XFontStruct *xfont, u_char *ch, size_t len, int use_ot_layout,
+                       int get_space_glyph, XFontStruct **compl_xfont);
+ 
+-#define ui_get_bitmap_line(xfont, bitmap, offset_bytes, bitmap_line) \
+-  ((bitmap) &&                                                       \
+-   memcmp(((bitmap_line) = (bitmap) + (offset_bytes)), "\x0\x0\x0",  \
+-          (xfont)->glyph_width_bytes) != 0)
++static inline int ui_is_bitmap_line_non_zero(const u_char *p, size_t len) {
++  size_t i;
++  for (i = 0; i < len; i++) {
++    if (p[i]) return 1;
++  }
++  return 0;
++}
++
++#define ui_get_bitmap_line(xfont, bitmap, offset_bytes, bitmap_line)   ((bitmap) &&    ui_is_bitmap_line_non_zero(((bitmap_line) = (bitmap) + (offset_bytes)),                               (xfont)->glyph_width_bytes))
+ 
+ /* x & 7 == x % 8 */
+ #define ui_get_bitmap_cell(bitmap_line, x) ((bitmap_line)[(x) / 8] & (1 << (8 - ((x)&7) - 1)))
+diff --git a/uitoolkit/fb/ui_window.c b/uitoolkit/fb/ui_window.c
+index 4ed0ef5..996beb1 100644
+--- a/uitoolkit/fb/ui_window.c
++++ b/uitoolkit/fb/ui_window.c
+@@ -1,3 +1,4 @@
++#include <stdio.h>
+ /* -*- c-basic-offset:2; tab-width:2; indent-tabs-mode:nil -*- */
+ 
+ #include "../ui_window.h"
+@@ -1878,7 +1879,17 @@ void ui_window_fill_with(ui_window_t *win, ui_color_t *color, int x, int y, u_in
+       return;
+     }
+ 
+-    for (y_off = 0; y_off < height; y_off++) {
++    
++  {
++    FILE *fp = fopen("/tmp/mlterm_trace.log", "a");
++    if (fp) {
++      fprintf(fp, "[FILL_WITH] x=%d y=%d w=%d h=%d pixel=0x%lx\n",
++              x, y, width, height, (unsigned long)pixel);
++      fclose(fp);
++    }
++  }
++
++      for (y_off = 0; y_off < height; y_off++) {
+       u_char *p = src;
+       int x_off;
+ 
+diff --git a/uitoolkit/fb/wskbdutil.c b/uitoolkit/fb/wskbdutil.c
+index ba4f73f..81215b8 100644
+--- a/uitoolkit/fb/wskbdutil.c
++++ b/uitoolkit/fb/wskbdutil.c
 @@ -1,3 +1,6 @@
 +#ifndef __arraycount
 +#define __arraycount(a) (sizeof(a) / sizeof((a)[0]))
@@ -273,44 +308,10 @@
  };
  
  #define COMPOSE_SIZE	__arraycount(compose_tab)
---- vtemu/vt_parser.c.orig
-+++ vtemu/vt_parser.c
-@@ -49,6 +49,11 @@ int wcwidth(wchar_t c);
- #include "cygfile.h"
- #endif
- 
-+/* DECSET 2026 (synchronized output): set by "CSI ?2026 h", cleared by
-+ * "CSI ?2026 l". Read by the fb backend's ui_display_sync() to defer the
-+ * shadow->framebuffer blit so a whole frame lands atomically (no flicker). */
-+int mlterm_fb_sync = 0;
-+
- /*
-  * kterm BUF_SIZE in ptyx.h is 4096.
-  */
-@@ -4917,7 +4922,9 @@ inline static int parse_vt100_escape_sequence(
-           int count;
- 
-           for (count = 0; count < num; count++) {
--            if (ps[count] < VTMODE(0)) {
-+            if (ps[count] == 2026) {
-+              mlterm_fb_sync = 1;
-+            } else if (ps[count] < VTMODE(0)) {
-               set_vtmode(vt_parser, ps[count], 1);
-             }
-           }
-@@ -4939,7 +4946,9 @@ inline static int parse_vt100_escape_sequence(
-           int count;
- 
-           for (count = 0; count < num; count++) {
--            if (ps[count] < VTMODE(0)) {
-+            if (ps[count] == 2026) {
-+              mlterm_fb_sync = 0;
-+            } else if (ps[count] < VTMODE(0)) {
-               set_vtmode(vt_parser, ps[count], 0);
-             }
-           }
---- uitoolkit/ui_draw_str.c.orig
-+++ uitoolkit/ui_draw_str.c
+diff --git a/uitoolkit/ui_draw_str.c b/uitoolkit/ui_draw_str.c
+index c7ca55c..eaf8a46 100644
+--- a/uitoolkit/ui_draw_str.c
++++ b/uitoolkit/ui_draw_str.c
 @@ -1154,9 +1154,7 @@ static int xcore_draw_str(ui_window_t *window, ui_font_manager_t *font_man,
  #endif /* NO_DRAW_IMAGE_STRING */
        {
@@ -367,3 +368,63 @@
        break;
  #endif
    }
+diff --git a/uitoolkit/ui_screen.c b/uitoolkit/ui_screen.c
+index 4399d8f..1e3ea5a 100644
+--- a/uitoolkit/ui_screen.c
++++ b/uitoolkit/ui_screen.c
+@@ -529,6 +529,17 @@ static void draw_cursor(ui_screen_t *screen) {
+   }
+ #endif
+ 
++  
++  {
++    FILE *fp = fopen("/tmp/mlterm_trace.log", "a");
++    if (fp) {
++      fprintf(fp, "[CURSOR] row=%d col=%d x=%d y=%d h=%d asc=%d style=0x%x is_foc=%d\n",
++              row, char_index, x, y, ui_line_height(screen), ui_line_ascent(screen),
++              cursor_style, screen->window.is_focused);
++      fclose(fp);
++    }
++  }
++
+   cursor_style = vt_term_get_cursor_style(screen->term);
+   vt_char_init(&ch);
+   vt_char_copy(&ch, vt_char_at(line, char_index));
+diff --git a/vtemu/vt_parser.c b/vtemu/vt_parser.c
+index e703ac5..c954d25 100644
+--- a/vtemu/vt_parser.c
++++ b/vtemu/vt_parser.c
+@@ -49,6 +49,11 @@ int wcwidth(wchar_t c);
+ #include "cygfile.h"
+ #endif
+ 
++/* DECSET 2026 (synchronized output): set by "CSI ?2026 h", cleared by
++ * "CSI ?2026 l". Read by the fb backend's ui_display_sync() to defer the
++ * shadow->framebuffer blit so a whole frame lands atomically (no flicker). */
++int mlterm_fb_sync = 0;
++
+ /*
+  * kterm BUF_SIZE in ptyx.h is 4096.
+  */
+@@ -4917,7 +4922,9 @@ inline static int parse_vt100_escape_sequence(
+           int count;
+ 
+           for (count = 0; count < num; count++) {
+-            if (ps[count] < VTMODE(0)) {
++            if (ps[count] == 2026) {
++              mlterm_fb_sync = 1;
++            } else if (ps[count] < VTMODE(0)) {
+               set_vtmode(vt_parser, ps[count], 1);
+             }
+           }
+@@ -4939,7 +4946,9 @@ inline static int parse_vt100_escape_sequence(
+           int count;
+ 
+           for (count = 0; count < num; count++) {
+-            if (ps[count] < VTMODE(0)) {
++            if (ps[count] == 2026) {
++              mlterm_fb_sync = 0;
++            } else if (ps[count] < VTMODE(0)) {
+               set_vtmode(vt_parser, ps[count], 0);
+             }
+           }

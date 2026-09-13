@@ -1,11 +1,8 @@
-# Based on mlterm-fb patch series by 4noha (https://github.com/4noha/openbsd-pomera-dm250)
-# SPDX-License-Identifier: MIT
-# Copyright (c) 2026 4noha
-# Copyright (c) 2026 Masahiko OHKUBO and Pomera DM250 OpenBSD Project Contributors
-#
---- uitoolkit/fb/ui.h.orig	Sat Sep 23 03:27:38 2017
-+++ uitoolkit/fb/ui.h	Sat Sep 12 02:41:34 2026
-@@ -93,6 +93,15 @@
+diff --git a/uitoolkit/fb/ui.h b/uitoolkit/fb/ui.h
+index edd477e..b5c1ec1 100644
+--- a/uitoolkit/fb/ui.h
++++ b/uitoolkit/fb/ui.h
+@@ -102,6 +102,15 @@ typedef struct {
  
    size_t plane_offset[8];
  
@@ -21,7 +18,7 @@
  } Display;
  
  #define PIXEL_RED(pixel, rgbinfo) (((pixel) >> (rgbinfo).r_offset) << (rgbinfo).r_limit)
-@@ -647,7 +656,7 @@
+@@ -669,7 +678,7 @@ KeySym XStringToKeysym(const char *str);
  #endif
  #undef SUPPORT_URGENT_BELL
  #undef FORCE_UNICODE
@@ -30,8 +27,10 @@
  #define DRAW_SCREEN_IN_PIXELS
  #undef NO_DRAW_IMAGE_STRING
  /*
---- uitoolkit/fb/ui_display.c.orig	Sat Sep 23 03:27:38 2017
-+++ uitoolkit/fb/ui_display.c	Sat Sep 12 03:01:50 2026
+diff --git a/uitoolkit/fb/ui_display.c b/uitoolkit/fb/ui_display.c
+index 378f8ca..d4d85bb 100644
+--- a/uitoolkit/fb/ui_display.c
++++ b/uitoolkit/fb/ui_display.c
 @@ -7,6 +7,7 @@
  #include <fcntl.h>     /* open */
  #include <sys/mman.h>  /* mmap */
@@ -40,15 +39,15 @@
  #include <string.h>    /* memset/memcpy */
  #include <stdlib.h>    /* getenv */
  #include <termios.h>
-@@ -208,6 +209,7 @@
+@@ -330,6 +331,7 @@ static inline ui_window_t *get_window(int x, /* X in display */
  }
  
  static inline u_char *get_fb(int x, int y) {
 +  _display.fb_dirty = 1;
-   return _display.fb + (_display.yoffset + y) * _display.line_length +
+   return _display.fb_base + (_display.yoffset + y) * _display.line_length +
           (_display.xoffset + x) * _display.bytes_per_pixel / _display.pixels_per_byte;
  }
-@@ -1257,7 +1259,12 @@
+@@ -1536,7 +1538,12 @@ void ui_display_close_all(void) {
        close(_display.fd);
      }
  
@@ -62,131 +61,139 @@
      close(_display.fb_fd);
  
      free(_disp.roots);
-@@ -1357,6 +1364,31 @@
-   }
- 
+@@ -1632,6 +1639,13 @@ int ui_display_remove_root(ui_display_t *disp, ui_window_t *root) {
    return 0;
-+}
-+
-+
-+extern int mlterm_fb_sync;
+ }
+ 
 +void ui_display_sync(ui_display_t *disp) {
-+  static struct timeval bsu_since = {0, 0};
-+  if (mlterm_fb_sync) {
-+    struct timeval now;
-+    gettimeofday(&now, NULL);
-+    if (bsu_since.tv_sec == 0 && bsu_since.tv_usec == 0) {
-+      bsu_since = now;
-+      return;
-+    }
-+    if ((now.tv_sec - bsu_since.tv_sec) * 1000 +
-+        (now.tv_usec - bsu_since.tv_usec) / 1000 < 150) {
-+      return;
-+    }
-+    mlterm_fb_sync = 0;
-+  }
-+  bsu_since.tv_sec = 0;
-+  bsu_since.tv_usec = 0;
 +  if (_display.real_fb && _display.fb_dirty) {
 +    memcpy(_display.real_fb, _display.fb, _display.smem_len);
 +    _display.fb_dirty = 0;
 +  }
- }
- 
- void ui_display_idling(ui_display_t *disp) {
---- uitoolkit/fb/ui_display_wscons.c.orig	Sat Sep 23 03:27:38 2017
-+++ uitoolkit/fb/ui_display_wscons.c	Sat Sep 12 02:55:31 2026
-@@ -515,6 +515,16 @@
-   if (_display.pixels_per_byte > 1 && !(_display.back_fb = malloc(_display.smem_len))) {
-     goto error;
-   }
++}
 +
-+  if (_display.pixels_per_byte == 1) {
-+    unsigned char *shadow;
-+    if ((shadow = malloc(_display.smem_len))) {
-+      memcpy(shadow, _display.fb, _display.smem_len);
-+      _display.real_fb = _display.fb;
-+      _display.fb = shadow;
-+      _display.fb_dirty = 0;
+ void ui_display_idling(ui_display_t *disp) {
+   u_int count;
+ 
+@@ -2130,6 +2144,7 @@ void ui_display_fill_with(int x, int y, u_int width, u_int height, u_int8_t pixe
+       return;
+     }
+ 
++    _display.fb_dirty = 1;
+     for (y_off = 0; y_off < height; y_off++) {
+       memset(buf, pixel, width);
+       memcpy(fb, buf, width);
+@@ -2146,6 +2161,7 @@ void ui_display_copy_lines2(int src_x, int src_y, int dst_x, int dst_y, u_int wi
+   int num_planes;
+   int plane;
+ 
++  _display.fb_dirty = 1;
+   /* XXX cheap implementation. */
+   restore_hidden_region();
+ 
+diff --git a/uitoolkit/fb/ui_display_wscons.c b/uitoolkit/fb/ui_display_wscons.c
+index cd87976..abbfdc4 100644
+--- a/uitoolkit/fb/ui_display_wscons.c
++++ b/uitoolkit/fb/ui_display_wscons.c
+@@ -290,7 +290,12 @@ static int open_display(u_int depth /* used on luna68k alone. */
+   int mode;
+   int wstype;
+   struct rgb_info rgbinfos[] = {
+-      {3, 3, 3, 10, 5, 0}, {3, 2, 3, 11, 5, 0}, {0, 0, 0, 16, 8, 0},
++      { .r_limit = 3, .g_limit = 3, .b_limit = 3, .a_limit = 0,
++        .r_offset = 10, .g_offset = 5, .b_offset = 0, .a_offset = 0 },
++      { .r_limit = 3, .g_limit = 2, .b_limit = 3, .a_limit = 0,
++        .r_offset = 11, .g_offset = 5, .b_offset = 0, .a_offset = 0 },
++      { .r_limit = 0, .g_limit = 0, .b_limit = 0, .a_limit = 0,
++        .r_offset = 16, .g_offset = 8, .b_offset = 0, .a_offset = 24 },
+   };
+   struct termios tm;
+   static struct wscons_keymap map[KS_NUMKEYCODES];
+@@ -479,6 +484,19 @@ static int open_display(u_int depth /* used on luna68k alone. */
+ 
+   _display.fb_base = _display.fb + fboffset;
+ 
++  if (_disp.depth >= 8) {
++    _display.real_fb = _display.fb;
++    _display.fb = malloc(_display.smem_len);
++    if (!_display.fb) {
++      _display.fb = _display.real_fb;
++      _display.real_fb = NULL;
++    } else {
++      memcpy(_display.fb, _display.real_fb, _display.smem_len);
++      _display.fb_base = _display.fb + fboffset;
 +    }
 +  }
- #endif
++  _display.fb_dirty = 0;
++
+   if (_disp.depth < 15) {
+     if (vinfo.depth >= 2 && _disp.depth == 1) {
+       int num_colors;
+@@ -708,7 +726,11 @@ static int open_display(u_int depth /* used on luna68k alone. */
+   return 1;
  
-   tcgetattr(STDIN_FILENO, &tm);
---- uitoolkit/fb/ui_font.c.orig	Sat Sep 23 03:27:38 2017
-+++ uitoolkit/fb/ui_font.c	Sat Sep 12 02:41:35 2026
-@@ -712,7 +712,7 @@
- 
-   xfont->width_full =
-       (face->max_advance_width * face->size->metrics.x_ppem + face->units_per_EM - 1) /
--      face->units_per_EM;
-+      (face->units_per_EM ? face->units_per_EM : 1);
- #ifdef __DEBUG
-   bl_debug_printf("maxw %d ppem %d units %d => w %d\n",
-                   face->max_advance_width, face->size->metrics.x_ppem,
-@@ -729,8 +729,8 @@
-   if (force_height) {
-     xfont->height = force_height;
-   } else {
--    xfont->height = (face->max_advance_height * face->size->metrics.y_ppem +
--                     face->units_per_EM - 1) / face->units_per_EM;
-+    xfont->height = (face->height * face->size->metrics.y_ppem +
-+                     face->units_per_EM - 1) / (face->units_per_EM ? face->units_per_EM : 1);
+ error:
+-  if (_display.fb) {
++  if (_display.real_fb) {
++    free(_display.fb);
++    munmap(_display.real_fb, _display.smem_len);
++    _display.fb = _display.real_fb = _display.fb_base = NULL;
++  } else if (_display.fb) {
+     munmap(_display.fb, _display.smem_len);
+     _display.fb = _display.fb_base = NULL;
    }
- #ifdef __DEBUG
-   bl_debug_printf("maxh %d ppem %d units %d => h %d\n",
-@@ -738,7 +738,7 @@
-                   face->units_per_EM, xfont->height);
+diff --git a/uitoolkit/fb/ui_window.c b/uitoolkit/fb/ui_window.c
+index 4ed0ef5..996beb1 100644
+--- a/uitoolkit/fb/ui_window.c
++++ b/uitoolkit/fb/ui_window.c
+@@ -1,3 +1,4 @@
++#include <stdio.h>
+ /* -*- c-basic-offset:2; tab-width:2; indent-tabs-mode:nil -*- */
+ 
+ #include "../ui_window.h"
+@@ -1878,7 +1879,17 @@ void ui_window_fill_with(ui_window_t *win, ui_color_t *color, int x, int y, u_in
+       return;
+     }
+ 
+-    for (y_off = 0; y_off < height; y_off++) {
++    
++  {
++    FILE *fp = fopen("/tmp/mlterm_trace.log", "a");
++    if (fp) {
++      fprintf(fp, "[FILL_WITH] x=%d y=%d w=%d h=%d pixel=0x%lx\n",
++              x, y, width, height, (unsigned long)pixel);
++      fclose(fp);
++    }
++  }
++
++      for (y_off = 0; y_off < height; y_off++) {
+       u_char *p = src;
+       int x_off;
+ 
+diff --git a/uitoolkit/fb/wskbdutil.c b/uitoolkit/fb/wskbdutil.c
+index ba4f73f..81215b8 100644
+--- a/uitoolkit/fb/wskbdutil.c
++++ b/uitoolkit/fb/wskbdutil.c
+@@ -1,3 +1,6 @@
++#ifndef __arraycount
++#define __arraycount(a) (sizeof(a) / sizeof((a)[0]))
++#endif
+ /*	$NetBSD: wskbdutil.c,v 1.19 2017/11/03 19:20:27 maya Exp $	*/
+ 
+ /*-
+@@ -167,6 +170,7 @@ static struct compose_tab_s {
+ 	{ { KS_grave,			KS_u },			KS_ugrave },
+ 	{ { KS_acute,			KS_y },			KS_yacute },
  #endif
-   xfont->ascent =
--      (face->ascender * face->size->metrics.y_ppem + face->units_per_EM - 1) / face->units_per_EM;
-+      (face->ascender * face->size->metrics.y_ppem + face->units_per_EM - 1) / (face->units_per_EM ? face->units_per_EM : 1);
++#ifdef __NetBSD__
+ 	{ { KS_dead_semi,		KS_gr_A },		KS_gr_At  },
+ 	{ { KS_dead_semi,		KS_gr_E },		KS_gr_Et  },
+ 	{ { KS_dead_semi,		KS_gr_H },		KS_gr_Ht  },
+@@ -266,6 +270,7 @@ static struct compose_tab_s {
+ 	{ { KS_dead_abovering,		KS_u },			KS_uabovering },
+ 	{ { KS_dead_slash,		KS_L },			KS_Lstroke },
+ 	{ { KS_dead_slash,		KS_l },			KS_lstroke }
++#endif
+ };
  
-   if (load_glyph(face, format, get_glyph_index(face, 'j'), is_aa)) {
-     int descent;
---- uitoolkit/ui_display.h.orig	Sat Sep 23 03:27:39 2017
-+++ uitoolkit/ui_display.h	Sat Sep 12 02:41:35 2026
-@@ -75,7 +75,7 @@
- 
- int ui_display_receive_next_event(ui_display_t *disp);
- 
--#if defined(USE_FRAMEBUFFER) || defined(USE_CONSOLE) || defined(USE_QUARTZ)
-+#if defined(USE_CONSOLE) || defined(USE_QUARTZ)
- #define ui_display_sync(disp) (0)
- #elif defined(USE_WIN32GUI)
- #define ui_display_sync(disp) ui_display_receive_next_event(disp)
---- vtemu/vt_parser.c.orig	Sat Sep 23 03:27:38 2017
-+++ vtemu/vt_parser.c	Sat Sep 12 02:41:35 2026
-@@ -99,6 +99,10 @@
- 
- /* If u_int64_t is defined as 32 bit (unsigned long), 1 << (32 or larger) is ignored. */
- static u_int64_t true64 = 1;
-+/* DECSET 2026 (synchronized output): set by "CSI ?2026 h", cleared by
-+ * "CSI ?2026 l". Read by the fb backend's ui_display_sync() to defer the
-+ * shadow->framebuffer blit so a whole frame lands atomically (no flicker). */
-+int mlterm_fb_sync = 0;
- #define SHIFT_FLAG64(mode) ((sizeof(true64) < 8 && (mode) >= 32) ? 0 : (true64 << (mode)))
- 
- #define INITIAL_VTMODE_FLAGS \
-@@ -3680,7 +3684,9 @@
-           int count;
- 
-           for (count = 0; count < num; count++) {
--            if (ps[count] < VTMODE(0)) {
-+            if (ps[count] == 2026) {
-+              mlterm_fb_sync = 1; /* DECSET 2026 BSU: begin synchronized update */
-+            } else if (ps[count] < VTMODE(0)) {
-               set_vtmode(vt_parser, ps[count], 1);
-             }
-           }
-@@ -3702,7 +3708,9 @@
-           int count;
- 
-           for (count = 0; count < num; count++) {
--            if (ps[count] < VTMODE(0)) {
-+            if (ps[count] == 2026) {
-+              mlterm_fb_sync = 0; /* DECSET 2026 ESU: end synchronized update */
-+            } else if (ps[count] < VTMODE(0)) {
-               set_vtmode(vt_parser, ps[count], 0);
-             }
-           }
+ #define COMPOSE_SIZE	__arraycount(compose_tab)

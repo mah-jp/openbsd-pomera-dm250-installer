@@ -15,7 +15,7 @@
 | **⚡ 蓋開閉の超省電力＆最速復帰** | 専用デーモン `pomera_lid_watch`（`rcctl` 対応）が蓋センサーを監視。閉じた瞬間にバックライト0秒消灯＆CPU省電力化。開けると最速で復帰して即入力可能。検知秒数やCPUポリシー（auto/high）も自在に調整可能。 |
 | **🔋 高精度バッテリー管理** | 内蔵 PMIC (RK818) と連動し、充電器接続時の自動給電・充電に対応。カーネルセンサー（`sysctl hw.sensors.simplebat0`）から電圧・充放電状態・残量パーセントを正確に取得。 |
 | **🌐 内蔵 Wi-Fi (2.4GHz)** | 内蔵 Wi-Fi (`bwfm0`、2.4GHz、複数SSID自動切替・監視常駐デーモン) に標準対応。*(※ 実験的機能として Bluetooth PAN や USB-Ethernet ドライバの設定枠も保持)* |
-| **💻 CUI & GUI デュアル対応** | 標準は超軽量・高速な CUI (wsconsコンソール / VT100 / tmux)。フレームバッファ直描画の超高速日本語コンソール `mlterm-fb` に対応し、`pomera-gui-toggle` で軽量X11デスクトップ (`xenodm` + `cwm` + `mlterm`) へもワンタッチ切替可能。 |
+| **💻 超高速 CUI 専用ライティング環境** | フレームバッファ直描画の超高速日本語コンソール `mlterm-fb`（通常版 / ターボ版）に対応。X11のオーバーヘッドを完全排除し、テキスト執筆とターミナル操作に特化した純粋なライティングマシンを提供。 |
 | **🖱️ USB周辺機器対応** | USB Type-C OTG経由で標準的なUSBマウスや外付けキーボード等の接続に対応。 |
 | **🛡️ 100%原状復帰可能な安全設計** | [pomera-dm250-backup-restore-tool](https://github.com/mah-jp/pomera-dm250-backup-restore-tool) と連携し、導入前に純正eMMCの完全バックアップを取得可能。いつでも工場出荷時に戻せます。 |
 | **🛠️ パッチ自動検査＆スマートビルド** | USBハブ安定化、X11キー修正、mlterm-fb直描画用カーネルパッチ（SMODE）を選択可能。公式カーネルを自動検査し、未修正時のみQEMUリコンパイルを実行、対応済みなら0秒で公式版を採用。 |
@@ -225,17 +225,7 @@ sudo ./make_sdcard.sh /dev/rdisk4
 >    - **`Alt + F1`** : 画面を暗くする（Mac風）
 >    - **`Alt + F2`** : 画面を明るくする（Mac風）  
 >    *(※ tmuxのプレフィックスキー不要でそのまま押せます)*
-> 
-> 3. **X11 GUI デスクトップ環境（`cwm`）**:  
->    `startx` または `doas pomera-gui-toggle gui` でX11起動中、デスクトップ上のどこでも動作します。
->    - **`Alt + F1`** / **`Alt + F2`** : 画面を暗く / 明るくする
->    - **`Alt + ↓`** / **`Alt + ↑`** : 矢印キーでも 10% 刻みで調整可能
 
-> [!TIP]
-> **💡 CUI と GUI (X11) の使い分け**  
-> - **一時的に X11 GUI デスクトップを起動する**: ログイン後、`startx` を実行します。
-> - **次回起動時からも常にグラフィカルログイン (xenodm) にする**: `doas pomera-gui-toggle gui` を実行します。
-> - **超軽量・高解像度日本語コンソール (CUI) のまま使う**: そのままコンソールや tmux、`mlterm-fb` をお使いください。いつでも `doas pomera-gui-toggle cui` でCUI固定に戻せます。
 
 > [!TIP]
 > **💡 既にカスタムOS（OpenBSD等）がインストール済みの状態からSDカードを起動する場合**
@@ -254,30 +244,21 @@ sudo ./make_sdcard.sh /dev/rdisk4
 
 > [!NOTE]
 > 本インストーラーによる自動インストール（Step 2）の時点で、**JIS日本語キーボード、Wi-Fi自動接続、蓋開閉省電力デーモン、各種dotfiles（設定ファイル）** などの基本機能はすべてセットアップ完了しています。  
-> 安定性と高速化のため、オフラインパッケージ群（Vim, tmux, mlterm, Noto CJK, cwm等）は内蔵ストレージ（`/var/cache/packages`）に自動退避されています。初回ログイン時に `pomera-setup-workspace` を実行することで、メモリ不足やエラーなく安全にワークスペースが完成します。外部PCやインターネット接続は不要で、ポメラ単体・完全オフラインで完結します。
+> 安定性と高速化のため、オフラインパッケージ群（Vim, tmux, mlterm, Noto CJK等）は内蔵ストレージ（`/var/cache/packages`）に自動退避されています。初回ログイン時に `pomera-setup-workspace` を実行することで、メモリ不足やエラーなく安全にワークスペースが完成します。外部PCやインターネット接続は不要で、ポメラ単体・完全オフラインで完結します。
 
 #### 1. ワークスペース環境のセットアップ (`pomera-setup-workspace`)
 ```bash
 pomera-setup-workspace
 ```
 - 必須ツールの導入（`vim`, `tmux`, `curl`, `git`）
-- 日本語フォント（Noto Sans CJK）＆ 残像のない高速ターミナル（`mlterm` / `mlterm-fb`）
-- 超軽量ウィンドウマネージャ（`cwm`）＆ アプリランチャー（`dmenu`）
-- 1024x600 画面に最適化された dotfiles（`~/.cwmrc`, `~/.tmux.conf`, `~/.xsession` 等）
+- 日本語フォント（Noto Sans CJK）＆ 残像のない超高速ターミナル（`mlterm-opt` / `mlterm-base`）
+- 1024x600 画面に最適化された dotfiles（`~/.vimrc`, `~/.tmux.conf`, `~/.mlterm` 等）
 
 > [!TIP]
-> **便利なキーボードショートカット**:
-> - **画面輝度調整（tmuxセッション内およびX11デスクトップ共通）**:
->   - `Alt + F1`: 画面を暗くする ※Mac風
->   - `Alt + F2`: 画面を明るくする ※Mac風
->   - `Alt + ↑` / `Alt + ↓`: 画面の明るさを 10% 刻みで増減（cwmデスクトップ時）
-> - **デスクトップ（cwm）**:
->   - `Alt + Enter`: ターミナル（mlterm）起動
->   - `Ctrl + Alt + m`: ウィンドウの最大化 / 復帰
->   - `Ctrl + Alt + q`: ウィンドウを閉じる
->   - `Ctrl + Alt + Backspace` または `Ctrl + Alt + Shift + q`: X11を終了してコンソール（CUI）に戻る
-> - **CUI / フレームバッファ（mlterm-fb）**:
->   - `mlterm-fb`: フレームバッファ直描画の超高速・高解像度日本語コンソールを起動（X11不要、tmux併用で `Alt+F1`/`Alt+F2` 輝度調整対応）
+> **便利なターミナルコマンド**:
+> - **`mlterm-opt`**: 行単位差分転送（Row Bounding Box）＋DECSET 2026同期対応の超低遅延ターボ版
+> - **`mlterm-base`**: 標準shadowfbの安定版フォールバック
+> - **`mlterm-ja`**: 日本語入力（uim-fep）を最初から有効にしてターミナルを直接起動
 
 #### 2. 日本語入力（IME）のセットアップ (`pomera-setup-japanese`)
 日本語入力を利用する場合は、続けて以下を実行します：
@@ -286,7 +267,7 @@ pomera-setup-japanese
 ```
 - 日本語入力フレームワーク（`uim`, `uim-anthy`）の自動インストール
 - ポメラ向けキー設定（`Shift + Space`, `Ctrl + Space`, `半角/全角` でIMEオン/オフ）
-- `startx` 時にバックグラウンドで `uim-xim` を自動起動するよう `~/.xsession` を構成
+- CUI環境（`mlterm-ja` または `mlterm-opt` 内で `uim-fep`）でそのまま日本語かな漢字変換が利用可能
 
 ---
 
@@ -309,14 +290,13 @@ pomera-setup-japanese
 | `doas pomera-suspend` | SoC/PLLを休止してディープサスペンドへ移行（電源ボタンや蓋開閉で復帰）。 |
 | `doas gpioctl gpio1 red_led 1` / `green_led 1` | 前面の赤/緑ステータスLEDを手動で点灯・消灯（`0` で消灯）。 |
 
-### デスクトップ＆ネットワーク
+### CUI ワークスペース＆ネットワーク
 
 | コマンド | 説明 |
 | :--- | :--- |
-| `pomera-setup-workspace` | ワークスペース環境（Vim、tmux、mlterm、Noto CJK、cwm、dotfiles）を一括セットアップ・再初期化。 |
-| `pomera-setup-japanese` | 日本語入力システム (`uim`/`uim-anthy`) および XIM 設定を自動セットアップ。 |
-| `pomera-font [udev\|moraler\|noto]` | ターミナルフォント（斜線ゼロ入り UDEV Gothic、Moralerspace、Noto）をワンタッチ切替（X11版 / `mlterm-fb` 共通）。 |
-| `doas pomera-gui-toggle [gui\|cui\|toggle]` | CUIコンソールとX11 GUIモード（`xenodm`/`cwm`）を即座に切り替え。 |
+| `pomera-setup-workspace` | ワークスペース環境（Vim、tmux、mlterm-fb、Noto CJK、dotfiles）を一括セットアップ・再初期化。 |
+| `pomera-setup-japanese` | CUI日本語入力システム (`uim`/`uim-anthy`/`uim-fep`) を自動セットアップ。 |
+| `pomera-font [udev\|moraler\|noto]` | ターミナルフォント（斜線ゼロ入り UDEV Gothic、Moralerspace、Noto）をワンタッチ切替。 |
 | `doas pomera-bt-pan connect <BD_ADDR>` | *(実験的)* スマホのBluetoothテザリング（PAN）接続スクリプト（※要4noha氏のpanctlデーモン、実機未検証）。 |
 
 ### 🔧 ホストPC側での診断・シミュレーターツール (上級者・開発向け)

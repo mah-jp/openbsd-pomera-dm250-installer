@@ -4,7 +4,7 @@
 # Copyright (c) 2026 Masahiko OHKUBO and Pomera DM250 OpenBSD Project Contributors
 # SPDX-License-Identifier: MIT
 #
-# Sets up Pomera DM250 optimized workspace (Vim, tmux, mlterm, Noto fonts, cwm)
+# Sets up Pomera DM250 optimized workspace (Vim, tmux, mlterm-fb, Noto fonts)
 # and tailored dotfiles for the 1024x600 distraction-free writing environment.
 
 set -e
@@ -79,10 +79,12 @@ if [ -f /usr/local/share/pomera/mlterm-fb-dm250.tar.gz ]; then
             $DOAS chmod 4755 "$bin"
         fi
     done
+    $DOAS ln -sf mlterm-fb /usr/local/bin/mlterm-base
+    $DOAS ln -sf mlterm-fb-pomera /usr/local/bin/mlterm-opt
     if [ -f /usr/local/bin/mlterm-fb-pomera ]; then
         echo "   ✅ Dual mlterm-fb setup active:"
-        echo "      - /usr/local/bin/mlterm-fb        (Baseline verified shadowfb)"
-        echo "      - /usr/local/bin/mlterm-fb-pomera (Turbocharged: dirty scanlines + NEON SIMD + fast alpha)"
+        echo "      - /usr/local/bin/mlterm-fb (mlterm-base) -> Baseline verified shadowfb"
+        echo "      - /usr/local/bin/mlterm-fb-pomera (mlterm-opt) -> Turbocharged: dirty scanlines + DECSET 2026"
     fi
 else
     echo ">> Note: /usr/local/share/pomera/mlterm-fb-dm250.tar.gz not found."
@@ -102,6 +104,7 @@ export PAGER=less
 alias ll='ls -la'
 alias mlterm-base='/usr/local/bin/mlterm-fb'
 alias mlterm-opt='/usr/local/bin/mlterm-fb-pomera'
+alias mlterm-ja='/usr/local/bin/mlterm-fb-pomera -e uim-fep'
 EOF
 chown "$TARGET_USER" "$TARGET_HOME/.profile"
 chmod 0644 "$TARGET_HOME/.profile"
@@ -152,54 +155,7 @@ EOF
 chown "$TARGET_USER" "$TARGET_HOME/.tmux.conf"
 chmod 0644 "$TARGET_HOME/.tmux.conf"
 
-# 4.4 ~/.cwmrc
-echo ">> Configuring $TARGET_HOME/.cwmrc (cwm window manager for Pomera)..."
-cat << 'EOF' > "$TARGET_HOME/.cwmrc"
-# Pomera DM250 1024x600 Optimized cwmrc
-fontname "sans-serif:pixelsize=14:antialias=true"
-color activeborder "#729fcf"
-color inactiveborder "#2e3436"
-borderwidth 2
-gap 0 0 0 0
-
-# Key Bindings
-bind-key M-Return terminal
-bind-key M-p "dmenu_run -fn 'sans-serif:pixelsize=14' -nb '#000000' -nf '#ffffff' -sb '#729fcf' -sf '#000000'"
-bind-key M-F1 "/usr/local/bin/pomera-brightness down"
-bind-key M-F2 "/usr/local/bin/pomera-brightness up"
-bind-key M-Down "/usr/local/bin/pomera-brightness down"
-bind-key M-Up "/usr/local/bin/pomera-brightness up"
-EOF
-chown "$TARGET_USER" "$TARGET_HOME/.cwmrc"
-chmod 0644 "$TARGET_HOME/.cwmrc"
-
-# 4.5 ~/.Xdefaults (Xft Font Rendering & Crisp Antialiasing)
-echo ">> Configuring $TARGET_HOME/.Xdefaults (Xft Antialiasing & LCD Subpixel)..."
-cat << 'EOF' > "$TARGET_HOME/.Xdefaults"
-! -------------------------------------------------------------
-! Xft Font Rendering Optimization for Pomera DM250 (1024x600)
-! Grayscale antialiasing (prevents color fringing / dirty dots on dark BG)
-! -------------------------------------------------------------
-Xft.dpi:        96
-Xft.antialias:  1
-Xft.hinting:    1
-Xft.hintstyle:  hintslight
-Xft.rgba:       none
-Xft.lcdfilter:  none
-
-! -------------------------------------------------------------
-! XTerm fallback configuration
-! -------------------------------------------------------------
-XTerm*loginShell:        true
-XTerm*faceName:          monospace
-XTerm*faceSize:          11
-XTerm*background:        #000000
-XTerm*foreground:        #ffffff
-EOF
-chown "$TARGET_USER" "$TARGET_HOME/.Xdefaults"
-chmod 0644 "$TARGET_HOME/.Xdefaults"
-
-# 4.6 mlterm Configuration (Tango Dark palette, Smooth Japanese fonts)
+# 4.4 mlterm Configuration (Tango Dark palette, Smooth Japanese fonts)
 echo ">> Configuring $TARGET_HOME/.mlterm (Tango Dark & Japanese font rendering)..."
 mkdir -p "$TARGET_HOME/.mlterm"
 cat << 'EOF' > "$TARGET_HOME/.mlterm/main"
@@ -263,48 +219,21 @@ chown -R "$TARGET_USER" "$TARGET_HOME/.mlterm"
 chmod 0700 "$TARGET_HOME/.mlterm"
 chmod 0600 "$TARGET_HOME/.mlterm/main" "$TARGET_HOME/.mlterm/color" "$TARGET_HOME/.mlterm/aafont"
 
-# 4.7 ~/.xsession
-echo ">> Configuring $TARGET_HOME/.xsession (cwm + mlterm Japanese desktop)..."
-cat << 'EOF' > "$TARGET_HOME/.xsession"
-#!/bin/sh
-export LANG=ja_JP.UTF-8
-export LC_CTYPE=ja_JP.UTF-8
-
-# Load X resources (Xft font rendering, terminal styles)
-if [ -f "$HOME/.Xdefaults" ]; then
-    xrdb -merge "$HOME/.Xdefaults"
-fi
-
-# Ensure Caps Lock behaves as Control in X11
-setxkbmap -option ctrl:nocaps 2>/dev/null || true
-
-xsetroot -solid "#000000"
-mlterm &
-exec cwm
-EOF
-chown "$TARGET_USER" "$TARGET_HOME/.xsession"
-chmod 0755 "$TARGET_HOME/.xsession"
-
-# 5. Optional GUI display mode
+# 5. CUI Workspace Information
 echo "=========================================================="
-echo "🎉 Pomera Workspace & Writing Environment Ready!"
+echo "🎉 Pomera CUI Workspace & Writing Environment Ready!"
 echo "=========================================================="
 echo ""
 echo "How to use your workspace:
-  1. CUI Framebuffer Terminal (fastest, direct hardware console):
-     - Run 'mlterm-opt'  (or mlterm-fb-pomera) for the turbocharged dirty-scanline build
+  1. High-Speed Framebuffer Console (mlterm-fb):
+     - Run 'mlterm-opt'  (or mlterm-fb-pomera) for the turbocharged build
      - Run 'mlterm-base' (or mlterm-fb) for the baseline shadowfb build
-  2. Start GUI workspace : run 'startx'
-     - Alt + Enter    : Open terminal (mlterm)
-     - Alt + F1 / F2  : Adjust screen brightness (F1: Dim, F2: Brighten)
-     - Alt + Up / Down: Adjust screen brightness
-     - Ctrl + Alt + q : Close current window
-     - Ctrl + Alt + BackSpace : Exit GUI to CUI
-  3. Setup Japanese Input (IME):
-     Run 'pomera-setup-japanese' to configure uim-anthy!
-  4. Optional display modes:
-     Enable graphical login : $DOAS /usr/local/bin/pomera-gui-toggle gui
-     Revert to CUI console  : $DOAS /usr/local/bin/pomera-gui-toggle cui"
+     - Run 'mlterm-ja'   (Launch terminal with Japanese input via uim-fep)
+  2. Text Editing & Multiplexer:
+     - Run 'vim' for distraction-free writing (True Color & UTF-8 ready)
+     - Run 'tmux' for multi-pane terminal workspace
+  3. Setup Japanese Input:
+     - Run 'pomera-setup-japanese' to configure uim-fep and anthy!"
 
 if [ -d "/var/cache/packages" ]; then
     echo "💡 Storage Tip: Offline packages are cached at /var/cache/packages (~180MB)."

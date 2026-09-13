@@ -4,7 +4,7 @@
 
 A complete automated installer and provisioning toolkit to run **OpenBSD 7.9 (armv7)** on the **King Jim Pomera DM250**.
 
-Turn your dedicated Japanese digital typewriter into a portable UNIX terminal with **built-in Wi-Fi, high-speed CJK console (mlterm-fb), instant lid-close power saving / ultra-fast wakeup, tailored keyboard layout, and seamless CUI ↔ GUI (X11) switching**.
+Turn your dedicated Japanese digital typewriter into a distraction-free portable UNIX writing terminal with **built-in Wi-Fi, ultra-fast CJK framebuffer console (mlterm-fb), instant lid-close power saving / ultra-fast wakeup, and tailored keyboard layout**.
 
 ---
 
@@ -15,10 +15,10 @@ Turn your dedicated Japanese digital typewriter into a portable UNIX terminal wi
 | **⚡ Instant Sleep & Wakeup** | Native `rcctl` daemon (`pomera_lid_watch`) monitors the lid switch: 0ms backlight cutoff & CPU throttling on close, instant full-power restore on open. Polling interval and CPU policy (auto/high) are fully configurable. |
 | **🔋 Accurate Battery Management** | Integrated with Rockchip RK818 PMIC for automatic battery charging and hardware power routing. Query real-time voltage, charge/discharge status, and capacity percentage via `sysctl hw.sensors.simplebat0`. |
 | **🌐 Connectivity (2.4GHz Wi-Fi)** | Built-in Wi-Fi (`bwfm0`, 2.4GHz, multi-SSID auto-fallback and auto-reconnect daemon). *(Experimental support for Bluetooth PAN and USB-Ethernet drivers is also included).* |
-| **💻 CUI & GUI Dual Mode** | High-performance CUI (Console / VT100 / tmux) by default. Supports direct framebuffer console `mlterm-fb` with zero tearing, and switch to lightweight X11 GUI (`xenodm` + `cwm` + `mlterm`) anytime via `pomera-gui-toggle`. |
-| **🖱️ USB Peripherals** | Support for standard USB mice and external keyboards via USB Type-C OTG. |
+| **💻 Pure High-Speed CUI Terminal** | Pure CUI environment without bloated GUI desktop layers. Equipped with both standard framebuffer console (`mlterm-base` / `mlterm-fb`) and zero-latency turbo console (`mlterm-opt` / `mlterm-fb-pomera`), plus seamless Japanese typing via `mlterm-ja` (`uim-fep`). |
+| **🖱️ USB Peripherals** | Support for external keyboards and mice via USB Type-C OTG. |
 | **🛡️ Safety & Non-Destructive** | Integrated with [pomera-dm250-backup-restore-tool](https://github.com/mah-jp/pomera-dm250-backup-restore-tool) for full eMMC factory backup and 100% restore capability. |
-| **🛠️ Smart Patch Audit & Auto-Build** | Optional kernel patches for USB Hub stability, X11 Right-Shift/Left-Alt keys, and mlterm-fb framebuffer console (SMODE). Automatically audits official kernel and skips recompilation if already fixed upstream. |
+| **🛠️ Smart Patch Audit & Auto-Build** | Optional kernel patches for USB Hub stability and mlterm-fb framebuffer console (SMODE). Automatically audits official kernel and skips recompilation if already fixed upstream. |
 | **🤖 Native QEMU Engine Builder** | Drives a temporary OpenBSD QEMU VM to create authentic disklabel/FFS structures. Pre-configurable via `user_config.env` for 100% unattended installation. |
 
 ---
@@ -228,17 +228,13 @@ sudo ./make_sdcard.sh /dev/rdisk4
 >    - **`Alt + F1`** : Dim brightness (Mac-style)
 >    - **`Alt + F2`** : Brighten brightness (Mac-style)  
 >    *(※ No tmux prefix required; operates directly)*
-> 
-> 3. **X11 GUI Desktop (`cwm`)**:  
->    While X11 is running (via `startx` or `doas pomera-gui-toggle gui`), hotkeys work anywhere:
->    - **`Alt + F1`** / **`Alt + F2`** : Dim / Brighten screen
->    - **`Alt + ↓`** / **`Alt + ↑`** : Adjust in 10% increments via arrow keys
 
 > [!TIP]
-> **💡 Choosing Between CUI and GUI (X11)**  
-> - **Launch X11 GUI desktop temporarily**: Run `startx` after logging in.
-> - **Enable permanent graphical login (xenodm)**: Run `doas pomera-gui-toggle gui`.
-> - **Stay in distraction-free CUI**: Continue using the console, tmux, or high-speed CJK terminal `mlterm-fb`. You can always lock back to CUI anytime with `doas pomera-gui-toggle cui`.
+> **💡 mlterm-fb Terminal Options (mlterm-opt / mlterm-base / mlterm-ja)**  
+> The installer provides both standard and optimized versions of `mlterm-fb` (direct framebuffer terminal):
+> - **`mlterm-opt`** (or `mlterm-fb-pomera`): Ultra-low latency turbo edition (recommended, optimized row bounding box + DECSET 2026 support)
+> - **`mlterm-base`** (or `mlterm-fb`): Standard stable baseline edition (shadowfb direct framebuffer)
+> - **`mlterm-ja`**: Direct Japanese input terminal (`mlterm-opt -e uim-fep`)
 
 > [!TIP]
 > **💡 Booting from SD card when a custom OS (OpenBSD, etc.) is already installed**
@@ -256,39 +252,35 @@ sudo ./make_sdcard.sh /dev/rdisk4
 ### Step 3: Workspace & Japanese IME Setup
 
 > Base system components, Wi-Fi auto-connect, lid daemon, and tailored dotfiles are already configured during Step 2.
-> For reliability and speed, offline packages (Vim, tmux, mlterm, Noto CJK, cwm, etc.) are safely staged into `/var/cache/packages`. Running `pomera-setup-workspace` upon first login finishes the installation cleanly without memory constraints. Everything works standalone and completely offline on the DM250!
+> For reliability and speed, offline packages (Vim, tmux, mlterm, Noto CJK, etc.) are safely staged into `/var/cache/packages`. Running `pomera-setup-workspace` upon first login finishes the installation cleanly without memory constraints. Everything works standalone and completely offline on the DM250!
 
 #### 1. Workspace & Dev Environment Setup (`pomera-setup-workspace`)
 ```bash
 pomera-setup-workspace
 ```
 - Essential tools (`vim`, `tmux`, `curl`, `git`)
-- Japanese fonts (Noto Sans CJK) & artifact-free fast terminal (`mlterm` / `mlterm-fb`)
-- Ultra-lightweight window manager (`cwm`) & launcher (`dmenu`)
-- 1024x600 display optimized dotfiles (`~/.cwmrc`, `~/.tmux.conf`, `~/.xsession`, etc.)
+- High-speed direct framebuffer console (`mlterm-opt`, `mlterm-base`, `mlterm-ja`)
+- Japanese fonts (Noto Sans CJK)
+- 1024x600 display optimized dotfiles (`~/.tmux.conf`, `~/.vimrc`, `~/.profile`)
 
 > [!TIP]
 > **Convenient Keyboard Shortcuts**:
-> - **Brightness Control (tmux sessions and X11 desktop)**:
+> - **Brightness Control (tmux sessions)**:
 >   - `Alt + F1`: Dim screen brightness (Mac-style)
 >   - `Alt + F2`: Brighten screen brightness (Mac-style)
->   - `Alt + ↑` / `Alt + ↓`: Adjust brightness by +/- 10% (in cwm desktop)
-> - **Desktop (cwm)**:
->   - `Alt + Enter`: Launch terminal (`mlterm`)
->   - `Ctrl + Alt + m`: Maximize / unmaximize active window
->   - `Ctrl + Alt + q`: Close active window
->   - `Ctrl + Alt + Backspace` or `Ctrl + Alt + Shift + q`: Exit X11 back to text console (CUI)
 > - **CUI / Direct Framebuffer (mlterm-fb)**:
->   - `mlterm-fb`: Launch direct framebuffer high-resolution CJK terminal (no X11 needed, supports `Alt+F1`/`Alt+F2` brightness control when run with tmux)
+>   - `mlterm-opt`: Launch ultra-low latency turbo CJK terminal
+>   - `mlterm-base`: Launch standard baseline CJK terminal
+>   - `mlterm-ja`: Launch Japanese input terminal directly with `uim-fep`
 
 #### 2. Japanese IME Input Setup (`pomera-setup-japanese`)
 If you write in Japanese, run the second stage script:
 ```bash
 pomera-setup-japanese
 ```
-- Installs `uim` & `uim-anthy`
-- Configures JIS-friendly toggle shortcuts (`Shift + Space`, `Ctrl + Space`, `Hankaku/Zenkaku`)
-- Prepares `~/.xsession` to start `uim-xim` in the background on `startx`
+- Installs `uim` (with `uim-fep`) & `anthy`
+- Configures JIS-friendly toggle shortcuts (`Shift + Space`, `Ctrl + Space`, `Hankaku/Zenkaku`) in `~/.uim`
+- Automatically registers `alias mlterm-ja='/usr/local/bin/mlterm-fb-pomera -e uim-fep'` in `~/.profile`
 
 ---
 
@@ -298,7 +290,7 @@ pomera-setup-japanese
 
 | Command | Description |
 | :--- | :--- |
-| `pomera-brightness [up\|down\|<%>]` | Adjust backlight brightness manually (`Alt+F1`/`Alt+F2` in X11). |
+| `pomera-brightness [up\|down\|<%>]` | Adjust backlight brightness manually (`Alt+F1`/`Alt+F2` in tmux). |
 | `sysctl hw.sensors.simplebat0` | Display battery voltage, charging/discharging status, and capacity percentage (`percent0`). |
 | `sysctl -n hw.sensors.simplebat0.percent0` | Quickly output battery percentage only (e.g. `96.00%`). |
 | `sysctl hw.cpuspeed` | Display current CPU operating clock speed in MHz (max: 1200 MHz). |
@@ -311,14 +303,16 @@ pomera-setup-japanese
 | `doas pomera-suspend` | Suspend SoC and clocks to deep idle power state (wake via Power button or lid switch). |
 | `doas gpioctl gpio1 red_led 1` / `green_led 1` | Control front status LEDs (`0` to turn off). |
 
-### Desktop & Connectivity
+### Workspace & Connectivity
 
 | Command | Description |
 | :--- | :--- |
-| `pomera-setup-workspace` | Automatically set up workspace (`cwm`/`mlterm`), framebuffer `mlterm-fb`, fonts, Vim, tmux, and dotfiles. |
-| `pomera-setup-japanese` | Automatically set up Japanese IME (`uim`/`uim-anthy`) and XIM integration. |
-| `pomera-font [udev\|moraler\|noto]` | Instantly switch terminal fonts (slashed-zero UDEV Gothic, Moralerspace, or Noto) for both X11 and `mlterm-fb`. |
-| `doas pomera-gui-toggle [gui\|cui\|toggle]` | Switch between CUI console and X11 GUI mode (`xenodm`/`cwm`). |
+| `mlterm-opt` | Launch ultra-low latency turbo CJK terminal (`mlterm-fb-pomera`). |
+| `mlterm-base` | Launch standard baseline CJK terminal (`mlterm-fb`). |
+| `mlterm-ja` | Launch Japanese input terminal with `uim-fep` preloaded. |
+| `pomera-setup-workspace` | Automatically set up CUI workspace (`mlterm-fb`, fonts, Vim, tmux, and dotfiles). |
+| `pomera-setup-japanese` | Automatically set up Japanese IME (`uim`/`uim-fep` + `anthy`) for `mlterm-fb`. |
+| `pomera-font [udev\|moraler\|noto]` | Instantly switch terminal fonts (slashed-zero UDEV Gothic, Moralerspace, or Noto) for `mlterm-fb`. |
 | `doas pomera-bt-pan connect <BD_ADDR>` | *(Experimental)* Connect to smartphone Bluetooth Tethering (PAN) (requires 4noha's panctl daemon; unverified on hardware). |
 
 ### 🔧 Host PC Diagnostics & Simulator Tools (Advanced / Developers)

@@ -16,10 +16,14 @@
 set -euo pipefail
 export PYTHONDONTWRITEBYTECODE=1
 
-TOOL_VERSION="1.0.0"
-
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
+
+if [ -f "${SCRIPT_DIR}/VERSION" ]; then
+    TOOL_VERSION="$(tr -d '\r\n' < "${SCRIPT_DIR}/VERSION")"
+else
+    TOOL_VERSION="undefined"
+fi
 
 WORK_DIR="${SCRIPT_DIR}/_build_cache"
 CONFIGS_DIR="${SCRIPT_DIR}/configs"

@@ -393,7 +393,6 @@ def package_site_set(work_dir: str, configs_dir: str, scripts_dir: str, res_mgr:
         ("pomera-lid-watch.sh", "usr/local/sbin/pomera-lid-watch", True),
         ("pomera-power-led.sh", "usr/local/sbin/pomera-power-led", True),
         ("pomera-wifi-watch.sh", "usr/local/sbin/pomera-wifi-watch", True),
-        ("pomera-gui-toggle.sh", "usr/local/bin/pomera-gui-toggle", True),
         ("pomera-setup-workspace.sh", "usr/local/bin/pomera-setup-workspace", True),
         ("pomera-setup-japanese.sh", "usr/local/bin/pomera-setup-japanese", True),
         ("pomera-font.sh", "usr/local/bin/pomera-font", True),
@@ -434,10 +433,16 @@ def package_site_set(work_dir: str, configs_dir: str, scripts_dir: str, res_mgr:
     if os.path.exists(mlterm_archive):
         print(f">> Bundling Pomera-optimized mlterm-fb from {mlterm_archive}")
         subprocess.run(["tar", "-xzf", mlterm_archive, "-C", site_build], check=True)
-        for bin_name in ["mlterm-fb", "mlterm-fb-pomera"]:
+        for bin_name in ["mlterm-fb", "mlterm-fb-pomera", "mlterm-base", "mlterm-opt"]:
             bin_path = os.path.join(site_build, f"usr/local/bin/{bin_name}")
-            if os.path.exists(bin_path):
+            if os.path.exists(bin_path) and not os.path.islink(bin_path):
                 subprocess.run(["chmod", "4755", bin_path], check=True)
+        base_link = os.path.join(site_build, "usr/local/bin/mlterm-base")
+        opt_link = os.path.join(site_build, "usr/local/bin/mlterm-opt")
+        if not os.path.lexists(base_link):
+            os.symlink("mlterm-fb", base_link)
+        if not os.path.lexists(opt_link):
+            os.symlink("mlterm-fb-pomera", opt_link)
         os.makedirs(os.path.join(site_build, "usr/local/share/pomera"), exist_ok=True)
         subprocess.run(["cp", "-f", mlterm_archive, os.path.join(site_build, "usr/local/share/pomera/mlterm-fb-dm250.tar.gz")], check=True)
 
@@ -830,7 +835,7 @@ def run_qemu_builder(
     work_dir: str,
     configs_dir: str,
     scripts_dir: str,
-    tool_version: str = "79.0",
+    tool_version: str = "undefined",
     is_raw_device: bool = False,
 ):
     """

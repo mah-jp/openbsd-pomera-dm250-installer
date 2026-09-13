@@ -298,10 +298,17 @@ export TERM=xterm-256color
 export EDITOR=vim
 export PAGER=less
 alias ll='ls -la'
+alias mlterm-base='/usr/local/bin/mlterm-fb'
+alias mlterm-opt='/usr/local/bin/mlterm-fb-pomera'
+alias mlterm-ja='/usr/local/bin/mlterm-fb-pomera -e uim-fep'
 EOF
 chown "${TARGET_USER}:staff" "/home/${TARGET_USER}/.profile"
 chmod 0644 "/home/${TARGET_USER}/.profile"
 [ -d /etc/skel ] && cp -f "/home/${TARGET_USER}/.profile" /etc/skel/.profile
+
+# Ensure /usr/local/bin/mlterm-base and mlterm-opt symlinks exist
+[ -f /usr/local/bin/mlterm-fb ] && ln -sf mlterm-fb /usr/local/bin/mlterm-base
+[ -f /usr/local/bin/mlterm-fb-pomera ] && ln -sf mlterm-fb-pomera /usr/local/bin/mlterm-opt
 
 # ~/.vimrc
 cat << 'EOF' > "/home/${TARGET_USER}/.vimrc"
@@ -344,25 +351,6 @@ EOF
 chown "${TARGET_USER}:staff" "/home/${TARGET_USER}/.tmux.conf"
 chmod 0644 "/home/${TARGET_USER}/.tmux.conf"
 [ -d /etc/skel ] && cp -f "/home/${TARGET_USER}/.tmux.conf" /etc/skel/.tmux.conf
-
-# ~/.cwmrc
-cat << 'EOF' > "/home/${TARGET_USER}/.cwmrc"
-fontname "sans-serif:pixelsize=14:antialias=true"
-color activeborder "#729fcf"
-color inactiveborder "#2e3436"
-borderwidth 2
-gap 0 0 0 0
-
-bind-key M-Return terminal
-bind-key M-p "dmenu_run -fn 'sans-serif:pixelsize=14' -nb '#000000' -nf '#ffffff' -sb '#729fcf' -sf '#000000'"
-bind-key M-F1 "/usr/local/bin/pomera-brightness down"
-bind-key M-F2 "/usr/local/bin/pomera-brightness up"
-bind-key M-Down "/usr/local/bin/pomera-brightness down"
-bind-key M-Up "/usr/local/bin/pomera-brightness up"
-EOF
-chown "${TARGET_USER}:staff" "/home/${TARGET_USER}/.cwmrc"
-chmod 0644 "/home/${TARGET_USER}/.cwmrc"
-[ -d /etc/skel ] && cp -f "/home/${TARGET_USER}/.cwmrc" /etc/skel/.cwmrc
 
 # ~/.mlterm configuration
 mkdir -p "/home/${TARGET_USER}/.mlterm"
@@ -427,64 +415,7 @@ chown -R "${TARGET_USER}:staff" "/home/${TARGET_USER}/.mlterm"
 chmod 0700 "/home/${TARGET_USER}/.mlterm"
 chmod 0600 "/home/${TARGET_USER}/.mlterm/main" "/home/${TARGET_USER}/.mlterm/color" "/home/${TARGET_USER}/.mlterm/aafont"
 
-# Ensure .Xdefaults and .xsession exist with Xft font rendering optimization
-cat << 'EOF' > "/home/${TARGET_USER}/.Xdefaults"
-! -------------------------------------------------------------
-! Xft Font Rendering Optimization for Pomera DM250 (1024x600)
-! -------------------------------------------------------------
-Xft.dpi:        96
-Xft.antialias:  1
-Xft.hinting:    1
-Xft.hintstyle:  hintslight
-Xft.rgba:       none
-Xft.lcdfilter:  none
 
-! -------------------------------------------------------------
-! XTerm fallback configuration
-! -------------------------------------------------------------
-XTerm*loginShell:        true
-XTerm*faceName:          monospace
-XTerm*faceSize:          11
-XTerm*background:        #1a1b26
-XTerm*foreground:        #c0caf5
-EOF
-chown "${TARGET_USER}:staff" "/home/${TARGET_USER}/.Xdefaults"
-chmod 0644 "/home/${TARGET_USER}/.Xdefaults"
-[ -d /etc/skel ] && cp -f "/home/${TARGET_USER}/.Xdefaults" /etc/skel/.Xdefaults
-
-# ~/.xsession
-cat << EOF > "/home/${TARGET_USER}/.xsession"
-#!/bin/sh
-export LANG=${WORKSPACE_LANG}
-export LC_CTYPE=${WORKSPACE_LANG}
-
-# Load X resources (Xft font rendering, terminal styles)
-if [ -f "\$HOME/.Xdefaults" ]; then
-    xrdb -merge "\$HOME/.Xdefaults"
-fi
-
-[ -x /usr/X11R6/bin/setxkbmap ] && setxkbmap -option ctrl:nocaps 2>/dev/null || echo ""
-
-xsetroot -solid "#1a1b26"
-if command -v mlterm >/dev/null 2>&1; then
-    mlterm &
-elif command -v xterm >/dev/null 2>&1; then
-    xterm &
-fi
-exec cwm 2>/dev/null || exec fvwm
-EOF
-chown "${TARGET_USER}:staff" "/home/${TARGET_USER}/.xsession"
-chmod 0755 "/home/${TARGET_USER}/.xsession"
-[ -d /etc/skel ] && cp -f "/home/${TARGET_USER}/.xsession" /etc/skel/.xsession
-
-# Ensure .xinitrc symlink exists so startx runs .xsession workspace
-ln -sf .xsession "/home/${TARGET_USER}/.xinitrc"
-chown -h "${TARGET_USER}:staff" "/home/${TARGET_USER}/.xinitrc"
-
-# Set SUID root on Xorg binary so regular users can launch startx out-of-the-box
-if [ -f /usr/X11R6/bin/Xorg ]; then
-    chmod 4755 /usr/X11R6/bin/Xorg
-fi
 
 # Disable KARL library reordering to prevent /usr/share/relink missing file errors
 cat << 'EOF' >> /etc/rc.conf.local
@@ -568,10 +499,10 @@ cat << 'EOF' >> /etc/motd
 🎉 Welcome to OpenBSD on King Jim Pomera DM250!
 ==========================================================
 First-Time Setup:
-  1. Workspace (Vim, tmux, mlterm, fonts, cwm):
+  1. Workspace (Vim, tmux, mlterm-fb, fonts):
      $ pomera-setup-workspace
 
-  2. Japanese Input (uim-anthy):
+  2. Japanese Input (uim-fep):
      $ pomera-setup-japanese
 ==========================================================
 

@@ -24,8 +24,18 @@ if len(sys.argv) < 2:
     print("Usage: build_sd_passthrough.py <target_device_or_image> [tool_version]")
     sys.exit(1)
 
+def get_version(base_dir: str) -> str:
+    vfile = os.path.join(base_dir, "VERSION")
+    if os.path.exists(vfile):
+        with open(vfile, "r", encoding="utf-8") as f:
+            v = f.read().strip()
+            if v:
+                return v
+    return "undefined"
+
+
 TARGET_DEV = sys.argv[1]
-TOOL_VERSION = sys.argv[2] if len(sys.argv) > 2 else "79.0"
+TOOL_VERSION = sys.argv[2] if len(sys.argv) > 2 else get_version(BASE_DIR)
 IS_RAW_DEV = TARGET_DEV.startswith("/dev/")
 
 print(f">> [build_sd_passthrough] Initializing Native OpenBSD SD builder v{TOOL_VERSION}...")
