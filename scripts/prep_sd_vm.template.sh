@@ -189,18 +189,19 @@ mount -u -o ro / 2>/dev/null || true
 sleep 2
 
 echo "==========================================================" >/dev/ttyC0
-echo "🎉 ALL OPERATIONS COMPLETED SUCCESSFULLY!" >/dev/ttyC0
-echo "🔒 All disk buffers safely flushed. Storage is 100% clean." >/dev/ttyC0
+echo "🎉 OpenBSD INSTALLATION COMPLETED SUCCESSFULLY!" >/dev/ttyC0
+echo "   Internal storage (eMMC) has been completely prepared." >/dev/ttyC0
 echo "==========================================================" >/dev/ttyC0
 echo "Next steps:" >/dev/ttyC0
 echo "  1. Press [Enter] below to power off system." >/dev/ttyC0
-echo "  2. REMOVE the SD card AFTER power turns off." >/dev/ttyC0
+echo "  2. REMOVE the SD card AFTER power turns off completely." >/dev/ttyC0
 echo "  3. Turn ON Pomera to start OpenBSD from internal storage!" >/dev/ttyC0
 echo "==========================================================" >/dev/ttyC0
 echo -n "Press Enter to power off... " >/dev/ttyC0
 read -r _done </dev/ttyC0 2>/dev/null || true
 echo "" >/dev/ttyC0
-echo ">> Powering off system..." >/dev/ttyC0
+echo ">> Flushing buffers and powering off system..." >/dev/ttyC0
+sync
 sync
 mount -u -o ro / 2>/dev/null || true
 sleep 1

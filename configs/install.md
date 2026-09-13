@@ -206,17 +206,17 @@ EOF
 	
 	echo "=========================================================="
 	echo "🎉 Pomera DM250 OpenBSD Installation 100% Complete!"
-	echo "🔒 All storage buffers are safely synced to physical media."
+	echo "   Internal storage (eMMC) has been completely prepared."
 	echo "=========================================================="
 	echo "Next steps:"
 	echo "  1. Press [Enter] below to power off system."
-	echo "  2. REMOVE the SD card AFTER power turns off."
+	echo "  2. REMOVE the SD card AFTER power turns off completely."
 	echo "  3. Turn ON Pomera to start OpenBSD from internal storage!"
 	echo "=========================================================="
 	echo -n "Press Enter to power off... "
 	read -r _finish </dev/ttyC0 2>/dev/null || _finish=""
 	echo ""
-	echo ">> Powering off system..."
+	echo ">> Flushing buffers and powering off system..."
 	sync
 	sync
 	halt -p
