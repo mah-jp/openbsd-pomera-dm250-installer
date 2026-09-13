@@ -27,8 +27,8 @@ Enables a portable UNIX terminal environment on the DM250 hardware with **built-
 
 The installer SD builder (`make_sdcard.sh`) works on:
 
-- 🍏 **macOS** (Apple Silicon M1/M2/M3/M4 & Intel x86_64, macOS Sonoma / Sequoia)
-- 🐧 **Linux amd64 / aarch64** (Ubuntu 22.04/24.04, Debian 12, Fedora 39/40, Arch Linux, Raspberry Pi OS)
+- 🍏 **macOS** (Apple Silicon / Intel)
+- 🐧 **Linux** (amd64 / aarch64)
 
 ---
 

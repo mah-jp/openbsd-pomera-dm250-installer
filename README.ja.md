@@ -27,8 +27,8 @@ King Jim **Pomera DM250**（DM250X, DM250XY, DM250US含む）に **OpenBSD 7.9 (
 
 SDカード作成スクリプト（`make_sdcard.sh`）は以下の環境で動作します：
 
-- 🍏 **macOS** (Apple Silicon M1/M2/M3/M4 および Intel x86_64, macOS Sonoma / Sequoia)
-- 🐧 **Linux amd64 / aarch64** (Ubuntu 22.04/24.04, Debian 12, Fedora 39/40, Arch Linux, Raspberry Pi OS)
+- 🍏 **macOS** (Apple Silicon / Intel)
+- 🐧 **Linux** (amd64 / aarch64)
 
 ---
 
