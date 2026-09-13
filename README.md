@@ -93,15 +93,21 @@ sudo pacman -S --needed curl python qemu-system-aarch64 edk2-arm
 
 ---
 
-### Step 0: Create Full Factory Backup (Recommended)
+### Step 0: Create Full Factory Backup (Mandatory / Critical for Factory Restore)
 
-Before flashing, create a backup of your Pomera's internal eMMC using [pomera-dm250-backup-restore-tool](https://github.com/mah-jp/pomera-dm250-backup-restore-tool):
+> [!CAUTION]
+> **🚨 Without a full backup including bootloader sectors, you CANNOT restore the device to its factory state**  
+> Flashing OpenBSD will permanently overwrite the internal eMMC partitions and bootloader sectors.  
+> **If you do not have a full raw backup of the internal eMMC including its bootloader region, it is impossible to revert your Pomera back to its original factory state.**  
+> 
+> *Note*: The backup tool provided by ichinomoto ([EKESETE.net](https://www.ekesete.net/log/?p=9504)) does not preserve the internal eMMC bootloader sectors (raw initial LBA sectors). Therefore, it is **insufficient** for restoring the device to factory state.  
+> You must create a complete raw sector backup using [pomera-dm250-backup-restore-tool](https://github.com/mah-jp/pomera-dm250-backup-restore-tool) prior to installation.
 
 ```bash
 git clone https://github.com/mah-jp/pomera-dm250-backup-restore-tool.git
 cd pomera-dm250-backup-restore-tool
 ./prepare_sdcard.sh /dev/sdX
-# Boot Pomera in UMS mode and run backup_emmc.sh
+# Boot Pomera in UMS mode and run backup_emmc.sh (backs up entire eMMC including bootloader)
 ```
 
 ---

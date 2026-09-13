@@ -93,15 +93,21 @@ sudo pacman -S --needed curl python qemu-system-aarch64 edk2-arm
 
 ---
 
-### Step 0: 純正eMMCのバックアップ（強く推奨）
+### Step 0: 純正eMMCの完全バックアップ（必須・工場出荷状態への復元に不可欠）
 
-作業前に、[pomera-dm250-backup-restore-tool](https://github.com/mah-jp/pomera-dm250-backup-restore-tool) を使って Pomera の内部eMMCをPCへバックアップしておくことを推奨します。
+> [!CAUTION]
+> **🚨 ブートローダー領域を含む完全バックアップがない場合、二度と純正（工場出荷状態）に戻せません**  
+> 本インストーラーを実行すると、Pomera 本体内蔵eMMCのパーティションおよびブートローダー領域が上書きされます。  
+> **本体eMMCのブートローダー領域を含む完全なバックアップが存在しない場合、Pomeraを工場出荷状態に戻すことは二度とできなくなります。**  
+> 
+> ※ ichinomoto 氏（[EKESETE.net](https://www.ekesete.net/log/?p=9504)）で公開されているバックアップツールでは、本体eMMCのブートローダー領域（先頭の raw セクター領域）のバックアップは残されません。そのため、**工場出荷状態への復元を行うには不十分です**。  
+> 必ずブートローダー領域を含む eMMC 全体を丸ごと保存できる [pomera-dm250-backup-restore-tool](https://github.com/mah-jp/pomera-dm250-backup-restore-tool) を使用し、作業前に母艦PCへ完全なバックアップを作成してください。
 
 ```bash
 git clone https://github.com/mah-jp/pomera-dm250-backup-restore-tool.git
 cd pomera-dm250-backup-restore-tool
 ./prepare_sdcard.sh /dev/sdX
-# Pomera をUMSモードで起動して backup_emmc.sh を実行
+# Pomera をUMSモードで起動して backup_emmc.sh を実行（eMMC全領域を完全バックアップ）
 ```
 
 ---
