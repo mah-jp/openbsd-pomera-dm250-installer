@@ -4,7 +4,7 @@
 
 キングジム **ポメラ DM250**（DM250X, DM250XY, DM250US含む）に **OpenBSD 7.9 (armv7)** を導入し、日常的に持ち運べる究極のUNIXポータブル端末を構築するためのワンストップ自動インストーラーです。
 
-**Wi-Fi・Bluetoothテザリング・USB-NIC/マウス対応・蓋閉じ超省電力/開け即時最速復帰・CUIとGUI(X11)の自在な切替** を誰でも簡単にセットアップできるように設計されています。
+**内蔵Wi-Fi・高精細日本語コンソール（mlterm-fb）・蓋閉じ超省電力/開け即時最速復帰・キーボード最適化・CUIとGUI(X11)の自在な切替** を誰でも簡単にセットアップできるように設計されています。
 
 ---
 
@@ -14,9 +14,9 @@
 | :--- | :--- |
 | **⚡ 蓋開閉の超省電力＆最速復帰** | 専用デーモン `pomera_lid_watch`（`rcctl` 対応）が蓋センサーを監視。閉じた瞬間にバックライト0秒消灯＆CPU省電力化。開けると最速で復帰して即入力可能。検知秒数やCPUポリシー（auto/high）も自在に調整可能。 |
 | **🔋 高精度バッテリー管理** | 内蔵 PMIC (RK818) と連動し、充電器接続時の自動給電・充電に対応。カーネルセンサー（`sysctl hw.sensors.simplebat0`）から電圧・充放電状態・残量パーセントを正確に取得。 |
-| **🌐 充実のネットワーク (2.4GHz Wi-Fi)** | 内蔵 Wi-Fi (`bwfm0`、2.4GHz専用、複数SSID自動切替)、スマホテザリング用 Bluetooth PAN (`pomera-bt-pan`)、USB-Ethernet (`ure0`, `axe0`, `axen0`, `urndis0`, `cdce0`) に標準対応。 |
+| **🌐 内蔵 Wi-Fi (2.4GHz)** | 内蔵 Wi-Fi (`bwfm0`、2.4GHz、複数SSID自動切替・監視常駐デーモン) に標準対応。*(※ 実験的機能として Bluetooth PAN や USB-Ethernet ドライバの設定枠も保持)* |
 | **💻 CUI & GUI デュアル対応** | 標準は超軽量・高速な CUI (wsconsコンソール / VT100 / tmux)。フレームバッファ直描画の超高速日本語コンソール `mlterm-fb` に対応し、`pomera-gui-toggle` で軽量X11デスクトップ (`xenodm` + `cwm` + `mlterm`) へもワンタッチ切替可能。 |
-| **🖱️ USB周辺機器プラグ＆プレイ** | USB Type-C OTG経由で標準的なUSBマウス、キーボード、有線LANアダプタを挿すだけで即認識。 |
+| **🖱️ USB周辺機器対応** | USB Type-C OTG経由で標準的なUSBマウスや外付けキーボード等の接続に対応。 |
 | **🛡️ 100%原状復帰可能な安全設計** | [pomera-dm250-backup-restore-tool](https://github.com/mah-jp/pomera-dm250-backup-restore-tool) と連携し、導入前に純正eMMCの完全バックアップを取得可能。いつでも工場出荷時に戻せます。 |
 | **🛠️ パッチ自動検査＆スマートビルド** | USBハブ安定化、X11キー修正、mlterm-fb直描画用カーネルパッチ（SMODE）を選択可能。公式カーネルを自動検査し、未修正時のみQEMUリコンパイルを実行、対応済みなら0秒で公式版を採用。 |
 | **🤖 ネイティブQEMUエンジン自動構築** | 一時的な OpenBSD QEMU VM を介して本物の disklabel/FFS を生成。`user_config.env` による事前設定（Wi-Fi・パスワード・省電力）で実機インストールも完全自動で完走。 |
@@ -37,8 +37,7 @@ SDカード作成スクリプト（`make_sdcard.sh`）は以下の環境で動�
 1. **ポメラ DM250 / DM250X / DM250XY / DM250US 本体**（事前に十分充電されていること。目安50%以上、満充電推奨）
 2. **SDカード**（2 GB 〜 32 GB の標準SDまたはmicroSD＋アダプタ）
 3. **母艦PC**（macOS または Linux）
-4. **USB Type-C ケーブル**（データ転送対応）
-5. *(推奨)* USB Type-A to Type-C 変換アダプタ および USB有線LANアダプタ（USB-NIC）
+4. **USB Type-C ケーブル**（給電・充電用）
 
 > [!WARNING]
 > **⚠️ 事前に本体バッテリーを十分に充電してください**  
@@ -197,7 +196,7 @@ sudo ./make_sdcard.sh /dev/rdisk4
    ```
    **`yes`** と入力して [Enter] を押すと、初めて本体eMMCの初期化とインストールが開始されます。  
    *(※ `N` や空Enterを入力するとインストールを直ちに中断し、メンテナンスメニューへ安全に移行します。本体eMMCは一切変更されません)*
-4. 以降は完全手放しでインストールが走り、内蔵eMMC（`sd1`）の自動初期化、ベースセット導入、`site79.tgz`（DM250カスタムカーネル `/bsd` 配置、`reorder_kernel` 事前無効化、複数SSID Wi-Fi / USB-NIC DHCP設定、蓋開閉監視デーモン登録）がすべて自動実行されます。
+4. 以降は完全手放しでインストールが走り、内蔵eMMC（`sd1`）の自動初期化、ベースセット導入、`site79.tgz`（DM250カスタムカーネル `/bsd` 配置、`reorder_kernel` 事前無効化、複数SSID Wi-Fi自動設定、蓋開閉監視デーモン登録）がすべて自動実行されます。
 5. 画面に `🎉 OpenBSD INSTALLATION COMPLETED SUCCESSFULLY!` が表示されたら：  
    **キーボードで [Enter] を押して電源を切ります**。  
    *(※ 画面が消えて電源が完全に切れた後で、SDカードを取り出してください)*
@@ -232,7 +231,7 @@ sudo ./make_sdcard.sh /dev/rdisk4
 ### Step 3: ワークスペース＆日本語入力（IME）環境の導入
 
 > [!NOTE]
-> 本インストーラーによる自動インストール（Step 2）の時点で、**JIS日本語キーボード、Wi-Fi自動接続、USB-NIC、蓋開閉省電力デーモン、各種dotfiles（設定ファイル）** などの基本機能はすべてセットアップ完了しています。  
+> 本インストーラーによる自動インストール（Step 2）の時点で、**JIS日本語キーボード、Wi-Fi自動接続、蓋開閉省電力デーモン、各種dotfiles（設定ファイル）** などの基本機能はすべてセットアップ完了しています。  
 > 安定性と高速化のため、オフラインパッケージ群（Vim, tmux, mlterm, Noto CJK, cwm等）は内蔵ストレージ（`/var/cache/packages`）に自動退避されています。初回ログイン時に `pomera-setup-workspace` を実行することで、メモリ不足やエラーなく安全にワークスペースが完成します。外部PCやインターネット接続は不要で、ポメラ単体・完全オフラインで完結します。
 
 #### 1. ワークスペース環境のセットアップ (`pomera-setup-workspace`)
@@ -296,7 +295,7 @@ pomera-setup-japanese
 | `pomera-setup-japanese` | 日本語入力システム (`uim`/`uim-anthy`) および XIM 設定を自動セットアップ。 |
 | `pomera-font [udev\|moraler\|noto]` | ターミナルフォント（斜線ゼロ入り UDEV Gothic、Moralerspace、Noto）をワンタッチ切替（X11版 / `mlterm-fb` 共通）。 |
 | `doas pomera-gui-toggle [gui\|cui\|toggle]` | CUIコンソールとX11 GUIモード（`xenodm`/`cwm`）を即座に切り替え。 |
-| `doas pomera-bt-pan connect <BD_ADDR>` | スマホのBluetoothテザリング（PAN）にワンタッチ接続（※要4noha氏のpanctlデーモン）。 |
+| `doas pomera-bt-pan connect <BD_ADDR>` | *(実験的)* スマホのBluetoothテザリング（PAN）接続スクリプト（※要4noha氏のpanctlデーモン、実機未検証）。 |
 
 ### 🔧 ホストPC側での診断・シミュレーターツール (上級者・開発向け)
 

@@ -4,7 +4,7 @@
 
 A complete automated installer and provisioning toolkit to run **OpenBSD 7.9 (armv7)** on the **King Jim Pomera DM250**.
 
-Turn your dedicated Japanese digital typewriter into a portable UNIX terminal with **Wi-Fi, Bluetooth PAN tethering, USB Ethernet/Mouse support, instant lid-close power saving / ultra-fast wakeup, and seamless CUI ↔ GUI (X11) switching**.
+Turn your dedicated Japanese digital typewriter into a portable UNIX terminal with **built-in Wi-Fi, high-speed CJK console (mlterm-fb), instant lid-close power saving / ultra-fast wakeup, tailored keyboard layout, and seamless CUI ↔ GUI (X11) switching**.
 
 ---
 
@@ -14,9 +14,9 @@ Turn your dedicated Japanese digital typewriter into a portable UNIX terminal wi
 | :--- | :--- |
 | **⚡ Instant Sleep & Wakeup** | Native `rcctl` daemon (`pomera_lid_watch`) monitors the lid switch: 0ms backlight cutoff & CPU throttling on close, instant full-power restore on open. Polling interval and CPU policy (auto/high) are fully configurable. |
 | **🔋 Accurate Battery Management** | Integrated with Rockchip RK818 PMIC for automatic battery charging and hardware power routing. Query real-time voltage, charge/discharge status, and capacity percentage via `sysctl hw.sensors.simplebat0`. |
-| **🌐 Connectivity (2.4GHz Wi-Fi)** | Built-in Wi-Fi (`bwfm0`, 2.4GHz only, multi-SSID auto-fallback), Bluetooth PAN tethering (`pomera-bt-pan`), and Plug & Play USB-Ethernet (`ure0`, `axe0`, `axen0`, `urndis0`, `cdce0`). |
+| **🌐 Connectivity (2.4GHz Wi-Fi)** | Built-in Wi-Fi (`bwfm0`, 2.4GHz, multi-SSID auto-fallback and auto-reconnect daemon). *(Experimental support for Bluetooth PAN and USB-Ethernet drivers is also included).* |
 | **💻 CUI & GUI Dual Mode** | High-performance CUI (Console / VT100 / tmux) by default. Supports direct framebuffer console `mlterm-fb` with zero tearing, and switch to lightweight X11 GUI (`xenodm` + `cwm` + `mlterm`) anytime via `pomera-gui-toggle`. |
-| **🖱️ USB Peripherals** | Plug & Play support for standard USB mice, keyboards, and USB Ethernet dongles via USB Type-C OTG. |
+| **🖱️ USB Peripherals** | Support for standard USB mice and external keyboards via USB Type-C OTG. |
 | **🛡️ Safety & Non-Destructive** | Integrated with [pomera-dm250-backup-restore-tool](https://github.com/mah-jp/pomera-dm250-backup-restore-tool) for full eMMC factory backup and 100% restore capability. |
 | **🛠️ Smart Patch Audit & Auto-Build** | Optional kernel patches for USB Hub stability, X11 Right-Shift/Left-Alt keys, and mlterm-fb framebuffer console (SMODE). Automatically audits official kernel and skips recompilation if already fixed upstream. |
 | **🤖 Native QEMU Engine Builder** | Drives a temporary OpenBSD QEMU VM to create authentic disklabel/FFS structures. Pre-configurable via `user_config.env` for 100% unattended installation. |
@@ -37,7 +37,7 @@ The installer SD builder (`make_sdcard.sh`) works on:
 1. **King Jim Pomera DM250 / DM250X / DM250XY / DM250US** (adequately charged in advance; 50%+ recommended)
 2. **SD Card** (2 GB to 32 GB standard SD or microSD with adapter)
 3. **Host PC** (macOS or Linux)
-4. **USB Type-C Cable** & optional USB-A to Type-C adapter / USB-NIC
+4. **USB Type-C Cable** (for power & charging)
 
 > [!WARNING]
 > **⚠️ Ensure battery is sufficiently charged beforehand**  
@@ -199,7 +199,7 @@ sudo ./make_sdcard.sh /dev/rdisk4
 4. The installer runs automatically:
    - Partitions internal eMMC (`sd1`)
    - Installs OpenBSD base sets and X11
-   - Executes `site79.tgz` hook to install the custom DM250 kernel (`/bsd`), disable `reorder_kernel`, configure Multi-SSID Wi-Fi / USB-NIC DHCP, and enable lid power management.
+   - Executes `site79.tgz` hook to install the custom DM250 kernel (`/bsd`), disable `reorder_kernel`, configure Multi-SSID Wi-Fi, and enable lid power management.
 5. When `🎉 OpenBSD INSTALLATION COMPLETED SUCCESSFULLY!` appears on screen:  
    **Press [Enter] on the keyboard to power off**.  
    *(※ Wait until the screen goes black and the unit completely powers off before removing the SD card).*
@@ -233,7 +233,7 @@ sudo ./make_sdcard.sh /dev/rdisk4
 
 ### Step 3: Workspace & Japanese IME Setup
 
-> Base system components, Wi-Fi auto-connect, USB-NIC, lid daemon, and tailored dotfiles are already configured during Step 2.
+> Base system components, Wi-Fi auto-connect, lid daemon, and tailored dotfiles are already configured during Step 2.
 > For reliability and speed, offline packages (Vim, tmux, mlterm, Noto CJK, cwm, etc.) are safely staged into `/var/cache/packages`. Running `pomera-setup-workspace` upon first login finishes the installation cleanly without memory constraints. Everything works standalone and completely offline on the DM250!
 
 #### 1. Workspace & Dev Environment Setup (`pomera-setup-workspace`)
@@ -297,7 +297,7 @@ pomera-setup-japanese
 | `pomera-setup-japanese` | Automatically set up Japanese IME (`uim`/`uim-anthy`) and XIM integration. |
 | `pomera-font [udev\|moraler\|noto]` | Instantly switch terminal fonts (slashed-zero UDEV Gothic, Moralerspace, or Noto) for both X11 and `mlterm-fb`. |
 | `doas pomera-gui-toggle [gui\|cui\|toggle]` | Switch between CUI console and X11 GUI mode (`xenodm`/`cwm`). |
-| `doas pomera-bt-pan connect <BD_ADDR>` | Connect to smartphone Bluetooth Tethering (PAN) (requires 4noha's panctl daemon). |
+| `doas pomera-bt-pan connect <BD_ADDR>` | *(Experimental)* Connect to smartphone Bluetooth Tethering (PAN) (requires 4noha's panctl daemon; unverified on hardware). |
 
 ### 🔧 Host PC Diagnostics & Simulator Tools (Advanced / Developers)
 
