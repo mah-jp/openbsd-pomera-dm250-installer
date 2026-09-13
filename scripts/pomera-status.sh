@@ -52,9 +52,11 @@ while [ $# -gt 0 ]; do
 done
 
 get_status() {
-    # 1. CPU clock speed & performance policy (sample FIRST to capture idle clock before forks)
-    cpu_mhz=$(sysctl -n hw.cpuspeed 2>/dev/null || echo "1200")
+    # 1. CPU load average, performance policy & speed (zero forks)
+    raw_load=$(sysctl -n vm.loadavg 2>/dev/null || echo "0.00 0.00 0.00")
+    cpu_load="${raw_load%% *}"
     cpu_pol=$(sysctl -n hw.perfpolicy 2>/dev/null || echo "auto")
+    cpu_mhz=$(sysctl -n hw.cpuspeed 2>/dev/null || echo "1200")
 
     # 2. Battery percentage & charging state (pure shell parsing to minimize forks)
     bat_pct="N/A"
@@ -104,7 +106,7 @@ get_status() {
     # Output formatting by mode
     case "$MODE" in
         tmux)
-            # tmux status-right format with colors (SSID hidden for privacy: online / offline)
+            # tmux status-right format with colors (stable load average + policy, SSID hidden)
             if [ "$is_charging" = "yes" ]; then
                 bat_fmt="#[fg=yellow]${bat_disp}#[default]"
             elif [ -n "$pct_num" ] && [ "$pct_num" -le 20 ] 2>/dev/null; then
@@ -112,7 +114,7 @@ get_status() {
             else
                 bat_fmt="#[fg=green]${bat_disp}#[default]"
             fi
-            cpu_fmt="#[fg=cyan]${cpu_mhz}MHz#[default]"
+            cpu_fmt="#[fg=cyan]${cpu_load} (${cpu_pol})#[default]"
             if [ "$wifi_ssid" = "off" ]; then
                 wifi_fmt="#[fg=brightblack]offline#[default]"
             else
@@ -121,19 +123,20 @@ get_status() {
             echo "${bat_fmt} | ${cpu_fmt} | ${wifi_fmt} | #[fg=white]${time_str}#[default]"
             ;;
         short)
-            # Compact format: 95% 1200M online 13:48 (or 95%⚡)
+            # Compact format: 95% 0.15(auto) online 13:48 (or 95%⚡)
             wifi_short="offline"
             [ "$wifi_ssid" != "off" ] && wifi_short="online"
             if [ "$is_charging" = "yes" ]; then
-                echo "${bat_pct}⚡ ${cpu_mhz}M ${wifi_short} ${time_str}"
+                echo "${bat_pct}⚡ ${cpu_load} ${wifi_short} ${time_str}"
             else
-                echo "${bat_pct} ${cpu_mhz}M ${wifi_short} ${time_str}"
+                echo "${bat_pct} ${cpu_load} ${wifi_short} ${time_str}"
             fi
             ;;
         json)
-            printf '{"battery":"%s","charging":%s,"cpuspeed_mhz":%s,"policy":"%s","wifi":"%s","signal":"%s","time":"%s"}\n' \
+            printf '{"battery":"%s","charging":%s,"load":"%s","cpuspeed_mhz":%s,"policy":"%s","wifi":"%s","signal":"%s","time":"%s"}\n' \
                 "$bat_pct" \
                 "$([ "$is_charging" = "yes" ] && echo "true" || echo "false")" \
+                "$cpu_load" \
                 "$cpu_mhz" \
                 "$cpu_pol" \
                 "$wifi_ssid" \
@@ -154,8 +157,8 @@ get_status() {
             else
                 bat_color="\033[1;32m"
             fi
-            printf "${bat_color}%s\033[0m | \033[1;36m%sMHz (%s)\033[0m | \033[1;34m%s\033[0m | \033[1;37m%s\033[0m\n" \
-                "$bat_disp" "$cpu_mhz" "$cpu_pol" "$wifi_disp" "$time_str"
+            printf "${bat_color}%s\033[0m | \033[1;36mload: %s (%s %sMHz)\033[0m | \033[1;34m%s\033[0m | \033[1;37m%s\033[0m\n" \
+                "$bat_disp" "$cpu_load" "$cpu_pol" "$cpu_mhz" "$wifi_disp" "$time_str"
             ;;
     esac
 }
