@@ -473,7 +473,7 @@ EOF
     fi
 
     # Fetch official mlterm source for QEMU / offline building
-    fetch_file "https://downloads.sourceforge.net/project/mlterm/01release/mlterm-3.8.3/mlterm-3.8.3.tar.gz" "${WORK_DIR}/mlterm-3.8.3.tar.gz"
+    fetch_file "https://github.com/arakiken/mlterm/archive/refs/tags/3.9.5.tar.gz" "${WORK_DIR}/mlterm-3.9.5.tar.gz"
 
     # Always fetch upstream official kernel to a protected cache location
     fetch_file "${JCS_MIRROR}/bsd" "${WORK_DIR}/bsd.official"
