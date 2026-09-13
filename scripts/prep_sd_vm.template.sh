@@ -138,7 +138,7 @@ if [ "$1" = "shutdown" ]; then
 fi
 
 # 1. Discover root device and character device
-_rootdev=$(mount | grep ' on / ' | cut -d' ' -f1)
+_rootdev=$(mount | grep -E ' (on /|/ )' | cut -d' ' -f1)
 [ -z "$_rootdev" ] && _rootdev="/dev/sd0a"
 _rrootdev=$(echo "$_rootdev" | sed -e 's,dev/,dev/r,')
 [ ! -e "$_rrootdev" ] && _rrootdev="/dev/rsd0a"
@@ -147,9 +147,16 @@ _rrootdev=$(echo "$_rootdev" | sed -e 's,dev/,dev/r,')
 fsck -y -f "$_rrootdev" >/dev/null 2>&1 || fsck_ffs -y -f /dev/rsd0a >/dev/null 2>&1 || true
 
 # 3. Remount root Read-Write with force flag to guarantee writeability
-mount -u -f -w / 2>/dev/null || mount -u -o rw -f / 2>/dev/null || mount -uw / 2>/dev/null || true
+mount -uw / 2>/dev/null || mount -u -f -w / 2>/dev/null || mount -u -o rw -f / 2>/dev/null || true
 
-# 4. Initialize essential device nodes and console
+# 4. Mount writable tmpfs (guarantees installer works even if root is strictly Read-Only!)
+mkdir -p /tmp /var/run /var/log /mnt /mnt2 2>/dev/null || true
+mount_tmpfs -s 32M tmpfs /tmp 2>/dev/null || true
+mount_tmpfs -s 16M tmpfs /var/run 2>/dev/null || true
+chmod 1777 /tmp 2>/dev/null || true
+mkdir -p /tmp/ai /tmp/i 2>/dev/null || true
+
+# 5. Initialize essential device nodes and console
 cd /dev && sh ./MAKEDEV all >/dev/null 2>&1 || true
 wsconsctl keyboard.encoding=jp >/dev/null 2>&1 || true
 EOF
@@ -160,7 +167,7 @@ cat << 'EOF_LAUNCH' >> /mnt/etc/rc
 cd /
 export TERM=wsvt25
 export MODE=install
-mkdir -p /tmp/ai /tmp/i
+mkdir -p /tmp/ai /tmp/i 2>/dev/null || true
 cp -f /install.conf /tmp/ai/ai.install.conf 2>/dev/null || true
 cp -f /install.conf /auto_install.conf 2>/dev/null || true
 
