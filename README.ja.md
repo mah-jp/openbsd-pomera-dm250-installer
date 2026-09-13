@@ -312,8 +312,8 @@ pomera-setup-japanese
 
 - **Joshua Stein (jcs) 氏**: [Installing OpenBSD on the Pomera DM250](https://jcs.org/2026/04/09/openbsd-dm250) — DM250 向け OpenBSD カーネル、U-Boot、LVDS ドライバ、および AP6212 NVRAM 設定の開発。
 - **4noha 氏**: [openbsd-pomera-dm250](https://github.com/4noha/openbsd-pomera-dm250) — クロスビルド手順、実機向けカーネルパッチ（AP6212A BT初期化、rkdrm SMODE対応）、mlterm-fb 最適化パッチ、バッテリー・蓋開閉制御スクリプト、Bluetooth PAN 研究。
-- **荒木 健 (ARAKI Ken) 氏**: [mlterm](https://github.com/arakiken/mlterm) — 多言語端末エミュレータ。フレームバッファ直描画版（`mlterm-fb`）および内蔵 SKK IME エンジン。
-- **一之元 (ichinomoto) 氏**: [EKESETE.net](https://www.ekesete.net/log/?p=9504) — DM200 / DM250 向け Debian rootfs、ハードウェア解析、および eMMC バックアップ手順の確立。
+- **ARAKI Ken 氏**: [mlterm](https://github.com/arakiken/mlterm) — 多言語端末エミュレータ。フレームバッファ直描画版（`mlterm-fb`）および内蔵 SKK IME エンジン。
+- **ichinomoto 氏**: [EKESETE.net](https://www.ekesete.net/log/?p=9504) — DM200 / DM250 向け Debian rootfs、ハードウェア解析、および eMMC バックアップ手順の確立。
 - **yuru7 氏**: [UDEV Gothic](https://github.com/yuru7/udev-gothic) / [Moralerspace](https://github.com/yuru7/moralerspace) — プログラミング向け日本語フォント（SIL Open Font License 1.1）。
 - **Google LLC / Noto Fonts プロジェクト**: [Noto Sans CJK](https://github.com/notofonts/noto-cjk) — 日本語等幅フォント（SIL Open Font License 1.1）。
 - **OpenBSD プロジェクト**: [OpenBSD](https://www.openbsd.org/) — 基本オペレーティングシステムおよびインストーラー基盤。

@@ -52,7 +52,7 @@ This project builds upon, interacts with, and references several upstream open-s
     Distributed under the BSD-style License. Source code and packages are fetched dynamically during build:
     https://github.com/arakiken/mlterm / https://mlterm.sourceforge.net/
 
-- **ichinomoto (一之元)**:
+- **ichinomoto**:
   - Pioneering research on Pomera DM200 / DM250 Linux (Debian) bring-up, hardware reverse engineering, and safe eMMC backup methodologies:
     https://www.ekesete.net/log/?p=9504
 
