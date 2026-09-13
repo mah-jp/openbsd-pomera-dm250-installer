@@ -19,9 +19,40 @@ INTERFACE="bwfm0"
 POLL_INTERVAL=15
 DOWN_RETRY_TIMEOUT=15
 RESUME_THRESHOLD=25
-RESUME_SETTLE=5
+RESUME_SETTLE=8
+PAUSE_FILE="/var/run/pomera_wifi_pause"
+LOCK_DIR="/var/run/pomera_wifi_reconnect.lock"
+
+acquire_lock() {
+    if mkdir "$LOCK_DIR" 2>/dev/null; then
+        return 0
+    fi
+    # Check staleness: if lock directory is older than 60s, force-clean
+    if [ -d "$LOCK_DIR" ]; then
+        stale=$(find "$LOCK_DIR" -prune -mmin +1 2>/dev/null || true)
+        if [ -n "$stale" ]; then
+            rmdir "$LOCK_DIR" 2>/dev/null || rm -rf "$LOCK_DIR" 2>/dev/null || true
+            if mkdir "$LOCK_DIR" 2>/dev/null; then
+                return 0
+            fi
+        fi
+    fi
+    return 1
+}
+
+release_lock() {
+    rmdir "$LOCK_DIR" 2>/dev/null || rm -rf "$LOCK_DIR" 2>/dev/null || true
+}
 
 reconnect_wifi() {
+    if ! acquire_lock; then
+        logger -t pomera-wifi "Another Wi-Fi reconnect operation is already running. Skipping." 2>/dev/null || true
+        return 0
+    fi
+
+    # Ensure lock cleanup on exit/signals
+    trap 'release_lock' EXIT INT TERM
+
     logger -t pomera-wifi "Cycling ${INTERFACE} interface..." 2>/dev/null || true
     ifconfig "${INTERFACE}" down 2>/dev/null || true
     sleep 1
@@ -36,13 +67,18 @@ reconnect_wifi() {
     fi
 
     # Check result
+    rc=1
     if ifconfig "${INTERFACE}" 2>/dev/null | grep -q "status: active"; then
         logger -t pomera-wifi "${INTERFACE} connected successfully." 2>/dev/null || true
-        return 0
+        rc=0
     else
         logger -t pomera-wifi "${INTERFACE} link not active yet." 2>/dev/null || true
-        return 1
+        rc=1
     fi
+
+    release_lock
+    trap - EXIT INT TERM
+    return $rc
 }
 
 # If invoked as 'pomera-wifi-reconnect' or with '-r', run single-shot manual reconnect
@@ -60,6 +96,12 @@ while true; do
     sleep "$POLL_INTERVAL"
     t1=${SECONDS:-0}
     elapsed=$((t1 - t0))
+
+    # If Wi-Fi is temporarily paused by pomera-lid-watch (during suspend or low-power state), do nothing
+    if [ -f "$PAUSE_FILE" ]; then
+        down_since=0
+        continue
+    fi
 
     # Detect wake-from-sleep: if sleep took longer than expected, settle before touching Wi-Fi
     if [ "$elapsed" -gt "$RESUME_THRESHOLD" ]; then
