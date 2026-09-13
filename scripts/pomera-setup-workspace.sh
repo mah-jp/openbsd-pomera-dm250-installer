@@ -104,7 +104,7 @@ export PAGER=less
 alias ll='ls -la'
 alias mlterm-base='/usr/local/bin/mlterm-fb'
 alias mlterm-opt='/usr/local/bin/mlterm-fb-pomera'
-alias mlterm-ja='/usr/local/bin/mlterm-fb-pomera -e uim-fep'
+alias mlterm-ja='/usr/local/bin/mlterm-opt -M uim:anthy'
 EOF
 chown "$TARGET_USER" "$TARGET_HOME/.profile"
 chmod 0644 "$TARGET_HOME/.profile"
@@ -228,12 +228,12 @@ echo "How to use your workspace:
   1. High-Speed Framebuffer Console (mlterm-fb):
      - Run 'mlterm-opt'  (or mlterm-fb-pomera) for the turbocharged build
      - Run 'mlterm-base' (or mlterm-fb) for the baseline shadowfb build
-     - Run 'mlterm-ja'   (Launch terminal with Japanese input via uim-fep)
+     - Run 'mlterm-ja'   (Launch terminal with direct inline Japanese input)
   2. Text Editing & Multiplexer:
      - Run 'vim' for distraction-free writing (True Color & UTF-8 ready)
      - Run 'tmux' for multi-pane terminal workspace
   3. Setup Japanese Input:
-     - Run 'pomera-setup-japanese' to configure uim-fep and anthy!"
+     - Run 'pomera-setup-japanese' to configure direct inline uim-anthy!"
 
 if [ -d "/var/cache/packages" ]; then
     echo "💡 Storage Tip: Offline packages are cached at /var/cache/packages (~180MB)."

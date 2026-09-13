@@ -258,16 +258,16 @@ pomera-setup-workspace
 > **便利なターミナルコマンド**:
 > - **`mlterm-opt`**: 行単位差分転送（Row Bounding Box）＋DECSET 2026同期対応の超低遅延ターボ版
 > - **`mlterm-base`**: 標準shadowfbの安定版フォールバック
-> - **`mlterm-ja`**: 日本語入力（uim-fep）を最初から有効にしてターミナルを直接起動
+> - **`mlterm-ja`**: 日本語入力（uim-anthy 直接インライン変換）を有効にしてターミナルを起動
 
 #### 2. 日本語入力（IME）のセットアップ (`pomera-setup-japanese`)
 日本語入力を利用する場合は、続けて以下を実行します：
 ```bash
 pomera-setup-japanese
 ```
-- 日本語入力フレームワーク（`uim`, `uim-anthy`）の自動インストール
+- 日本語入力フレームワーク（`anthy`, `uim`）の自動セットアップ
 - ポメラ向けキー設定（`Shift + Space`, `Ctrl + Space`, `半角/全角` でIMEオン/オフ）
-- CUI環境（`mlterm-ja` または `mlterm-opt` 内で `uim-fep`）でそのまま日本語かな漢字変換が利用可能
+- `mlterm-fb` 上で直接カーソル位置にインライン変換（uim-anthy spot-preedit）が動作
 
 ---
 
@@ -295,7 +295,7 @@ pomera-setup-japanese
 | コマンド | 説明 |
 | :--- | :--- |
 | `pomera-setup-workspace` | ワークスペース環境（Vim、tmux、mlterm-fb、Noto CJK、dotfiles）を一括セットアップ・再初期化。 |
-| `pomera-setup-japanese` | CUI日本語入力システム (`uim`/`uim-anthy`/`uim-fep`) を自動セットアップ。 |
+| `pomera-setup-japanese` | CUI日本語入力システム (`uim-anthy` 直接インライン変換) を自動セットアップ。 |
 | `pomera-font [udev\|moraler\|noto]` | ターミナルフォント（斜線ゼロ入り UDEV Gothic、Moralerspace、Noto）をワンタッチ切替。 |
 | `doas pomera-bt-pan connect <BD_ADDR>` | *(実験的)* スマホのBluetoothテザリング（PAN）接続スクリプト（※要4noha氏のpanctlデーモン、実機未検証）。 |
 
