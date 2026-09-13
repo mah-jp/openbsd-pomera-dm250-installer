@@ -332,9 +332,6 @@ chmod 0644 "/home/${TARGET_USER}/.vimrc"
 # ~/.tmux.conf
 cat << 'EOF' > "/home/${TARGET_USER}/.tmux.conf"
 set -g default-terminal "xterm-256color"
-set -g prefix C-a
-unbind C-b
-bind C-a send-prefix
 
 set -g status-style bg='#2e3436',fg='#ffffff'
 set -g status-left '#[fg=#729fcf,bold][#S] '
