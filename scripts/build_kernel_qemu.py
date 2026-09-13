@@ -659,34 +659,58 @@ halt -p
 
 
 def extract_from_fat(disk_img: str, output_path: str):
-    """Extract bsd.patched from FAT partition using macOS hdiutil."""
+    """Extract bsd.patched from FAT partition."""
     print(">> Attaching disk image to mount FAT partition...")
-    try:
-        out = subprocess.check_output([
-            "hdiutil", "attach",
-            "-imagekey", "diskimage-class=CRawDiskImage",
-            disk_img
-        ]).decode("utf-8")
-        disk_id = None
-        mount_point = None
-        for line in out.strip().split("\n"):
-            if "Windows_FAT_32" in line or "DOS_FAT_16" in line:
-                if "/Volumes/" in line:
-                    mount_point = line[line.index("/Volumes/"):]
-            if line.startswith("/dev/disk"):
-                disk_id = line.split()[0]
-        if mount_point:
-            fat_bsd = os.path.join(mount_point, "bsd.patched")
-            if os.path.exists(fat_bsd):
-                print(f"   Copying {fat_bsd} -> {output_path}...")
-                shutil.copy2(fat_bsd, output_path)
-                print(f"   ✅ Successfully extracted {output_path} ({os.path.getsize(output_path)} bytes)")
+    if sys.platform == "darwin":
+        try:
+            out = subprocess.check_output([
+                "hdiutil", "attach",
+                "-imagekey", "diskimage-class=CRawDiskImage",
+                disk_img
+            ]).decode("utf-8")
+            disk_id = None
+            mount_point = None
+            for line in out.strip().split("\n"):
+                if "Windows_FAT_32" in line or "DOS_FAT_16" in line:
+                    if "/Volumes/" in line:
+                        mount_point = line[line.index("/Volumes/"):]
+                if line.startswith("/dev/disk"):
+                    disk_id = line.split()[0]
+            if mount_point:
+                fat_bsd = os.path.join(mount_point, "bsd.patched")
+                if os.path.exists(fat_bsd):
+                    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+                    shutil.copy2(fat_bsd, output_path)
+                    print(f"   ✅ Successfully extracted {output_path} ({os.path.getsize(output_path)} bytes)")
+                else:
+                    print(f"⚠️ {fat_bsd} not found on mounted FAT partition!")
+            if disk_id:
+                subprocess.run(["hdiutil", "detach", disk_id], check=False)
+        except Exception as e:
+            print(f"⚠️ hdiutil error: {e}")
+    else:
+        # Linux fallback using mcopy or loop mount
+        try:
+            # FAT partition offset is 32768 sectors * 512 = 16777216 bytes
+            offset = 32768 * 512
+            if shutil.which("mcopy"):
+                os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+                subprocess.run(["mcopy", "-i", f"{disk_img}@@{offset}", "::bsd.patched", output_path], check=True)
+                print(f"   ✅ Extracted with mcopy: {output_path} ({os.path.getsize(output_path)} bytes)")
             else:
-                print(f"⚠️ {fat_bsd} not found on mounted FAT partition!")
-        if disk_id:
-            subprocess.run(["hdiutil", "detach", disk_id], check=False)
-    except Exception as e:
-        print(f"⚠️ hdiutil error: {e}")
+                mnt_tmp = tempfile.mkdtemp(prefix="fat_mnt_")
+                subprocess.run(["mount", "-o", f"loop,offset={offset}", disk_img, mnt_tmp], check=True)
+                src_k = os.path.join(mnt_tmp, "bsd.patched")
+                if os.path.exists(src_k):
+                    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+                    shutil.copy2(src_k, output_path)
+                    print(f"   ✅ Extracted with loop mount: {output_path} ({os.path.getsize(output_path)} bytes)")
+                else:
+                    print(f"⚠️ {src_k} not found on loop-mounted FAT partition!")
+                subprocess.run(["umount", mnt_tmp], check=False)
+                os.rmdir(mnt_tmp)
+        except Exception as e:
+            print(f"⚠️ Linux extract error: {e}")
 
 
 if __name__ == "__main__":

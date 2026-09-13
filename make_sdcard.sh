@@ -170,8 +170,13 @@ parse_arguments() {
 }
 
 check_prerequisites() {
+    local required_cmds=(curl python3 qemu-system-aarch64)
+    if [ "$OS_NAME" != "Darwin" ]; then
+        required_cmds+=(mcopy)
+    fi
+
     local missing=()
-    for cmd in curl python3 qemu-system-aarch64; do
+    for cmd in "${required_cmds[@]}"; do
         if ! command -v "$cmd" >/dev/null 2>&1; then missing+=("$cmd"); fi
     done
 
@@ -183,7 +188,7 @@ check_prerequisites() {
             echo "  brew install curl coreutils python3 qemu"
         else
             echo "Install via APT (Ubuntu/Debian):"
-            echo "  sudo apt update && sudo apt install -y curl python3 qemu-system-arm qemu-efi-aarch64"
+            echo "  sudo apt update && sudo apt install -y curl python3 qemu-system-arm qemu-efi-aarch64 mtools"
         fi
         exit 1
     fi
