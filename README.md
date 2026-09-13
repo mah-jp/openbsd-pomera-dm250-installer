@@ -2,9 +2,9 @@
 
 [日本語](README.ja.md) | [English](README.md)
 
-A complete automated installer and provisioning toolkit to run **OpenBSD 7.9 (armv7)** on the **King Jim Pomera DM250**.
+An automated installer and setup toolkit to run **OpenBSD 7.9 (armv7)** on the **King Jim Pomera DM250**.
 
-Turn your dedicated Japanese digital typewriter into a distraction-free portable UNIX writing terminal with **built-in Wi-Fi, ultra-fast CJK framebuffer console (mlterm-fb), instant lid-close power saving / ultra-fast wakeup, and tailored keyboard layout**.
+Enables a portable UNIX terminal environment on the DM250 hardware with **built-in Wi-Fi, CJK framebuffer console (mlterm-fb), lid-close power management, and optimized keyboard configuration**.
 
 ---
 
@@ -12,14 +12,14 @@ Turn your dedicated Japanese digital typewriter into a distraction-free portable
 
 | Feature | Details |
 | :--- | :--- |
-| **⚡ Instant Sleep & Wakeup** | Native `rcctl` daemon (`pomera_lid_watch`) monitors the lid switch: 0ms backlight cutoff & CPU throttling on close, instant full-power restore on open. Polling interval and CPU policy (auto/high) are fully configurable. |
-| **🔋 Accurate Battery Management** | Integrated with Rockchip RK818 PMIC for automatic battery charging and hardware power routing. Query real-time voltage, charge/discharge status, and capacity percentage via `sysctl hw.sensors.simplebat0`. |
-| **🌐 Connectivity (2.4GHz Wi-Fi)** | Built-in Wi-Fi (`bwfm0`, 2.4GHz, multi-SSID auto-fallback and auto-reconnect daemon). *(Experimental support for Bluetooth PAN and USB-Ethernet drivers is also included).* |
-| **💻 Pure High-Speed CUI Terminal** | Pure CUI environment without bloated GUI desktop layers. Equipped with both standard framebuffer console (`mlterm-base` / `mlterm-fb`) and zero-latency turbo console (`mlterm-opt` / `mlterm-fb-pomera`), plus seamless inline Japanese typing via `mlterm-ja` (built-in SKK engine). |
+| **⚡ Lid-Close Power Management** | Native `rcctl` daemon (`pomera_lid_watch`) monitors the lid switch: dims backlight and throttles CPU on close, and restores display on open. Polling interval and CPU policy (auto/high) are configurable. |
+| **🔋 Battery Management** | Integrated with Rockchip RK818 PMIC for battery charging and hardware power routing. Query voltage, charge/discharge status, and capacity percentage via `sysctl hw.sensors.simplebat0`. |
+| **🌐 Connectivity (2.4GHz Wi-Fi)** | Built-in Wi-Fi (`bwfm0`, 2.4GHz, multi-SSID fallback and auto-reconnect daemon). *(Experimental configuration placeholders for Bluetooth PAN and USB-Ethernet drivers are also included).* |
+| **💻 CUI Terminal Environment** | Lightweight CUI environment operating directly on the framebuffer without requiring X11. Includes standard (`mlterm-base`) and optimized (`mlterm-opt`) console builds, plus inline Japanese input via `mlterm-ja` (built-in SKK engine). |
 | **🖱️ USB Peripherals** | Support for external keyboards and mice via USB Type-C OTG. |
-| **🛡️ Safety & Non-Destructive** | Integrated with [pomera-dm250-backup-restore-tool](https://github.com/mah-jp/pomera-dm250-backup-restore-tool) for full eMMC factory backup and 100% restore capability. |
-| **🛠️ Smart Patch Audit & Auto-Build** | Optional kernel patches for USB Hub stability and mlterm-fb framebuffer console (SMODE). Automatically audits official kernel and skips recompilation if already fixed upstream. |
-| **🤖 Native QEMU Engine Builder** | Drives a temporary OpenBSD QEMU VM to create authentic disklabel/FFS structures. Pre-configurable via `user_config.env` for 100% unattended installation. |
+| **🛡️ Factory Restore Support** | Works alongside [pomera-dm250-backup-restore-tool](https://github.com/mah-jp/pomera-dm250-backup-restore-tool) to back up internal eMMC and restore factory firmware if needed. |
+| **🛠️ Kernel Patch Audit & Build** | Optional kernel patches for USB Hub stability, X11 key mapping, and mlterm-fb framebuffer console (SMODE). Automatically audits official kernel and skips recompilation if already fixed upstream. |
+| **🤖 Image Generation via Native QEMU** | Drives a temporary OpenBSD QEMU VM to create authentic disklabel/FFS structures. Pre-configurable via `user_config.env` for automated installation. |
 
 ---
 
@@ -45,7 +45,7 @@ The installer SD builder (`make_sdcard.sh`) works on:
 
 ### Host Dependencies
 
-`make_sdcard.sh` drives a temporary headless OpenBSD QEMU VM to ensure 100% native FFS/disklabel compliance.
+`make_sdcard.sh` drives a temporary headless OpenBSD QEMU VM to create native FFS and disklabel structures.
 
 #### 🍏 macOS (Homebrew)
 ```bash
@@ -72,21 +72,21 @@ sudo pacman -S --needed curl python qemu-system-aarch64 edk2-arm
 ## 🚀 Quick Start Guide
 
 ```
-[Phase 0: Safety Net]
+[Phase 0: Backup (Recommended)]
   Backup factory eMMC using pomera-dm250-backup-restore-tool
   ↓
-[Phase 1: Pre-Configure & Build Installer SD]
+[Phase 1: Configure & Build Installer SD]
   1. Configure Wi-Fi / passwords in configs/user_config.env
   2. $ sudo ./make_sdcard.sh  (auto-detects SD card interactively)
   ↓
-[Phase 2: One-Touch Install on Pomera]
+[Phase 2: Installation on Pomera]
   1. Insert SD -> Turn ON Pomera with [Power Button] (hold 3~4s)
-  2. Hands-free auto-boot into installer kernel
+  2. Boot into installer kernel
   3. Type 'yes' to confirm installation
-  (Autoinstall runs, stages packages, and powers off cleanly in ~2-3 minutes)
+  (Automated installation runs, stages packages, and powers off upon completion in ~2-3 minutes)
   ↓
-[Phase 3: Post-Boot Workspace & Japanese IME Setup]
-  - Log in and simply run the setup commands shown on screen!
+[Phase 3: Initial Setup & Japanese IME]
+  - Log in and run post-install setup commands:
   - Setup workspace: $ pomera-setup-workspace
   - Optional Japanese IME setup: $ pomera-setup-japanese
 ```
@@ -95,7 +95,7 @@ sudo pacman -S --needed curl python qemu-system-aarch64 edk2-arm
 
 ### Step 0: Create Full Factory Backup (Recommended)
 
-Before flashing, create a complete, bit-for-bit backup of your Pomera's internal eMMC using [pomera-dm250-backup-restore-tool](https://github.com/mah-jp/pomera-dm250-backup-restore-tool):
+Before flashing, create a backup of your Pomera's internal eMMC using [pomera-dm250-backup-restore-tool](https://github.com/mah-jp/pomera-dm250-backup-restore-tool):
 
 ```bash
 git clone https://github.com/mah-jp/pomera-dm250-backup-restore-tool.git
@@ -125,7 +125,7 @@ nano configs/user_config.env
   * `POMERA_LID_INTERVAL` : Lid daemon polling interval in seconds (Default: `2.0`)
   * `POMERA_CPU_POLICY` : CPU performance scaling policy (`auto`: dynamic load-based scaling / `100` or `high`: maximum clock lock, Default: `auto`)
   * `POMERA_ENABLE_SSHD` / `POMERA_ALLOW_ROOT_SSH` : SSH daemon enable & root login permission
-  * `POMERA_CONFIRM_INSTALL` : Pre-install confirmation prompt before erasing internal storage (Default: `yes`. Set to `no` for unattended zero-touch installation)
+  * `POMERA_CONFIRM_INSTALL` : Pre-install confirmation prompt before erasing internal storage (Default: `yes`. Set to `no` to skip the confirmation prompt)
   * `POMERA_SMART_KERNEL` : Optimize kernel by removing unused SoCs and PCI expansion drivers (~25% smaller) (Default: `yes`. Set to `no` for generic kernel)
   * `POMERA_PATCH_USB_HUB` : Fix USB Hub crash & disconnect issues (Default: `yes`)
   * `POMERA_PATCH_X11_KEYS` : Fix Right-Shift and Left-Alt keys under X11 (Default: `yes`)
@@ -133,8 +133,8 @@ nano configs/user_config.env
   * `POMERA_PATCH_BT` : Enable Bluetooth UART 2s delay patch for AP6212A (Default: `yes`)
 
 > [!TIP]
-> **💡 Smart Kernel Audit Feature**  
-> When `POMERA_SMART_KERNEL`, `POMERA_PATCH_USB_HUB`, `POMERA_PATCH_X11_KEYS`, `POMERA_PATCH_MLTERM_FB`, or `POMERA_PATCH_BT` is set to `yes`, the installer automatically audits the binary of the official kernel (`jcs.org/dm250/bsd`). If the official kernel already satisfies the requested configuration, it skips recompilation and adopts the official binary directly (0s wait time). Recompilation via temporary QEMU VM runs only when needed (and build results are cached for subsequent runs).
+> **💡 Kernel Audit Feature**  
+> When `POMERA_SMART_KERNEL`, `POMERA_PATCH_USB_HUB`, `POMERA_PATCH_X11_KEYS`, `POMERA_PATCH_MLTERM_FB`, or `POMERA_PATCH_BT` is set to `yes`, the installer automatically audits the binary of the official kernel (`jcs.org/dm250/bsd`). If the official kernel already satisfies the requested configuration, it skips recompilation and adopts the official binary directly. Recompilation via temporary QEMU VM runs only when needed (and build results are cached for subsequent runs).
 
 *(Note: Root disk encryption [softraid CRYPTO] boot is permanently disabled as the OpenBSD armv7 EFI bootloader does not support crypto boot by design).*
 
@@ -172,15 +172,15 @@ sudo ./make_sdcard.sh /dev/rdisk4
 ### Step 2: Boot Installer & Install OpenBSD on Pomera DM250
 
 > [!IMPORTANT]
-> **🛡️ 100% Non-Destructive Zero-Risk SD Boot**  
+> **🛡️ Internal Storage Protection during SD Boot**  
 > The installer SD card contains authentic Rockchip RK3128 raw bootloader sectors (`idbloader.img` / `uboot.img`).  
-> The hardware BootROM directly boots from the SD card on power-on **WITHOUT writing a single byte to internal eMMC**. Your factory OS and data remain completely untouched until you explicitly type `yes` at the confirmation prompt (ejecting the SD card boots normal factory Pomera OS).
+> The hardware BootROM boots directly from the SD card on power-on. **No changes are made to the internal storage (eMMC) until you explicitly type `yes` at the confirmation prompt**. Aborting the installation and ejecting the SD card boots the original factory firmware.
 
 > [!WARNING]
 > **⚠️ Physical Write-Protect (Lock) Switch on SD Card**  
 > The physical switch on the side of the SD card **must be in the UNLOCKED (write-enabled) position**.  
 > During the installation process, the OpenBSD installer initializes and mounts internal storage, which requires generating a temporary mount table (`/etc/fstab`) on the root filesystem. If the SD card is locked in read-only mode by hardware, the installation will abort with a `Read-only file system` error.  
-> *(※ Once the installation finishes and the system completely shuts down after pressing [Enter], the SD card is cleanly unmounted and can be safely removed).*
+> *(※ Once the installation finishes and the system shuts down after pressing [Enter], the SD card can be safely removed).*
 
 1. Power OFF Pomera DM250 completely and insert the prepared SD card (ensure the physical write-protect lock is OFF).
 2. Turn ON Pomera by pressing the **[Power Button]** (hold 3-4 seconds).  
@@ -195,7 +195,7 @@ sudo ./make_sdcard.sh /dev/rdisk4
    Start installation? (yes/N): 
    ```
    Type **`yes`** and press **`[Enter]`** to begin installation on internal eMMC.  
-   *(Pressing `N` or Enter aborts immediately and drops into a maintenance menu. Internal storage is NOT modified).*
+   *(Pressing `N` or Enter aborts the installation and drops into a maintenance menu. Internal storage is not modified).*
 4. The installer runs automatically:
    - Partitions internal eMMC (`sd1`)
    - Installs OpenBSD base sets and X11
@@ -207,7 +207,7 @@ sudo ./make_sdcard.sh /dev/rdisk4
 7. A login prompt will appear on console:
    ```text
    OpenBSD/armv7 (pomera.my.domain) (console)
-
+ 
    login: 
    ```
    Log in with username **`pomera`** and password **`pomera`** (or your custom credentials set in `configs/user_config.env`).
@@ -232,9 +232,9 @@ sudo ./make_sdcard.sh /dev/rdisk4
 > [!TIP]
 > **💡 mlterm-fb Terminal Options (mlterm-opt / mlterm-base / mlterm-ja)**  
 > The installer provides both standard and optimized versions of `mlterm-fb` (direct framebuffer terminal):
-> - **`mlterm-opt`** (or `mlterm-fb-pomera`): Ultra-low latency turbo edition (recommended, optimized row bounding box + DECSET 2026 support)
-> - **`mlterm-base`** (or `mlterm-fb`): Standard stable baseline edition (shadowfb direct framebuffer)
-> - **`mlterm-ja`**: Direct Japanese input terminal (`mlterm-opt -M skk:dict=/usr/local/share/skk/SKK-JISYO.L`)
+> - **`mlterm-opt`** (or `mlterm-fb-pomera`): Optimized low-latency edition (recommended, row bounding box differential updates + DECSET 2026 support)
+> - **`mlterm-base`** (or `mlterm-fb`): Standard baseline edition (shadowfb direct framebuffer)
+> - **`mlterm-ja`**: Japanese input terminal (`mlterm-opt -M skk:dict=/usr/local/share/skk/SKK-JISYO.L`)
 
 > [!TIP]
 > **💡 Booting from SD card when a custom OS (OpenBSD, etc.) is already installed**
@@ -252,14 +252,14 @@ sudo ./make_sdcard.sh /dev/rdisk4
 ### Step 3: Workspace & Japanese IME Setup
 
 > Base system components, Wi-Fi auto-connect, lid daemon, and tailored dotfiles are already configured during Step 2.
-> For reliability and speed, offline packages (Vim, tmux, mlterm, Noto CJK, etc.) are safely staged into `/var/cache/packages`. Running `pomera-setup-workspace` upon first login finishes the installation cleanly without memory constraints. Everything works standalone and completely offline on the DM250!
+> Packages (Vim, tmux, mlterm, Noto CJK, etc.) are staged into `/var/cache/packages`. Running `pomera-setup-workspace` upon first login finishes the installation cleanly without memory constraints. Everything works standalone and offline on the DM250.
 
 #### 1. Workspace & Dev Environment Setup (`pomera-setup-workspace`)
 ```bash
 pomera-setup-workspace
 ```
-- Essential tools (`vim`, `tmux`, `curl`, `git`)
-- High-speed direct framebuffer console (`mlterm-opt`, `mlterm-base`, `mlterm-ja`)
+- Core tools (`vim`, `tmux`, `curl`, `git`)
+- Direct framebuffer console binaries (`mlterm-opt`, `mlterm-base`, `mlterm-ja`)
 - Japanese fonts (Noto Sans CJK)
 - 1024x600 display optimized dotfiles (`~/.tmux.conf`, `~/.vimrc`, `~/.profile`)
 
@@ -269,9 +269,9 @@ pomera-setup-workspace
 >   - `Alt + F1`: Dim screen brightness (Mac-style)
 >   - `Alt + F2`: Brighten screen brightness (Mac-style)
 > - **CUI / Direct Framebuffer (mlterm-fb)**:
->   - `mlterm-opt`: Launch ultra-low latency turbo CJK terminal
+>   - `mlterm-opt`: Launch optimized low-latency CJK terminal
 >   - `mlterm-base`: Launch standard baseline CJK terminal
->   - `mlterm-ja`: Launch Japanese input terminal with direct inline IME
+>   - `mlterm-ja`: Launch Japanese input terminal with inline IME
 
 #### 2. Japanese IME Input Setup (`pomera-setup-japanese`)
 If you write in Japanese, run the second stage script:
@@ -280,7 +280,7 @@ pomera-setup-japanese
 ```
 - Installs `skk-jisyo` (large dictionary `SKK-JISYO.L`)
 - Configures JIS-friendly toggle shortcuts (`Shift + Space`, `Ctrl + Space`) in `~/.mlterm/key`
-- Enables zero-latency, direct inline spot-preedit conversion via mlterm's built-in SKK engine in `~/.mlterm/main`
+- Enables direct inline spot-preedit conversion via mlterm's built-in SKK engine in `~/.mlterm/main`
 
 ---
 
@@ -293,27 +293,27 @@ pomera-setup-japanese
 | `pomera-status [OPTIONS]` (or `pstat`) | Display one-line battery percentage/charging, CPU clock/policy, Wi-Fi SSID, and time (`--tmux`, `--short`, `--json`, `-w`). |
 | `pomera-brightness [up\|down\|<%>]` | Adjust backlight brightness manually (`Alt+F1`/`Alt+F2` in tmux). |
 | `sysctl hw.sensors.simplebat0` | Display battery voltage, charging/discharging status, and capacity percentage (`percent0`). |
-| `sysctl -n hw.sensors.simplebat0.percent0` | Quickly output battery percentage only (e.g. `96.00%`). |
+| `sysctl -n hw.sensors.simplebat0.percent0` | Output battery percentage only (e.g. `96.00%`). |
 | `sysctl hw.cpuspeed` | Display current CPU operating clock speed in MHz (max: 1200 MHz). |
 | `sysctl hw.perfpolicy` / `hw.setperf` | Check CPU scaling policy (`auto`/`high`) and clock percentage ratio (0-100%). |
 | `doas rcctl [start\|stop\|restart\|check] pomera_lid_watch` | Manage the lid power management daemon via native OpenBSD `rcctl`. |
 | `doas rcctl set pomera_lid_watch flags "-i 2.0 -p auto"` | Adjust lid polling interval (seconds) or CPU scaling policy. |
 | `doas rcctl [start\|stop\|restart\|check] pomera_power_led` | Lightweight battery LED daemon (orange charging, green full, red low). |
 | `doas rcctl [start\|stop\|restart\|check] pomera_wifi_watch` | Wi-Fi link monitoring & auto-reconnect daemon on link drops. |
-| `doas pomera-wifi-reconnect` | Instantly reset Wi-Fi interface (`bwfm0`) and re-acquire DHCP lease. |
-| `doas pomera-suspend` | Suspend SoC and clocks to deep idle power state (wake via Power button or lid switch). |
+| `doas pomera-wifi-reconnect` | Reset Wi-Fi interface (`bwfm0`) and re-acquire DHCP lease. |
+| `doas pomera-suspend` | Suspend SoC to low-power state (wake via Power button or lid switch). |
 | `doas gpioctl gpio1 red_led 1` / `green_led 1` | Control front status LEDs (`0` to turn off). |
 
 ### Workspace & Connectivity
 
 | Command | Description |
 | :--- | :--- |
-| `mlterm-opt` | Launch ultra-low latency turbo CJK terminal (`mlterm-fb-pomera`). |
+| `mlterm-opt` | Launch optimized low-latency CJK terminal (`mlterm-fb-pomera`). |
 | `mlterm-base` | Launch standard baseline CJK terminal (`mlterm-fb`). |
-| `mlterm-ja` | Launch Japanese input terminal with direct inline IME (built-in SKK). |
+| `mlterm-ja` | Launch Japanese input terminal with inline IME (built-in SKK). |
 | `pomera-setup-workspace` | Automatically set up CUI workspace (`mlterm-fb`, fonts, Vim, tmux, and dotfiles). |
 | `pomera-setup-japanese` | Automatically set up Japanese IME (built-in SKK direct inline conversion) for `mlterm-fb`. |
-| `pomera-font [udev\|moraler\|noto]` | Instantly switch terminal fonts (slashed-zero UDEV Gothic, Moralerspace, or Noto) for `mlterm-fb`. |
+| `pomera-font [udev\|moraler\|noto]` | Switch terminal fonts (slashed-zero UDEV Gothic, Moralerspace, or Noto) for `mlterm-fb`. |
 | `doas pomera-bt-pan connect <BD_ADDR>` | *(Experimental)* Connect to smartphone Bluetooth Tethering (PAN) (requires 4noha's panctl daemon; unverified on hardware). |
 
 ### 🔧 Host PC Diagnostics & Simulator Tools (Advanced / Developers)
@@ -326,18 +326,22 @@ pomera-setup-japanese
 | `sudo python3 scripts/inspect_sd.py /dev/rdiskN` | Inspect physical sector layout, MBR, BootROM sectors (LBA 64/16384), and Disklabel. |
 | `python3 scripts/inspect_kernel.py [kernel]` | Audit if a kernel binary is optimized DM250 smart kernel or contains USB/X11/mlterm-fb fixes. |
 | `python3 scripts/build_kernel_qemu.py [--config DM250]` | Automatically build patched (USB, X11 keys, mlterm-fb) & slimmed kernel (`DM250` / `GENERIC`) via native QEMU VM. |
-| `scripts/build_uboot.sh` | Standalone compilation of custom hands-free auto-boot U-Boot image (`uboot.img`). |
+| `scripts/build_uboot.sh` | Standalone compilation of autoboot U-Boot image (`uboot.img`). |
 | `scripts/run_qemu.sh [image_path]` | Run local QEMU simulation of the OpenBSD image before writing to physical hardware. |
 
 ---
 
 ## 🤝 Acknowledgements & Credits
 
-- **Joshua Stein (jcs)**: [OpenBSD on Pomera DM250](https://jcs.org/2026/04/09/openbsd-dm250) kernel, U-Boot, and display patches.
-- **4noha**: [openbsd-pomera-dm250](https://github.com/4noha/openbsd-pomera-dm250) toolchain, kernel patches, battery/lid scripts, and Bluetooth PAN research.
-- **ARAKI Ken**: Author of [mlterm](https://github.com/arakiken/mlterm) (the foundation of the direct framebuffer console `mlterm-fb`).
-- **ichinomoto**: Pioneering research and the [EKESETE](https://github.com/ichinomoto/dm250_ekesete) eMMC backup tool, which established safe experimental procedures on physical Pomera DM250 hardware.
-- **mah-jp**: [pomera-dm250-backup-restore-tool](https://github.com/mah-jp/pomera-dm250-backup-restore-tool) for U-Boot UMS backup/recovery.
+This project builds upon and references prior research, open-source software, and contributions from the following individuals and projects:
+
+- **Joshua Stein (jcs)**: [Installing OpenBSD on the Pomera DM250](https://jcs.org/2026/04/09/openbsd-dm250) — Initial DM250 OpenBSD kernel patches, U-Boot port, LVDS display driver, and AP6212 NVRAM configuration.
+- **4noha**: [openbsd-pomera-dm250](https://github.com/4noha/openbsd-pomera-dm250) — Cross-build tooling, hardware kernel patches (AP6212A BT delay, rkdrm SMODE), `mlterm-fb` framebuffer optimization patches, battery and lid monitoring scripts, and Bluetooth PAN research.
+- **ARAKI Ken**: [mlterm](https://github.com/arakiken/mlterm) — Multilingual terminal emulator with direct framebuffer backend (`mlterm-fb`) and built-in SKK IME engine.
+- **ichinomoto**: [EKESETE.net](https://www.ekesete.net/log/?p=9504) — Prior research on DM200 / DM250 hardware architecture, Debian rootfs bring-up, and eMMC backup methodologies.
+- **yuru7**: [UDEV Gothic](https://github.com/yuru7/udev-gothic) / [Moralerspace](https://github.com/yuru7/moralerspace) — Programming typography (SIL Open Font License 1.1).
+- **Google LLC / Noto Fonts Project**: [Noto Sans CJK](https://github.com/notofonts/noto-cjk) — Monospace typography (SIL Open Font License 1.1).
+- **OpenBSD Project**: [OpenBSD](https://www.openbsd.org/) — Base operating system and installer infrastructure.
 
 ---
 

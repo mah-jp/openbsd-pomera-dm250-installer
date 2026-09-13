@@ -4,10 +4,12 @@
 # Copyright (c) 2026 Masahiko OHKUBO and Pomera DM250 OpenBSD Project Contributors
 # SPDX-License-Identifier: MIT
 #
-# Allows quick switching between favorite coding fonts:
-# - udev    : UDEV Gothic JPDOC (BIZ UD + JetBrains Mono, Slashed Zero 0/)
-# - moraler : Moralerspace Neon HWJPDOC (Monaspace + BIZ UD, Slashed Zero 0/)
-# - noto    : Noto Sans Mono CJK JP (Google Authentic Monospace)
+# Allows switching between recommended coding fonts:
+# - udev    : UDEV Gothic JPDOC (by yuru7, SIL OFL 1.1)
+# - moraler : Moralerspace Neon HWJPDOC (by yuru7, SIL OFL 1.1)
+# - noto    : Noto Sans Mono CJK JP (by Google LLC, SIL OFL 1.1)
+#
+# Note: Fonts must be installed in fontconfig paths (~/.local/share/fonts or /usr/local/share/fonts).
 
 TARGET_HOME="${HOME:-/home/$(id -un)}"
 CONFIG_DIR="$TARGET_HOME/.mlterm"
