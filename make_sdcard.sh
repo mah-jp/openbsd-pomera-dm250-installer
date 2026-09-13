@@ -940,8 +940,6 @@ main() {
 
     check_prerequisites
     mkdir -p "${WORK_DIR}"
-    # If running inside a Dropbox sync folder, suppress syncing of large transient build artifacts
-    setfattr -n user.com.dropbox.ignored -v 1 "${WORK_DIR}" 2>/dev/null || xattr -w com.dropbox.ignored 1 "${WORK_DIR}" 2>/dev/null || true
 
     generate_install_configs
     fetch_all_artifacts
