@@ -573,11 +573,6 @@ First-Time Setup:
 
   2. Japanese Input (uim-anthy):
      $ pomera-setup-japanese
-
-Key Shortcuts:
-  - Alt + F1 / Alt + F2 : Adjust backlight brightness
-  - startx              : Launch X11 GUI desktop (cwm)
-  - doas pomera-gui-toggle gui : Enable auto-start GUI (xenodm)
 ==========================================================
 
 EOF

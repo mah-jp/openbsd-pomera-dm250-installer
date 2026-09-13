@@ -213,6 +213,28 @@ sudo ./make_sdcard.sh /dev/rdisk4
    Log in with username **`pomera`** and password **`pomera`** (or your custom credentials set in `configs/user_config.env`).
 
 > [!TIP]
+> **💡 How to Adjust Screen Backlight Brightness**  
+> You can control the DM250 display backlight depending on your environment:
+> 
+> 1. **Plain Console (CUI / Immediate post-login / Anytime)**:  
+>    Adjust directly using the `pomera-brightness` command (operates without root password):
+>    - `pomera-brightness down` : Dim screen brightness by 10%
+>    - `pomera-brightness up` : Brighten screen brightness by 10%
+>    - `pomera-brightness 50` : Set brightness directly to 50% (10-100%)
+>    - `pomera-brightness` : Output current brightness percentage
+> 
+> 2. **CUI / mlterm-fb (`tmux` session)**:  
+>    After running `pomera-setup-workspace` (Step 3), press hotkeys directly inside `tmux`:
+>    - **`Alt + F1`** : Dim brightness (Mac-style)
+>    - **`Alt + F2`** : Brighten brightness (Mac-style)  
+>    *(※ No tmux prefix required; operates directly)*
+> 
+> 3. **X11 GUI Desktop (`cwm`)**:  
+>    While X11 is running (via `startx` or `doas pomera-gui-toggle gui`), hotkeys work anywhere:
+>    - **`Alt + F1`** / **`Alt + F2`** : Dim / Brighten screen
+>    - **`Alt + ↓`** / **`Alt + ↑`** : Adjust in 10% increments via arrow keys
+
+> [!TIP]
 > **💡 Choosing Between CUI and GUI (X11)**  
 > - **Launch X11 GUI desktop temporarily**: Run `startx` after logging in.
 > - **Enable permanent graphical login (xenodm)**: Run `doas pomera-gui-toggle gui`.
@@ -247,7 +269,7 @@ pomera-setup-workspace
 
 > [!TIP]
 > **Convenient Keyboard Shortcuts**:
-> - **Brightness Control (Common to X11, tmux, and mlterm-fb)**:
+> - **Brightness Control (tmux sessions and X11 desktop)**:
 >   - `Alt + F1`: Dim screen brightness (Mac-style)
 >   - `Alt + F2`: Brighten screen brightness (Mac-style)
 >   - `Alt + ↑` / `Alt + ↓`: Adjust brightness by +/- 10% (in cwm desktop)
@@ -257,7 +279,7 @@ pomera-setup-workspace
 >   - `Ctrl + Alt + q`: Close active window
 >   - `Ctrl + Alt + Backspace` or `Ctrl + Alt + Shift + q`: Exit X11 back to text console (CUI)
 > - **CUI / Direct Framebuffer (mlterm-fb)**:
->   - `mlterm-fb`: Launch direct framebuffer high-resolution CJK terminal (no X11 needed, supports `Alt+F1`/`Alt+F2` brightness control)
+>   - `mlterm-fb`: Launch direct framebuffer high-resolution CJK terminal (no X11 needed, supports `Alt+F1`/`Alt+F2` brightness control when run with tmux)
 
 #### 2. Japanese IME Input Setup (`pomera-setup-japanese`)
 If you write in Japanese, run the second stage script:

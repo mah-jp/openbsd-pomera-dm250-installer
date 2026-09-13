@@ -210,6 +210,28 @@ sudo ./make_sdcard.sh /dev/rdisk4
    ユーザー名 **`pomera`**、パスワード **`pomera`**（または `configs/user_config.env` で指定した値）を入力してログインします。
 
 > [!TIP]
+> **💡 画面の輝度（明るさ）を調整する方法**  
+> ポメラDM250の液晶バックライトは、動作環境（素のCUI、tmux、X11 GUI）に応じて以下の方法で調整できます：
+> 
+> 1. **素のコンソール（CUI / 初回ログイン直後・いつでも）**:  
+>    コマンド `pomera-brightness` で直接調整します（一般ユーザー権限で動作します）。
+>    - `pomera-brightness down` : 画面を 10% 暗くする
+>    - `pomera-brightness up` : 画面を 10% 明るくする
+>    - `pomera-brightness 50` : 輝度を 50% に直接設定（10〜100%）
+>    - `pomera-brightness` : 現在の輝度パーセントを表示
+> 
+> 2. **CUI / mlterm-fb 環境（`tmux` 起動時）**:  
+>    Step 3 で `pomera-setup-workspace` を実行後、`tmux` セッション内ではショートカットキーで直接調整できます。
+>    - **`Alt + F1`** : 画面を暗くする（Mac風）
+>    - **`Alt + F2`** : 画面を明るくする（Mac風）  
+>    *(※ tmuxのプレフィックスキー不要でそのまま押せます)*
+> 
+> 3. **X11 GUI デスクトップ環境（`cwm`）**:  
+>    `startx` または `doas pomera-gui-toggle gui` でX11起動中、デスクトップ上のどこでも動作します。
+>    - **`Alt + F1`** / **`Alt + F2`** : 画面を暗く / 明るくする
+>    - **`Alt + ↓`** / **`Alt + ↑`** : 矢印キーでも 10% 刻みで調整可能
+
+> [!TIP]
 > **💡 CUI と GUI (X11) の使い分け**  
 > - **一時的に X11 GUI デスクトップを起動する**: ログイン後、`startx` を実行します。
 > - **次回起動時からも常にグラフィカルログイン (xenodm) にする**: `doas pomera-gui-toggle gui` を実行します。
@@ -245,7 +267,7 @@ pomera-setup-workspace
 
 > [!TIP]
 > **便利なキーボードショートカット**:
-> - **画面輝度調整（X11およびtmux/mlterm-fb共通）**:
+> - **画面輝度調整（tmuxセッション内およびX11デスクトップ共通）**:
 >   - `Alt + F1`: 画面を暗くする ※Mac風
 >   - `Alt + F2`: 画面を明るくする ※Mac風
 >   - `Alt + ↑` / `Alt + ↓`: 画面の明るさを 10% 刻みで増減（cwmデスクトップ時）
@@ -255,7 +277,7 @@ pomera-setup-workspace
 >   - `Ctrl + Alt + q`: ウィンドウを閉じる
 >   - `Ctrl + Alt + Backspace` または `Ctrl + Alt + Shift + q`: X11を終了してコンソール（CUI）に戻る
 > - **CUI / フレームバッファ（mlterm-fb）**:
->   - `mlterm-fb`: フレームバッファ直描画の超高速・高解像度日本語コンソールを起動（X11不要、`Alt+F1`/`Alt+F2` 輝度調整対応）
+>   - `mlterm-fb`: フレームバッファ直描画の超高速・高解像度日本語コンソールを起動（X11不要、tmux併用で `Alt+F1`/`Alt+F2` 輝度調整対応）
 
 #### 2. 日本語入力（IME）のセットアップ (`pomera-setup-japanese`)
 日本語入力を利用する場合は、続けて以下を実行します：
