@@ -13,14 +13,15 @@
 # - Responsive 2.0s polling loop with instant wake-from-lid reaction
 #
 # Behavior:
-# - Lid CLOSED: Immediately turns off backlight and drops CPU clock to minimum (setperf=0).
-# - Lid OPENED: Instantly restores backlight to 100% and ramps CPU clock to maximum (setperf=100).
-# - Long CLOSED (default: 2h): Optionally triggers deep power savings or hibernate.
+# - Lid CLOSED: Immediately turns off backlight and drops CPU clock to minimum (setperf=0 / 216MHz).
+#               Maintains rock-solid stability indefinitely without entering risky deep suspend.
+# - Lid OPENED: Instantly restores backlight to saved level and restores CPU clock policy (auto/100).
+# - Long CLOSED: Safe low-clock/screen-off state is maintained indefinitely (timeout disabled by default).
 
 # Configurable parameters:
 # Priority: Command-line arguments > Environment variables > Defaults
 POLL_INTERVAL="${POMERA_LID_INTERVAL:-2.0}"
-SUSPEND_TIMEOUT="${POMERA_LID_TIMEOUT:-7200}" # 2 hours default
+SUSPEND_TIMEOUT="${POMERA_LID_TIMEOUT:-0}" # Default: 0 (disabled: stay in low-clock mode safely)
 CPU_POLICY="${POMERA_CPU_POLICY:-auto}"
 LID_STATE="open"
 CLOSED_EPOCH=0
@@ -35,7 +36,7 @@ while getopts "i:t:p:b:h" opt; do
         p) CPU_POLICY="$OPTARG" ;;
         b) SAVED_BRIGHTNESS="$OPTARG" ;;
         h|*)
-            echo "Usage: $0 [-i interval_sec] [-t timeout_sec] [-p auto|high|100] [-b default_brightness]" >&2
+            echo "Usage: $0 [-i interval_sec] [-t timeout_sec (0=disable)] [-p auto|high|100] [-b default_brightness]" >&2
             exit 1
             ;;
     esac
@@ -115,13 +116,15 @@ while true; do
                 sysctl hw.perfpolicy=manual >/dev/null 2>&1 || true
                 sysctl hw.setperf=0 >/dev/null 2>&1 || true
             else
-                # Check timeout for long-term sleep (zero-fork via $SECONDS)
-                elapsed=$((${SECONDS:-0} - CLOSED_EPOCH))
-                if [ "$elapsed" -ge "$SUSPEND_TIMEOUT" ]; then
-                    if [ -x /usr/local/sbin/pomera-suspend ]; then
-                        /usr/local/sbin/pomera-suspend
-                    elif [ -x /etc/pomera-suspend ]; then
-                        /etc/pomera-suspend
+                # Check timeout for deep sleep if explicitly enabled (> 0)
+                if [ "${SUSPEND_TIMEOUT:-0}" -gt 0 ] 2>/dev/null; then
+                    elapsed=$((${SECONDS:-0} - CLOSED_EPOCH))
+                    if [ "$elapsed" -ge "$SUSPEND_TIMEOUT" ]; then
+                        if [ -x /usr/local/sbin/pomera-suspend ]; then
+                            /usr/local/sbin/pomera-suspend
+                        elif [ -x /etc/pomera-suspend ]; then
+                            /etc/pomera-suspend
+                        fi
                     fi
                 fi
             fi
