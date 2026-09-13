@@ -48,7 +48,7 @@ done
 
 if [ -n "$PKG_DIR" ]; then
     echo "📦 Found offline package cache at $PKG_DIR. Installing locally..."
-    $DOAS env PKG_PATH="$PKG_DIR" pkg_add -I vim curl git noto-cjk dmenu
+    $DOAS env PKG_PATH="$PKG_DIR" pkg_add -I vim curl git noto-cjk dmenu fribidi harfbuzz
 else
     echo ">> Checking internet connectivity for package download..."
     if ! ping -c 1 -w 3 1.1.1.1 >/dev/null 2>&1 && ! ping -c 1 -w 3 8.8.8.8 >/dev/null 2>&1; then
@@ -65,9 +65,9 @@ else
         esac
     fi
 
-    # Install Packages online (Note: mlterm-fb is pre-bundled; we omit X11 mlterm package to avoid GTK/DBus bloat & collisions)
-    echo ">> Installing workspace packages (Vim, curl, git, fonts, dmenu)..."
-    $DOAS pkg_add -I vim curl git noto-cjk dmenu
+    # Install Packages online (Note: mlterm-fb is pre-bundled; we include fribidi & harfbuzz runtime libs while omitting X11 GTK/DBus bloat)
+    echo ">> Installing workspace packages (Vim, curl, git, fonts, dmenu, fribidi, harfbuzz)..."
+    $DOAS pkg_add -I vim curl git noto-cjk dmenu fribidi harfbuzz
 fi
 
 # 3. Restore patched mlterm-fb (zero-tearing shadowfb & Noto font engine) if bundled

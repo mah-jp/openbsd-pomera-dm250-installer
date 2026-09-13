@@ -19,7 +19,7 @@ import argparse
 from typing import Dict, List, Set
 
 MIRROR_URL = "https://cdn.openbsd.org/pub/OpenBSD/7.9/packages/arm/"
-DEFAULT_TARGETS = ["vim", "curl", "git", "noto-cjk", "dmenu"]
+DEFAULT_TARGETS = ["vim", "curl", "git", "noto-cjk", "dmenu", "fribidi", "harfbuzz"]
 
 
 def fetch_index(mirror: str) -> Dict[str, int]:
