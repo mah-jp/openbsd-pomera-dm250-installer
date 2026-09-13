@@ -31,6 +31,7 @@ SCRIPTS_DIR="${SCRIPT_DIR}/scripts"
 
 TARGET_DEV=""
 BLOCK_DEV=""
+DETECTED_DEVICES=()
 DOWNLOAD_ONLY=false
 BOOTLOADER_ONLY=false
 REBUILD_UBOOT=false
@@ -53,6 +54,9 @@ MODEL_TYPE="dm250"
 
 OS_NAME="$(uname -s)"
 ARCH_NAME="$(uname -m)"
+
+# Prevent macOS bsdtar from embedding AppleDouble and extended attributes into archives
+export COPYFILE_DISABLE=1
 
 # ---------------------------------------------------------------------
 # File Ownership Helper (pomera-dm250-backup-restore-tool convention)
@@ -605,10 +609,21 @@ EOF
 }
 
 list_external_disks_darwin() {
+    DETECTED_DEVICES=()
     local ext_disks
     ext_disks="$(diskutil list external physical 2>/dev/null || diskutil list external 2>/dev/null || true)"
     if [ -n "$(echo "$ext_disks" | tr -d '[:space:]')" ]; then
         echo "$ext_disks"
+        echo ""
+        local raw_list
+        raw_list="$(echo "$ext_disks" | grep -o '/dev/disk[0-9]\+' | sort -u || true)"
+        local idx=1
+        for d in $raw_list; do
+            local rdisk="/dev/r${d#/dev/}"
+            DETECTED_DEVICES+=("$rdisk")
+            printf "  [%d] %s (%s)\n" "$idx" "$rdisk" "$d"
+            idx=$((idx + 1))
+        done
         echo ""
     else
         echo "⚠️  No external storage devices (USB / SD Card) detected."
@@ -618,6 +633,7 @@ list_external_disks_darwin() {
 }
 
 list_external_disks_linux() {
+    DETECTED_DEVICES=()
     local root_dev=""
     if command -v findmnt >/dev/null 2>&1; then
         root_dev="$(findmnt -n -o SOURCE / 2>/dev/null || true)"
@@ -630,9 +646,8 @@ list_external_disks_linux() {
         fi
     fi
 
-    local count=0
-    printf "%-16s %-10s %-25s %-10s\n" "DEVICE" "SIZE" "MODEL" "TRAN"
-    printf "%-16s %-10s %-25s %-10s\n" "----------------" "----------" "-------------------------" "----------"
+    printf "%-4s %-16s %-10s %-25s %-10s\n" "NUM" "DEVICE" "SIZE" "MODEL" "TRAN"
+    printf "%-4s %-16s %-10s %-25s %-10s\n" "----" "----------------" "----------" "-------------------------" "----------"
 
     while IFS= read -r line; do
         [ -z "$line" ] && continue
@@ -659,13 +674,14 @@ list_external_disks_linux() {
 
         # Extract external / removable / hotplug / MMC devices only
         if [[ "$tran" == "usb" || "$tran" == "mmc" || "$rm_flag" == "1" || "$hotplug" == "1" || "$name" =~ mmcblk ]]; then
-            printf "%-16s %-10s %-25s %-10s\n" "$name" "$size" "${model:-Unknown}" "${tran:-external}"
-            count=$((count + 1))
+            DETECTED_DEVICES+=("$name")
+            local num="${#DETECTED_DEVICES[@]}"
+            printf "[%d]  %-16s %-10s %-25s %-10s\n" "$num" "$name" "$size" "${model:-Unknown}" "${tran:-external}"
         fi
     done < <(lsblk -P -d -p -o NAME,SIZE,MODEL,TRAN,RM,HOTPLUG 2>/dev/null || true)
 
     echo ""
-    if [ "$count" -eq 0 ]; then
+    if [ "${#DETECTED_DEVICES[@]}" -eq 0 ]; then
         echo "⚠️  No external storage devices (USB / SD Card) detected."
         echo "   Please plug in your SD card reader or USB adapter and ensure it is connected."
         echo ""
@@ -729,10 +745,48 @@ select_target_device() {
     if [ -z "$TARGET_DEV" ]; then
         if [ "$OS_NAME" = "Darwin" ]; then
             list_external_disks_darwin
-            read -p "Enter target SD card device (e.g. /dev/rdisk4): " TARGET_DEV
         else
             list_external_disks_linux
-            read -p "Enter target SD card device (e.g. /dev/sdb): " TARGET_DEV
+        fi
+
+        local prompt_str=""
+        local default_dev=""
+
+        if [ "${#DETECTED_DEVICES[@]}" -eq 1 ]; then
+            default_dev="${DETECTED_DEVICES[0]}"
+            prompt_str="Enter target SD card device or [1] [default: ${default_dev}]: "
+        elif [ "${#DETECTED_DEVICES[@]}" -gt 1 ]; then
+            prompt_str="Enter target SD card device or number (1-${#DETECTED_DEVICES[@]}): "
+        else
+            if [ "$OS_NAME" = "Darwin" ]; then
+                prompt_str="Enter target SD card device (e.g. /dev/rdisk4): "
+            else
+                prompt_str="Enter target SD card device (e.g. /dev/sdb): "
+            fi
+        fi
+
+        local input_choice=""
+        read -r -p "$prompt_str" input_choice
+
+        if [ -z "$input_choice" ]; then
+            if [ -n "$default_dev" ]; then
+                TARGET_DEV="$default_dev"
+                echo "Selected default device: ${TARGET_DEV}"
+            else
+                echo "No target device specified. Exiting."
+                exit 1
+            fi
+        elif [[ "$input_choice" =~ ^[0-9]+$ ]]; then
+            local idx=$((input_choice - 1))
+            if [ "$idx" -ge 0 ] && [ "$idx" -lt "${#DETECTED_DEVICES[@]}" ]; then
+                TARGET_DEV="${DETECTED_DEVICES[$idx]}"
+                echo "Selected device [${input_choice}]: ${TARGET_DEV}"
+            else
+                echo "❌ Invalid device number: $input_choice"
+                exit 1
+            fi
+        else
+            TARGET_DEV="$input_choice"
         fi
     fi
 

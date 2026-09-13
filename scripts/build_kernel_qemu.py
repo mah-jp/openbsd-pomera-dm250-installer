@@ -24,6 +24,7 @@ import socketserver
 import glob
 import tempfile
 import argparse
+import platform
 from typing import Optional, List
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -185,7 +186,9 @@ def prepare_patched_sys_archive(mgr: BuildManager) -> str:
                 check=True
             )
             subprocess.run(["git", "sparse-checkout", "set", "sys"], cwd=repo_dir, check=True)
-            subprocess.run(["tar", "-czf", dest_archive, "-C", repo_dir, "sys"], check=True)
+            tar_env = os.environ.copy()
+            tar_env["COPYFILE_DISABLE"] = "1"
+            subprocess.run(["tar", "-czf", dest_archive, "-C", repo_dir, "sys"], env=tar_env, check=True)
             base_archive = dest_archive
             print(f"   ✅ Successfully cached kernel sources to {dest_archive}")
         finally:
@@ -197,7 +200,10 @@ def prepare_patched_sys_archive(mgr: BuildManager) -> str:
     os.makedirs(stage_dir)
 
     print(f"   Extracting base source archive {base_archive} -> {stage_dir}...")
-    subprocess.run(["tar", "-xzf", base_archive, "-C", stage_dir], check=True)
+    extract_cmd = ["tar", "-xzf", base_archive, "-C", stage_dir]
+    if platform.system() == "Linux":
+        extract_cmd.insert(1, "--warning=no-unknown-keyword")
+    subprocess.run(extract_cmd, check=True)
 
     target_dwc2 = os.path.join(stage_dir, "sys", "dev", "usb", "dwc2")
 
@@ -323,8 +329,11 @@ def prepare_patched_sys_archive(mgr: BuildManager) -> str:
         print(f"   ✅ Injected DM250 optimized kernel configuration -> {os.path.join(target_conf_dir, 'DM250')}")
 
     print(f"   Creating final patched archive {archive_path}...")
+    tar_env = os.environ.copy()
+    tar_env["COPYFILE_DISABLE"] = "1"
     subprocess.run(
         ["tar", "-czf", archive_path, "-C", stage_dir, "sys"],
+        env=tar_env,
         check=True
     )
     shutil.rmtree(stage_dir)

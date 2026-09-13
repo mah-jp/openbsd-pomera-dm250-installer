@@ -149,11 +149,12 @@ nano configs/user_config.env
 
 ```bash
 # デバイス名を省略すると、接続されている外付けSDカードを安全に一覧表示＆対話選択できます:
+# （検出デバイスが1台の場合は [Enter] を押すだけで自動選択、または番号 [1] でも選択可能）
 sudo ./make_sdcard.sh
 
-# デバイスを直接指定する場合:
+# デバイスを直接指定する場合（対話選択をスキップ）:
 # Linux:
-sudo ./make_sdcard.sh /dev/sdb
+sudo ./make_sdcard.sh /dev/sda
 # macOS:
 sudo ./make_sdcard.sh /dev/rdisk4
 

@@ -149,11 +149,12 @@ Run `make_sdcard.sh` on your host PC. It automatically downloads OpenBSD 7.9 off
 
 ```bash
 # Running without arguments automatically detects external SD cards and prompts for selection:
+# (If only 1 card is detected, simply press [Enter] to confirm, or enter the number [1]):
 sudo ./make_sdcard.sh
 
-# Or specify the target device directly:
+# Or specify the target device directly (skips interactive selection):
 # Linux:
-sudo ./make_sdcard.sh /dev/sdb
+sudo ./make_sdcard.sh /dev/sda
 # macOS:
 sudo ./make_sdcard.sh /dev/rdisk4
 

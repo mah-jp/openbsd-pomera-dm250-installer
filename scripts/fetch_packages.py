@@ -3,7 +3,9 @@
 fetch_packages.py - Automated OpenBSD Package Dependency Resolver & Downloader.
 
 Recursively resolves and downloads OpenBSD arm packages for offline installation
-on Pomera DM250 into _build_cache/packages.
+on Pomera DM250 into _build_cache/packages. Includes robust manifest caching,
+local package dependency extraction, and IPv4 prioritization to eliminate
+redundant remote catalog downloads and graph resolutions.
 
 Copyright (c) 2026 Masahiko OHKUBO and Pomera DM250 OpenBSD Project Contributors
 SPDX-License-Identifier: MIT
@@ -13,20 +15,108 @@ import os
 import sys
 import re
 import io
+import json
 import zlib
+import socket
 import urllib.request
 import argparse
-from typing import Dict, List, Set
+from typing import Dict, List, Set, Optional
+
+# Prioritize IPv4 to prevent hanging on IPv6 SYN_SENT timeouts in dual-stack hosts
+_orig_getaddrinfo = socket.getaddrinfo
+def _getaddrinfo_prefer_ipv4(host, port, family=0, type=0, proto=0, flags=0):
+    try:
+        res = _orig_getaddrinfo(host, port, socket.AF_INET, type, proto, flags)
+        if res:
+            return res
+    except Exception:
+        pass
+    return _orig_getaddrinfo(host, port, family, type, proto, flags)
+socket.getaddrinfo = _getaddrinfo_prefer_ipv4
 
 MIRROR_URL = "https://cdn.openbsd.org/pub/OpenBSD/7.9/packages/arm/"
 DEFAULT_TARGETS = ["vim", "curl", "git", "noto-cjk", "dmenu", "fribidi", "harfbuzz"]
+MANIFEST_NAME = ".packages_manifest.json"
 
 
-def fetch_index(mirror: str) -> Dict[str, int]:
+def check_cached_manifest(dest_dir: str, mirror: str, targets: List[str]) -> Optional[Dict[str, int]]:
+    """
+    Checks if a valid packages manifest exists and all package files match expected sizes.
+    Returns dictionary of {pkg_filename: size} if valid, or None if invalid/incomplete.
+    """
+    manifest_path = os.path.join(dest_dir, MANIFEST_NAME)
+    if not os.path.isfile(manifest_path):
+        return None
+
+    try:
+        with open(manifest_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        if data.get("mirror") != mirror:
+            return None
+
+        if sorted(data.get("targets", [])) != sorted(targets):
+            return None
+
+        pkgs = data.get("packages", {})
+        if not pkgs:
+            return None
+
+        for pkg_name, expected_size in pkgs.items():
+            fpath = os.path.join(dest_dir, pkg_name)
+            if not os.path.isfile(fpath):
+                return None
+            if expected_size > 0 and os.path.getsize(fpath) != expected_size:
+                return None
+
+        return pkgs
+    except Exception:
+        return None
+
+
+def save_manifest(dest_dir: str, mirror: str, targets: List[str], pkgs: Set[str], all_pkgs: Dict[str, int]):
+    """
+    Saves resolved packages manifest into dest_dir for sub-second cache verification.
+    """
+    os.makedirs(dest_dir, exist_ok=True)
+    manifest_path = os.path.join(dest_dir, MANIFEST_NAME)
+    manifest_data = {
+        "mirror": mirror,
+        "targets": sorted(targets),
+        "packages": {
+            p: all_pkgs.get(p, os.path.getsize(os.path.join(dest_dir, p)) if os.path.isfile(os.path.join(dest_dir, p)) else 0)
+            for p in sorted(pkgs)
+        }
+    }
+    temp_path = manifest_path + ".tmp"
+    with open(temp_path, "w", encoding="utf-8") as f:
+        json.dump(manifest_data, f, indent=2)
+    os.rename(temp_path, manifest_path)
+    print(f"✅ Package cache manifest saved ({len(pkgs)} packages tracked).")
+
+
+def fetch_index(mirror: str, cache_dir: Optional[str] = None) -> Dict[str, int]:
+    index_cache = os.path.join(cache_dir, ".index.txt") if cache_dir else None
+
+    # Fetch index.txt
     url = mirror + "index.txt"
     req = urllib.request.Request(url, headers={"User-Agent": "OpenBSD-Pomera-Installer"})
-    with urllib.request.urlopen(req) as resp:
-        data = resp.read().decode("utf-8", errors="ignore")
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = resp.read().decode("utf-8", errors="ignore")
+            if index_cache:
+                try:
+                    with open(index_cache, "w", encoding="utf-8") as f:
+                        f.write(data)
+                except Exception:
+                    pass
+    except Exception as e:
+        if index_cache and os.path.isfile(index_cache):
+            print(f"⚠️ Network notice: using local cached index.txt ({e})", file=sys.stderr)
+            with open(index_cache, "r", encoding="utf-8") as f:
+                data = f.read()
+        else:
+            raise
 
     pkgs = {}
     for line in data.splitlines():
@@ -55,20 +145,7 @@ def find_latest_package(prefix: str, all_pkgs: Dict[str, int]) -> str:
     return sorted(pool)[-1]
 
 
-def extract_package_dependencies(mirror: str, pkg_filename: str) -> List[str]:
-    url = mirror + pkg_filename
-    # Fetch first 256KB where +CONTENTS is located
-    req = urllib.request.Request(
-        url,
-        headers={"User-Agent": "OpenBSD-Pomera-Installer", "Range": "bytes=0-262143"}
-    )
-    try:
-        with urllib.request.urlopen(req) as resp:
-            chunk = resp.read()
-    except Exception as e:
-        print(f"⚠️ Warning: Could not range-read {pkg_filename}: {e}", file=sys.stderr)
-        return []
-
+def parse_contents_from_chunk(chunk: bytes) -> List[str]:
     d = zlib.decompressobj(16 + zlib.MAX_WBITS)
     try:
         decomp = d.decompress(chunk)
@@ -99,7 +176,36 @@ def extract_package_dependencies(mirror: str, pkg_filename: str) -> List[str]:
     return deps
 
 
-def resolve_all_dependencies(targets: List[str], mirror: str, all_pkgs: Dict[str, int]) -> Set[str]:
+def extract_package_dependencies(mirror: str, pkg_filename: str, dest_dir: Optional[str] = None) -> List[str]:
+    # 1. High-speed local extraction: If package is already cached locally, inspect it directly
+    if dest_dir:
+        local_path = os.path.join(dest_dir, pkg_filename)
+        if os.path.isfile(local_path):
+            try:
+                with open(local_path, "rb") as f:
+                    chunk = f.read(524288) # Read initial 512KB containing +CONTENTS
+                deps = parse_contents_from_chunk(chunk)
+                if deps or os.path.getsize(local_path) > 0:
+                    return deps
+            except Exception as e:
+                print(f"⚠️ Warning: Could not read local {pkg_filename}: {e}", file=sys.stderr)
+
+    # 2. Remote range-read from mirror
+    url = mirror + pkg_filename
+    req = urllib.request.Request(
+        url,
+        headers={"User-Agent": "OpenBSD-Pomera-Installer", "Range": "bytes=0-262143"}
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            chunk = resp.read()
+        return parse_contents_from_chunk(chunk)
+    except Exception as e:
+        print(f"⚠️ Warning: Could not range-read {pkg_filename}: {e}", file=sys.stderr)
+        return []
+
+
+def resolve_all_dependencies(targets: List[str], mirror: str, all_pkgs: Dict[str, int], dest_dir: Optional[str] = None) -> Set[str]:
     needed: Set[str] = set()
     queue: List[str] = []
 
@@ -117,7 +223,7 @@ def resolve_all_dependencies(targets: List[str], mirror: str, all_pkgs: Dict[str
             continue
         processed.add(current)
 
-        deps = extract_package_dependencies(mirror, current)
+        deps = extract_package_dependencies(mirror, current, dest_dir=dest_dir)
         for d in deps:
             # Match against all_pkgs (sometimes exact version differ slightly)
             actual = None
@@ -162,7 +268,7 @@ def download_packages(pkgs: Set[str], mirror: str, dest_dir: str, dry_run: bool 
         print(f"   [{idx}/{len(pkgs)}] Downloading {p}...")
         temp_dest = dest + ".tmp"
         req = urllib.request.Request(url, headers={"User-Agent": "OpenBSD-Pomera-Installer"})
-        with urllib.request.urlopen(req) as resp, open(temp_dest, "wb") as out:
+        with urllib.request.urlopen(req, timeout=15) as resp, open(temp_dest, "wb") as out:
             while True:
                 buf = resp.read(65536)
                 if not buf:
@@ -179,14 +285,28 @@ def main():
     parser.add_argument("--mirror", default=MIRROR_URL, help="OpenBSD packages mirror URL")
     parser.add_argument("--targets", nargs="+", default=DEFAULT_TARGETS, help="Target packages to install")
     parser.add_argument("--dry-run", action="store_true", help="Resolve dependencies without downloading")
+    parser.add_argument("--no-cache", "--force", action="store_true", dest="force", help="Force refresh and ignore cached manifest")
     args = parser.parse_args()
 
+    # Fast cache check: if all requested targets are already resolved & present, skip network entirely
+    if not args.force:
+        cached_manifest = check_cached_manifest(args.dest, args.mirror, args.targets)
+        if cached_manifest is not None:
+            total_sz = sum(cached_manifest.values())
+            print(f"✅ [Packages Cache] All {len(cached_manifest)} offline workspace packages are already cached ({total_sz / 1024 / 1024:.1f} MB).")
+            print(f"   -> Destination: {args.dest}")
+            print("   -> Skipping remote catalog fetch and dependency resolution (Use --no-cache to re-fetch).")
+            return
+
     print(f">> Fetching package catalog from {args.mirror}...")
-    all_pkgs = fetch_index(args.mirror)
+    all_pkgs = fetch_index(args.mirror, cache_dir=args.dest)
     download_packages.all_pkgs = all_pkgs
 
-    resolved = resolve_all_dependencies(args.targets, args.mirror, all_pkgs)
+    resolved = resolve_all_dependencies(args.targets, args.mirror, all_pkgs, dest_dir=args.dest)
     download_packages(resolved, args.mirror, args.dest, dry_run=args.dry_run)
+
+    if not args.dry_run:
+        save_manifest(args.dest, args.mirror, args.targets, resolved, all_pkgs)
 
 
 if __name__ == "__main__":
