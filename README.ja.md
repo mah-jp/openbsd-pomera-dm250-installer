@@ -177,7 +177,13 @@ sudo ./make_sdcard.sh /dev/rdisk4
 > 本ツールのインストーラーSDカードには、Rockchip RK3128 のハードウェア BootROM が直接読み込むブートローダー（`idbloader.img` / `uboot.img`）が書き込まれています。  
 > 特殊なキー操作は一切不要で、**本体eMMCには事前に1バイトも書き込みを行いません**。インストーラー起動後に確認プロンプトで `yes` を入力するまで、本体の純正システムやデータは完全に保護されます（途中で中止してSDカードを抜けば、そのまま純正ポメラOSが起動します）。
 
-1. ポメラの電源を完全に切り、作成したSDカードを挿入します。
+> [!WARNING]
+> **⚠️ SDカードの物理「書き込み禁止スイッチ（Lock）」について**  
+> SDカード側面の物理スイッチは **必ず書き込み可能（Unlock）な状態** にしておいてください。  
+> OpenBSD のインストーラーは、内蔵eMMCを初期化・マウントする過程で一時的なマウントテーブル（`/etc/fstab`）の作成などを行うため、SDカードがハードウェア的に書き込み禁止になっているとエラー（`Read-only file system`）で中断してしまいます。  
+> *(※ インストール完了後に [Enter] を押して電源が切れた後であれば、SDカードはクリーンに保護されているため安全に取り出せます)*
+
+1. ポメラの電源を完全に切り、作成したSDカード（書き込み可能状態）を挿入します。
 2. 通常通り **[電源ボタン]** を押して電源を入れます（3〜4秒長押し）。  
    *(SDカード上のブートローダーから自動起動し、`[Pomera DM250] Booting OpenBSD Installer (SD Card)...` と表示されてインストーラーカーネルが自動的に読み込まれます)*
 3. 画面に安全確認プロンプトが表示されます：
@@ -192,9 +198,10 @@ sudo ./make_sdcard.sh /dev/rdisk4
    **`yes`** と入力して [Enter] を押すと、初めて本体eMMCの初期化とインストールが開始されます。  
    *(※ `N` や空Enterを入力するとインストールを直ちに中断し、メンテナンスメニューへ安全に移行します。本体eMMCは一切変更されません)*
 4. 以降は完全手放しでインストールが走り、内蔵eMMC（`sd1`）の自動初期化、ベースセット導入、`site79.tgz`（DM250カスタムカーネル `/bsd` 配置、`reorder_kernel` 事前無効化、複数SSID Wi-Fi / USB-NIC DHCP設定、蓋開閉監視デーモン登録）がすべて自動実行されます。
-5. 画面に `🎉 ALL OPERATIONS COMPLETED SUCCESSFULLY!` が表示されたら：
-   **SDカードをポメラから抜き、キーボードで [Enter] を押して電源を切ります**。
-6. 電源ボタンを押すと、内蔵ストレージから OpenBSD が起動します（`[Pomera DM250] Starting OpenBSD from Internal Storage...`）。
+5. 画面に `🎉 OpenBSD INSTALLATION COMPLETED SUCCESSFULLY!` が表示されたら：  
+   **キーボードで [Enter] を押して電源を切ります**。  
+   *(※ 画面が消えて電源が完全に切れた後で、SDカードを取り出してください)*
+6. 再度電源ボタンを押すと、内蔵ストレージから OpenBSD が起動します（`[Pomera DM250] Starting OpenBSD from Internal Storage...`）。
 7. 画面にログインプロンプトが表示されます：
    ```text
    OpenBSD/armv7 (pomera.my.domain) (console)

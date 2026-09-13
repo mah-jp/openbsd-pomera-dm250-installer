@@ -176,7 +176,13 @@ sudo ./make_sdcard.sh /dev/rdisk4
 > The installer SD card contains authentic Rockchip RK3128 raw bootloader sectors (`idbloader.img` / `uboot.img`).  
 > The hardware BootROM directly boots from the SD card on power-on **WITHOUT writing a single byte to internal eMMC**. Your factory OS and data remain completely untouched until you explicitly type `yes` at the confirmation prompt (ejecting the SD card boots normal factory Pomera OS).
 
-1. Power OFF Pomera DM250 completely and insert the prepared SD card.
+> [!WARNING]
+> **⚠️ Physical Write-Protect (Lock) Switch on SD Card**  
+> The physical switch on the side of the SD card **must be in the UNLOCKED (write-enabled) position**.  
+> During the installation process, the OpenBSD installer initializes and mounts internal storage, which requires generating a temporary mount table (`/etc/fstab`) on the root filesystem. If the SD card is locked in read-only mode by hardware, the installation will abort with a `Read-only file system` error.  
+> *(※ Once the installation finishes and the system completely shuts down after pressing [Enter], the SD card is cleanly unmounted and can be safely removed).*
+
+1. Power OFF Pomera DM250 completely and insert the prepared SD card (ensure the physical write-protect lock is OFF).
 2. Turn ON Pomera by pressing the **[Power Button]** (hold 3-4 seconds).  
    *(The device boots directly from the SD card, automatically loading the installer kernel: `[Pomera DM250] Booting OpenBSD Installer (SD Card)...`).*
 3. A safety confirmation prompt will appear on the console:
@@ -194,8 +200,9 @@ sudo ./make_sdcard.sh /dev/rdisk4
    - Partitions internal eMMC (`sd1`)
    - Installs OpenBSD base sets and X11
    - Executes `site79.tgz` hook to install the custom DM250 kernel (`/bsd`), disable `reorder_kernel`, configure Multi-SSID Wi-Fi / USB-NIC DHCP, and enable lid power management.
-5. When `🎉 ALL OPERATIONS COMPLETED SUCCESSFULLY!` appears on screen:
-   **Eject the SD card** and press **`[Enter]`** to power off.
+5. When `🎉 OpenBSD INSTALLATION COMPLETED SUCCESSFULLY!` appears on screen:  
+   **Press [Enter] on the keyboard to power off**.  
+   *(※ Wait until the screen goes black and the unit completely powers off before removing the SD card).*
 6. Turn ON Pomera to start OpenBSD from internal storage (`[Pomera DM250] Starting OpenBSD from Internal Storage...`).
 7. A login prompt will appear on console:
    ```text
