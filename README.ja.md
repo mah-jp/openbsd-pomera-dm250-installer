@@ -153,15 +153,6 @@ sudo ./make_sdcard.sh /dev/rdisk4
 
 # ダウンロードとキャッシュのみ行う場合:
 ./make_sdcard.sh --download-only
-
-# Pomera DM250 特化型スマートカーネル（不要SoC・PCIドライバの削除、約25%削減）を適用する場合:
-./make_sdcard.sh --smart-kernel
-
-# 高速日本語コンソール mlterm-fb 用カーネルパッチを適用する場合:
-./make_sdcard.sh --patch-mlterm-fb
-
-# パッチ適用済みカーネルのQEMUリコンパイルを明示的に実行する場合:
-./make_sdcard.sh --build-kernel
 ```
 
 *(※ USモデル `DM250US` の場合は `--us` オプションを付与してください)*  

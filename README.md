@@ -153,15 +153,6 @@ sudo ./make_sdcard.sh /dev/rdisk4
 
 # Download and cache files only (no formatting):
 ./make_sdcard.sh --download-only
-
-# Build and use DM250 tailored smart kernel (removes unused SoC/PCI drivers):
-./make_sdcard.sh --smart-kernel
-
-# Build kernel with mlterm-fb direct framebuffer console patch:
-./make_sdcard.sh --patch-mlterm-fb
-
-# Force QEMU recompilation of the patched kernel:
-./make_sdcard.sh --build-kernel
 ```
 
 *(For US model `DM250US`, append `--us` flag).*  
