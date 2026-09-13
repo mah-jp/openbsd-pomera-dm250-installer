@@ -77,7 +77,7 @@ sudo pacman -S --needed curl python qemu-system-aarch64 edk2-arm mtools
   ↓
 [Phase 1: 設定 & インストーラSDの作成]
   1. configs/user_config.env で Wi-Fi やパスワードを設定
-  2. $ sudo ./make_sdcard.sh  (外付けSDを自動検知して対話選択)
+  2. $ ./make_sdcard.sh  (外付けSDを自動検知して対話選択)
   ↓
 [Phase 2: Pomera 本体でのインストール]
   1. SDカードを挿入して [電源ボタン] を3〜4秒長押し
@@ -150,18 +150,19 @@ nano configs/user_config.env
 ```bash
 # デバイス名を省略すると、接続されている外付けSDカードを安全に一覧表示＆対話選択できます:
 # （検出デバイスが1台の場合は [Enter] を押すだけで自動選択、または番号 [1] でも選択可能）
-sudo ./make_sdcard.sh
+./make_sdcard.sh
 
 # デバイスを直接指定する場合（対話選択をスキップ）:
 # Linux:
-sudo ./make_sdcard.sh /dev/sda
+./make_sdcard.sh /dev/sda
 # macOS:
-sudo ./make_sdcard.sh /dev/rdisk4
+./make_sdcard.sh /dev/rdisk4
 
 # ダウンロードとキャッシュのみ行う場合:
 ./make_sdcard.sh --download-only
 ```
 
+*(※ SDカードへの直接書き込み時に管理者権限（sudoパスワード）が自動要求されます。最初から `sudo ./make_sdcard.sh` で実行することも可能ですが、一般ユーザー権限での実行が推奨されます)*  
 *(※ USモデル `DM250US` の場合は `--us` オプションを付与してください)*  
 *(※ 安全のため、母艦PCの内蔵システムディスク [macOSのdisk0やLinuxのルートドライブ] は自動的に保護され、誤ってフォーマットされることはありません)*
 

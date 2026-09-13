@@ -77,7 +77,7 @@ sudo pacman -S --needed curl python qemu-system-aarch64 edk2-arm mtools
   ↓
 [Phase 1: Configure & Build Installer SD]
   1. Configure Wi-Fi / passwords in configs/user_config.env
-  2. $ sudo ./make_sdcard.sh  (auto-detects SD card interactively)
+  2. $ ./make_sdcard.sh  (auto-detects SD card interactively)
   ↓
 [Phase 2: Installation on Pomera]
   1. Insert SD -> Turn ON Pomera with [Power Button] (hold 3~4s)
@@ -150,18 +150,19 @@ Run `make_sdcard.sh` on your host PC. It automatically downloads OpenBSD 7.9 off
 ```bash
 # Running without arguments automatically detects external SD cards and prompts for selection:
 # (If only 1 card is detected, simply press [Enter] to confirm, or enter the number [1]):
-sudo ./make_sdcard.sh
+./make_sdcard.sh
 
 # Or specify the target device directly (skips interactive selection):
 # Linux:
-sudo ./make_sdcard.sh /dev/sda
+./make_sdcard.sh /dev/sda
 # macOS:
-sudo ./make_sdcard.sh /dev/rdisk4
+./make_sdcard.sh /dev/rdisk4
 
 # Download and cache files only (no formatting):
 ./make_sdcard.sh --download-only
 ```
 
+*(Note: Administrator privileges `sudo` are requested automatically only when writing to the physical SD card. You can also run `sudo ./make_sdcard.sh` upfront if preferred).*  
 *(For US model `DM250US`, append `--us` flag).*  
 *(Safety Guard: Internal host storage drives [e.g., `disk0` on macOS or root `/` on Linux] are automatically protected from accidental selection).*
 

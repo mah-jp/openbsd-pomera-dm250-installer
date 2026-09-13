@@ -133,7 +133,7 @@ show_help() {
     echo "  $0 --patch-mlterm-fb   # Build kernel with mlterm-fb framebuffer patch"
     echo "  $0 --build-kernel      # Recompile patched kernel in QEMU"
     echo "  $0 --rebuild-mlterm    # Recompile patched mlterm-fb in QEMU"
-    echo "  sudo $0 /dev/sdb       # Flash directly to SD card on Linux"
+    echo "  $0 /dev/sdb            # Flash directly to SD card on Linux"
     echo "  $0 /dev/rdisk4         # Flash directly to SD card on macOS"
     echo "  $0 --rebuild-uboot     # Force rebuild auto-booting U-Boot"
     exit 0
@@ -940,6 +940,8 @@ main() {
 
     check_prerequisites
     mkdir -p "${WORK_DIR}"
+    # If running inside a Dropbox sync folder, suppress syncing of large transient build artifacts
+    setfattr -n user.com.dropbox.ignored -v 1 "${WORK_DIR}" 2>/dev/null || xattr -w com.dropbox.ignored 1 "${WORK_DIR}" 2>/dev/null || true
 
     generate_install_configs
     fetch_all_artifacts
