@@ -104,8 +104,10 @@ export PAGER=less
 alias ll='ls -la'
 alias mlterm-base='/usr/local/bin/mlterm-fb'
 alias mlterm-opt='/usr/local/bin/mlterm-fb-pomera'
-alias mlterm-ja='/usr/local/bin/mlterm-opt -M uim:anthy'
 alias pstat='pomera-status'
+export SKK_DICTIONARY="/usr/local/share/skk/SKK-JISYO.L"
+alias mlterm-ja='/usr/local/bin/mlterm-opt -M skk:dict=/usr/local/share/skk/SKK-JISYO.L'
+alias mlterm-skk='/usr/local/bin/mlterm-opt -M skk:dict=/usr/local/share/skk/SKK-JISYO.L'
 EOF
 chown "$TARGET_USER" "$TARGET_HOME/.profile"
 chmod 0644 "$TARGET_HOME/.profile"
@@ -235,7 +237,7 @@ echo "How to use your workspace:
      - Run 'vim' for distraction-free writing (True Color & UTF-8 ready)
      - Run 'tmux' for multi-pane terminal workspace
   3. Setup Japanese Input:
-     - Run 'pomera-setup-japanese' to configure direct inline uim-anthy!"
+     - Run 'pomera-setup-japanese' to configure direct inline SKK (SKK-JISYO.L)!"
 
 if [ -d "/var/cache/packages" ]; then
     echo "💡 Storage Tip: Offline packages are cached at /var/cache/packages (~180MB)."

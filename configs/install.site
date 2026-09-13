@@ -516,7 +516,6 @@ fi
 
 # Set friendly MOTD welcome message
 cat << 'EOF' >> /etc/motd
-
 ==========================================================
 🎉 Welcome to OpenBSD on King Jim Pomera DM250!
 ==========================================================
@@ -524,7 +523,7 @@ First-Time Setup:
   1. Workspace (Vim, tmux, mlterm-fb, fonts):
      $ pomera-setup-workspace
 
-  2. Japanese Input (uim-anthy):
+  2. Japanese Input (SKK):
      $ pomera-setup-japanese
 ==========================================================
 

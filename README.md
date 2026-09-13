@@ -15,7 +15,7 @@ Turn your dedicated Japanese digital typewriter into a distraction-free portable
 | **⚡ Instant Sleep & Wakeup** | Native `rcctl` daemon (`pomera_lid_watch`) monitors the lid switch: 0ms backlight cutoff & CPU throttling on close, instant full-power restore on open. Polling interval and CPU policy (auto/high) are fully configurable. |
 | **🔋 Accurate Battery Management** | Integrated with Rockchip RK818 PMIC for automatic battery charging and hardware power routing. Query real-time voltage, charge/discharge status, and capacity percentage via `sysctl hw.sensors.simplebat0`. |
 | **🌐 Connectivity (2.4GHz Wi-Fi)** | Built-in Wi-Fi (`bwfm0`, 2.4GHz, multi-SSID auto-fallback and auto-reconnect daemon). *(Experimental support for Bluetooth PAN and USB-Ethernet drivers is also included).* |
-| **💻 Pure High-Speed CUI Terminal** | Pure CUI environment without bloated GUI desktop layers. Equipped with both standard framebuffer console (`mlterm-base` / `mlterm-fb`) and zero-latency turbo console (`mlterm-opt` / `mlterm-fb-pomera`), plus seamless inline Japanese typing via `mlterm-ja` (`uim-anthy`). |
+| **💻 Pure High-Speed CUI Terminal** | Pure CUI environment without bloated GUI desktop layers. Equipped with both standard framebuffer console (`mlterm-base` / `mlterm-fb`) and zero-latency turbo console (`mlterm-opt` / `mlterm-fb-pomera`), plus seamless inline Japanese typing via `mlterm-ja` (built-in SKK engine). |
 | **🖱️ USB Peripherals** | Support for external keyboards and mice via USB Type-C OTG. |
 | **🛡️ Safety & Non-Destructive** | Integrated with [pomera-dm250-backup-restore-tool](https://github.com/mah-jp/pomera-dm250-backup-restore-tool) for full eMMC factory backup and 100% restore capability. |
 | **🛠️ Smart Patch Audit & Auto-Build** | Optional kernel patches for USB Hub stability and mlterm-fb framebuffer console (SMODE). Automatically audits official kernel and skips recompilation if already fixed upstream. |
@@ -234,7 +234,7 @@ sudo ./make_sdcard.sh /dev/rdisk4
 > The installer provides both standard and optimized versions of `mlterm-fb` (direct framebuffer terminal):
 > - **`mlterm-opt`** (or `mlterm-fb-pomera`): Ultra-low latency turbo edition (recommended, optimized row bounding box + DECSET 2026 support)
 > - **`mlterm-base`** (or `mlterm-fb`): Standard stable baseline edition (shadowfb direct framebuffer)
-> - **`mlterm-ja`**: Direct Japanese input terminal (`mlterm-opt -M uim:anthy`)
+> - **`mlterm-ja`**: Direct Japanese input terminal (`mlterm-opt -M skk:dict=/usr/local/share/skk/SKK-JISYO.L`)
 
 > [!TIP]
 > **💡 Booting from SD card when a custom OS (OpenBSD, etc.) is already installed**
@@ -278,9 +278,9 @@ If you write in Japanese, run the second stage script:
 ```bash
 pomera-setup-japanese
 ```
-- Installs `anthy` & `uim` input method libraries
-- Configures JIS-friendly toggle shortcuts (`Shift + Space`, `Ctrl + Space`, `Hankaku/Zenkaku`) in `~/.uim`
-- Enables direct, inline spot-preedit conversion (`uim:anthy`) in `~/.mlterm/main`
+- Installs `skk-jisyo` (large dictionary `SKK-JISYO.L`)
+- Configures JIS-friendly toggle shortcuts (`Shift + Space`, `Ctrl + Space`) in `~/.mlterm/key`
+- Enables zero-latency, direct inline spot-preedit conversion via mlterm's built-in SKK engine in `~/.mlterm/main`
 
 ---
 
@@ -310,9 +310,9 @@ pomera-setup-japanese
 | :--- | :--- |
 | `mlterm-opt` | Launch ultra-low latency turbo CJK terminal (`mlterm-fb-pomera`). |
 | `mlterm-base` | Launch standard baseline CJK terminal (`mlterm-fb`). |
-| `mlterm-ja` | Launch Japanese input terminal with direct inline IME (`uim:anthy`). |
+| `mlterm-ja` | Launch Japanese input terminal with direct inline IME (built-in SKK). |
 | `pomera-setup-workspace` | Automatically set up CUI workspace (`mlterm-fb`, fonts, Vim, tmux, and dotfiles). |
-| `pomera-setup-japanese` | Automatically set up Japanese IME (`uim-anthy` direct inline conversion) for `mlterm-fb`. |
+| `pomera-setup-japanese` | Automatically set up Japanese IME (built-in SKK direct inline conversion) for `mlterm-fb`. |
 | `pomera-font [udev\|moraler\|noto]` | Instantly switch terminal fonts (slashed-zero UDEV Gothic, Moralerspace, or Noto) for `mlterm-fb`. |
 | `doas pomera-bt-pan connect <BD_ADDR>` | *(Experimental)* Connect to smartphone Bluetooth Tethering (PAN) (requires 4noha's panctl daemon; unverified on hardware). |
 
