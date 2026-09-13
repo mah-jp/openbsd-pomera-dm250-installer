@@ -55,16 +55,16 @@ brew install curl coreutils python3 qemu
 #### 🐧 Ubuntu / Debian (apt)
 ```bash
 sudo apt update
-sudo apt install -y curl python3 qemu-system-arm qemu-efi-aarch64
+sudo apt install -y curl python3 qemu-system-arm qemu-efi-aarch64 mtools
 ```
 
 #### 🎩 Fedora (dnf) / 🏹 Arch Linux (pacman)
 ```bash
 # Fedora
-sudo dnf install -y curl python3 qemu-system-aarch64 edk2-aarch64
+sudo dnf install -y curl python3 qemu-system-aarch64 edk2-aarch64 mtools
 
 # Arch Linux
-sudo pacman -S --needed curl python qemu-system-aarch64 edk2-arm
+sudo pacman -S --needed curl python qemu-system-aarch64 edk2-arm mtools
 ```
 
 ---
