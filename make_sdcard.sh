@@ -173,6 +173,13 @@ check_prerequisites() {
     local required_cmds=(curl python3 qemu-system-aarch64)
     if [ "$OS_NAME" != "Darwin" ]; then
         required_cmds+=(mcopy)
+        if [ "$ARCH_NAME" = "x86_64" ]; then
+            if ! command -v arm-linux-gnueabihf-objdump >/dev/null 2>&1 && \
+               ! command -v arm-none-eabi-objdump >/dev/null 2>&1 && \
+               ! command -v llvm-objdump >/dev/null 2>&1; then
+                required_cmds+=(arm-linux-gnueabihf-objdump)
+            fi
+        fi
     fi
 
     local missing=()
@@ -188,7 +195,11 @@ check_prerequisites() {
             echo "  brew install curl coreutils python3 qemu"
         else
             echo "Install via APT (Ubuntu/Debian):"
-            echo "  sudo apt update && sudo apt install -y curl python3 qemu-system-arm qemu-efi-aarch64 mtools"
+            echo "  sudo apt update && sudo apt install -y curl python3 qemu-system-arm qemu-efi-aarch64 mtools binutils-arm-linux-gnueabihf"
+            echo "Install via DNF (Fedora):"
+            echo "  sudo dnf install -y curl python3 qemu-system-aarch64 edk2-aarch64 mtools binutils-arm-linux-gnu"
+            echo "Install via Pacman (Arch Linux):"
+            echo "  sudo pacman -S --needed curl python qemu-system-aarch64 edk2-arm mtools arm-linux-gnueabihf-binutils"
         fi
         exit 1
     fi
@@ -410,7 +421,7 @@ fetch_all_artifacts() {
     local need_build_uboot=false
     if [ "$REBUILD_UBOOT" = true ] || [ ! -f "$uboot_target" ]; then
         need_build_uboot=true
-    elif ! strings "$uboot_target" 2>/dev/null | grep -q "load mmc 1:1"; then
+    elif ! grep -a -q "load mmc 1:1" "$uboot_target"; then
         echo ">> Detected legacy U-Boot without hands-free auto-boot. Upgrading..."
         need_build_uboot=true
     fi
@@ -488,27 +499,25 @@ EOF
         target_kconfig="DM250"
         check_flags+=("--check-smart")
     fi
+    if [ "$POMERA_PATCH_USB_HUB" = "yes" ]; then
+        want_kernel_patch=true
+        check_flags+=("--check-usb")
+    fi
+    if [ "$POMERA_PATCH_X11_KEYS" = "yes" ]; then
+        want_kernel_patch=true
+        check_flags+=("--check-x11")
+    fi
+    if [ "$POMERA_PATCH_MLTERM_FB" = "yes" ]; then
+        want_kernel_patch=true
+        check_flags+=("--check-smode")
+    fi
+    if [ "$POMERA_PATCH_BT" = "yes" ]; then
+        want_kernel_patch=true
+        check_flags+=("--check-bt")
+    fi
 
     if [ "$BUILD_KERNEL" = "true" ] || [ "$POMERA_BUILD_PATCHED_KERNEL" = "yes" ]; then
         want_kernel_patch=true
-        check_flags+=("--check-all")
-    else
-        if [ "$POMERA_PATCH_USB_HUB" = "yes" ]; then
-            want_kernel_patch=true
-            check_flags+=("--check-usb")
-        fi
-        if [ "$POMERA_PATCH_X11_KEYS" = "yes" ]; then
-            want_kernel_patch=true
-            check_flags+=("--check-x11")
-        fi
-        if [ "$POMERA_PATCH_MLTERM_FB" = "yes" ]; then
-            want_kernel_patch=true
-            check_flags+=("--check-smode")
-        fi
-        if [ "$POMERA_PATCH_BT" = "yes" ]; then
-            want_kernel_patch=true
-            check_flags+=("--check-bt")
-        fi
     fi
 
     local current_kernel_sig="CONFIG=${target_kconfig}|SMART=${POMERA_SMART_KERNEL}|USB_HUB=${POMERA_PATCH_USB_HUB}|X11_KEYS=${POMERA_PATCH_X11_KEYS}|MLTERM_FB=${POMERA_PATCH_MLTERM_FB}|BT=${POMERA_PATCH_BT}"
@@ -519,7 +528,8 @@ EOF
         echo ""
         echo "=== [Kernel Audit] Verifying Upstream Kernel Status (Config: ${target_kconfig}) ==="
 
-        if [ -f "$inspect_script" ] && python3 "$inspect_script" "${WORK_DIR}/bsd.official" "${check_flags[@]}"; then
+        if [ "$BUILD_KERNEL" != "true" ] && [ "$POMERA_BUILD_PATCHED_KERNEL" != "yes" ] && \
+           [ -f "$inspect_script" ] && python3 "$inspect_script" "${WORK_DIR}/bsd.official" "${check_flags[@]}"; then
             echo ">> ✨ Upstream jcs.org kernel already satisfies requested configuration!"
             echo "   Using official binary directly. Skipping QEMU rebuild."
             cp -f "${WORK_DIR}/bsd.official" "${WORK_DIR}/bsd"
@@ -527,7 +537,10 @@ EOF
             echo ">> Upstream jcs.org kernel does NOT satisfy requested configuration (${check_flags[*]})."
             local need_compile=false
 
-            if [ -f "${WORK_DIR}/bsd.patched" ] && [ -f "$tag_file" ]; then
+            if [ "$BUILD_KERNEL" = "true" ] || [ "$POMERA_BUILD_PATCHED_KERNEL" = "yes" ]; then
+                echo ">> Explicit kernel rebuild requested via CLI / environment setting."
+                need_compile=true
+            elif [ -f "${WORK_DIR}/bsd.patched" ] && [ -f "$tag_file" ]; then
                 local cached_sig
                 cached_sig="$(cat "$tag_file" 2>/dev/null || echo "")"
                 if [ "$cached_sig" = "$current_kernel_sig" ]; then
@@ -599,7 +612,7 @@ EOF
     local needs_mlterm_build=false
     if [ "$REBUILD_MLTERM" = true ] || [ ! -f "$mlterm_tar" ]; then
         needs_mlterm_build=true
-    elif ! tar -ztf "$mlterm_tar" 2>/dev/null | grep -q "mlterm-fb-pomera"; then
+    elif ! tar -ztf "$mlterm_tar" usr/local/bin/mlterm-fb-pomera >/dev/null 2>&1; then
         echo ">> Existing mlterm archive is outdated (missing mlterm-fb-pomera). Scheduling rebuild..."
         needs_mlterm_build=true
     fi
