@@ -55,16 +55,16 @@ brew install curl coreutils python3 qemu
 #### 🐧 Ubuntu / Debian (apt)
 ```bash
 sudo apt update
-sudo apt install -y curl python3 qemu-system-arm qemu-efi-aarch64 mtools
+sudo apt install -y curl python3 qemu-system-arm qemu-efi-aarch64 mtools binutils-arm-linux-gnueabihf
 ```
 
 #### 🎩 Fedora (dnf) / 🏹 Arch Linux (pacman)
 ```bash
 # Fedora
-sudo dnf install -y curl python3 qemu-system-aarch64 edk2-aarch64 mtools
+sudo dnf install -y curl python3 qemu-system-aarch64 edk2-aarch64 mtools binutils-arm-linux-gnu
 
 # Arch Linux
-sudo pacman -S --needed curl python qemu-system-aarch64 edk2-arm mtools
+sudo pacman -S --needed curl python qemu-system-aarch64 edk2-arm mtools arm-linux-gnueabihf-binutils
 ```
 
 ---
@@ -291,6 +291,7 @@ pomera-setup-japanese
 | :--- | :--- |
 | `pomera-status [OPTIONS]` (or `pstat`) | Display one-line battery percentage/charging, CPU clock/policy, Wi-Fi SSID, and time (`--tmux`, `--short`, `--json`, `-w`). |
 | `pomera-brightness [up\|down\|<%>]` | Adjust backlight brightness manually (`Alt+F1`/`Alt+F2` in tmux). |
+| `doas pomera-tune [status\|apply]` | Optimize RAM and power by disabling unused daemons (`smtpd`, `sndiod`, `pflogd`) and virtual consoles (`ttyC1`-`ttyC5`). |
 | `sysctl hw.sensors.simplebat0` | Display battery voltage, charging/discharging status, and capacity percentage (`percent0`). |
 | `sysctl -n hw.sensors.simplebat0.percent0` | Output battery percentage only (e.g. `96.00%`). |
 | `sysctl hw.cpuspeed` | Display current CPU operating clock speed in MHz (max: 1200 MHz). |
@@ -323,8 +324,8 @@ pomera-setup-japanese
 | Tool | Description |
 | :--- | :--- |
 | `sudo python3 scripts/inspect_sd.py /dev/rdiskN` | Inspect physical sector layout, MBR, BootROM sectors (LBA 64/16384), and Disklabel. |
-| `python3 scripts/inspect_kernel.py [kernel]` | Audit if a kernel binary is optimized DM250 smart kernel or contains USB/X11/mlterm-fb fixes. |
-| `python3 scripts/build_kernel_qemu.py [--config DM250]` | Automatically build patched (USB, X11 keys, mlterm-fb) & slimmed kernel (`DM250` / `GENERIC`) via native QEMU VM. |
+| `python3 scripts/inspect_kernel.py [kernel]` | Audit if a kernel binary is optimized DM250 smart kernel or contains USB/X11/mlterm-fb/Bluetooth fixes. |
+| `python3 scripts/build_kernel_qemu.py [--config DM250]` | Automatically build patched (USB, X11 keys, mlterm-fb, BT) & slimmed kernel (`DM250` / `GENERIC`) via native QEMU VM. |
 | `scripts/build_uboot.sh` | Standalone compilation of autoboot U-Boot image (`uboot.img`). |
 | `scripts/run_qemu.sh [image_path]` | Run local QEMU simulation of the OpenBSD image before writing to physical hardware. |
 

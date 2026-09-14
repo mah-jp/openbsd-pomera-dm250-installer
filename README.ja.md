@@ -55,16 +55,16 @@ brew install curl coreutils python3 qemu
 #### 🐧 Ubuntu / Debian (apt)
 ```bash
 sudo apt update
-sudo apt install -y curl python3 qemu-system-arm qemu-efi-aarch64 mtools
+sudo apt install -y curl python3 qemu-system-arm qemu-efi-aarch64 mtools binutils-arm-linux-gnueabihf
 ```
 
 #### 🎩 Fedora (dnf) / 🏹 Arch Linux (pacman)
 ```bash
 # Fedora
-sudo dnf install -y curl python3 qemu-system-aarch64 edk2-aarch64 mtools
+sudo dnf install -y curl python3 qemu-system-aarch64 edk2-aarch64 mtools binutils-arm-linux-gnu
 
 # Arch Linux
-sudo pacman -S --needed curl python qemu-system-aarch64 edk2-arm mtools
+sudo pacman -S --needed curl python qemu-system-aarch64 edk2-arm mtools arm-linux-gnueabihf-binutils
 ```
 
 ---
@@ -278,6 +278,7 @@ pomera-setup-japanese
 | :--- | :--- |
 | `pomera-status [OPTIONS]` (または `pstat`) | バッテリー残量・充電状態・CPUクロック・Wi-Fi接続・時刻を一覧表示（`--tmux`, `--short`, `--json`, `-w` 対応）。 |
 | `pomera-brightness [up\|down\|<%>]` | 画面のバックライト明るさを手動調整（`Alt+F1`/`Alt+F2` でも操作可能）。 |
+| `doas pomera-tune [status\|apply]` | 不要デーモン（`smtpd`, `sndiod`, `pflogd`）や未使用コンソール（`ttyC1`-`5`）を停止し、RAMと省電力を最適化。 |
 | `sysctl hw.sensors.simplebat0` | バッテリー電圧・充電状態・残量パーセント（`percent0`）を表示。 |
 | `sysctl -n hw.sensors.simplebat0.percent0` | バッテリー残量パーセントのみを取得（例: `96.00%`）。 |
 | `sysctl hw.cpuspeed` | 現在の CPU 動作クロック周波数を表示（単位: MHz、最大 1200 MHz）。 |
