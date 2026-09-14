@@ -100,7 +100,7 @@ sudo pacman -S --needed curl python qemu-system-aarch64 edk2-arm mtools arm-linu
 > 本インストーラーを実行すると、Pomera 本体内蔵eMMCのパーティションおよびブートローダー領域が上書きされます。  
 > **本体eMMCのブートローダー領域を含む完全なバックアップが存在しない場合、Pomeraを工場出荷状態に戻すことは二度とできなくなります。**  
 > 
-> ※ ichinomoto 氏（[EKESETE.net](https://www.ekesete.net/log/?p=9504)）で公開されているバックアップツールでは、本体eMMCのブートローダー領域（先頭の raw セクター領域）のバックアップは残されません。そのため、**工場出荷状態への復元を行うには不十分です**。  
+> ※ ichinomoto 氏（[EKESETE.net](https://www.ekesete.net/log/?p=9504)）で公開されているバックアップツールでは、本体eMMCのブートローダー領域（先頭の raw セクター領域）のバックアップは残されません。そのため、**本インストーラーを用いたOpenBSDインストール後の復元用としては、同ツールのバックアップデータでは不完全となります**。  
 > 必ずブートローダー領域を含む eMMC 全体を丸ごと保存できる [pomera-dm250-backup-restore-tool](https://github.com/mah-jp/pomera-dm250-backup-restore-tool) を使用し、作業前に母艦PCへ完全なバックアップを作成してください。
 
 ```bash

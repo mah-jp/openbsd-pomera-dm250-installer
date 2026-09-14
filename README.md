@@ -100,7 +100,7 @@ sudo pacman -S --needed curl python qemu-system-aarch64 edk2-arm mtools arm-linu
 > Flashing OpenBSD will permanently overwrite the internal eMMC partitions and bootloader sectors.  
 > **If you do not have a full raw backup of the internal eMMC including its bootloader region, it is impossible to revert your Pomera back to its original factory state.**  
 > 
-> *Note*: The backup tool provided by ichinomoto ([EKESETE.net](https://www.ekesete.net/log/?p=9504)) does not preserve the internal eMMC bootloader sectors (raw initial LBA sectors). Therefore, it is **insufficient** for restoring the device to factory state.  
+> *Note*: The backup tool provided by ichinomoto ([EKESETE.net](https://www.ekesete.net/log/?p=9504)) does not preserve the internal eMMC bootloader sectors (raw initial LBA sectors). Therefore, **its backup data is incomplete for restoring the device after installing OpenBSD using this installer**.  
 > You must create a complete raw sector backup using [pomera-dm250-backup-restore-tool](https://github.com/mah-jp/pomera-dm250-backup-restore-tool) prior to installation.
 
 ```bash
