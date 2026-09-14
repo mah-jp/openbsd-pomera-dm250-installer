@@ -190,9 +190,11 @@ def extract_from_fat(disk_img: str, output_path: str):
         try:
             # FAT partition offset is 32768 sectors * 512 = 16777216 bytes
             offset = 32768 * 512
-            if shutil.which("mcopy"):
-                subprocess.run(["mcopy", "-i", f"{disk_img}@@{offset}", "::mlterm-fb-dm250.tar.gz", output_path], check=True)
-                print(f"   ✅ Extracted with mcopy: {output_path}")
+            if os.path.exists(output_path):
+                os.remove(output_path)
+            if shutil.which('mcopy'):
+                subprocess.run(['mcopy', '-o', '-i', f'{disk_img}@@{offset}', '::mlterm-fb-dm250.tar.gz', output_path], check=True)
+                print(f'   ✅ Extracted with mcopy: {output_path}')
             else:
                 mnt_tmp = tempfile.mkdtemp(prefix="fat_mnt_")
                 subprocess.run(["mount", "-o", f"loop,offset={offset}", disk_img, mnt_tmp], check=True)
