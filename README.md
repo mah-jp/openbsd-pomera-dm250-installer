@@ -313,7 +313,7 @@ pomera-setup-japanese
 | `mlterm-ja` | Launch Japanese input terminal with inline IME (built-in SKK). |
 | `pomera-setup-workspace` | Automatically set up CUI workspace (`mlterm-fb`, fonts, Vim, tmux, and dotfiles). |
 | `pomera-setup-japanese` | Automatically set up Japanese IME (built-in SKK direct inline conversion) for `mlterm-fb`. |
-| `pomera-font [udev\|moraler\|noto]` | Switch terminal fonts (slashed-zero UDEV Gothic, Moralerspace, or Noto) for `mlterm-fb`. |
+| `pomera-font [-y] [udev\|moraler\|noto]` | Switch terminal fonts (slashed-zero UDEV Gothic, Moralerspace, or Noto) for `mlterm-fb` (auto-downloads on first use). |
 | `doas pomera-bt-pan connect <BD_ADDR>` | *(Experimental)* Connect to smartphone Bluetooth Tethering (PAN) (requires 4noha's panctl daemon; unverified on hardware). |
 
 ### 🔧 Host PC Diagnostics & Simulator Tools (Advanced / Developers)

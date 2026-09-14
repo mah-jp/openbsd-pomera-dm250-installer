@@ -297,7 +297,7 @@ pomera-setup-japanese
 | :--- | :--- |
 | `pomera-setup-workspace` | ワークスペース環境（Vim、tmux、mlterm-fb、Noto CJK、dotfiles）のセットアップ・再初期化。 |
 | `pomera-setup-japanese` | CUI日本語入力システム (mlterm 内蔵 SKK 直接インライン変換) のセットアップ。 |
-| `pomera-font [udev\|moraler\|noto]` | ターミナルフォント（斜線ゼロ入り UDEV Gothic、Moralerspace、Noto）を切り替え。 |
+| `pomera-font [-y] [udev\|moraler\|noto]` | ターミナルフォント（斜線ゼロ入り UDEV Gothic、Moralerspace、Noto）を切り替え（未インストール時は初回自動ダウンロード）。 |
 | `doas pomera-bt-pan connect <BD_ADDR>` | *(実験的)* スマホのBluetoothテザリング（PAN）接続スクリプト（※要4noha氏のpanctlデーモン、実機未検証）。 |
 
 ### 🔧 ホストPC側での診断・シミュレーターツール (上級者・開発向け)
