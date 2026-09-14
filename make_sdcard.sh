@@ -70,6 +70,7 @@ fix_file_ownership() {
 
 cleanup_on_exit() {
     local exit_code=$?
+    trap - EXIT INT TERM HUP
     fix_file_ownership "${CONFIGS_DIR}"
     rm -rf "${SCRIPTS_DIR}/__pycache__" 2>/dev/null || fix_file_ownership "${SCRIPTS_DIR}/__pycache__"
     if [ -d "${WORK_DIR}" ]; then
@@ -95,8 +96,8 @@ ARMV7_MIRROR="https://cdn.openbsd.org/pub/OpenBSD/7.9/armv7"
 ARMV7_SNAP_MIRROR="https://cdn.openbsd.org/pub/OpenBSD/snapshots/armv7"
 ARM64_MIRROR="https://cdn.openbsd.org/pub/OpenBSD/7.9/arm64"
 ARM64_SNAP_MIRROR="https://cdn.openbsd.org/pub/OpenBSD/snapshots/arm64"
-FIRMWARE_MIRROR="http://firmware.openbsd.org/firmware/7.9"
-FIRMWARE_SNAP_MIRROR="http://firmware.openbsd.org/firmware/snapshots"
+FIRMWARE_MIRROR="https://firmware.openbsd.org/firmware/7.9"
+FIRMWARE_SNAP_MIRROR="https://firmware.openbsd.org/firmware/snapshots"
 JCS_MIRROR="https://jcs.org/dm250"
 RKBIN_MIRROR="https://raw.githubusercontent.com/rockchip-linux/rkbin/master/bin/rk31"
 
@@ -331,16 +332,11 @@ generate_install_configs() {
     local conf_confirm_install="${POMERA_CONFIRM_INSTALL:-yes}"
     local conf_lid_interval="${POMERA_LID_INTERVAL:-2.0}"
     local conf_cpu_policy="${POMERA_CPU_POLICY:-auto}"
+    # Inject user credentials into _build_cache/install.site.env with restricted permissions (0600)
+    local prev_umask
+    prev_umask=$(umask)
+    umask 077
 
-    POMERA_SMART_KERNEL="${POMERA_SMART_KERNEL:-yes}"
-    POMERA_PATCH_USB_HUB="${POMERA_PATCH_USB_HUB:-yes}"
-    POMERA_PATCH_X11_KEYS="${POMERA_PATCH_X11_KEYS:-yes}"
-    POMERA_PATCH_MLTERM_FB="${POMERA_PATCH_MLTERM_FB:-yes}"
-    POMERA_PATCH_BT="${POMERA_PATCH_BT:-yes}"
-    POMERA_WORKSPACE="${POMERA_WORKSPACE:-yes}"
-    POMERA_BUILD_PATCHED_KERNEL="${POMERA_BUILD_PATCHED_KERNEL:-no}"
-
-    # Inject user credentials into _build_cache/install.site.env to guarantee 100% password enforcement without dirtying git configs
     cat << EOF > "${WORK_DIR}/install.site.env"
 export POMERA_USERNAME="${conf_user}"
 export POMERA_HOSTNAME="${conf_host}"
@@ -459,9 +455,13 @@ Location of sets = done
 Location of sets? = done
 EOF
 
+    chmod 600 "${WORK_DIR}/install.site.env" "${WORK_DIR}/install.conf" 2>/dev/null || true
+    umask "$prev_umask"
+
     # Mirror to configs/install.conf only if missing
     if [ ! -f "${CONFIGS_DIR}/install.conf" ]; then
         cp -f "${WORK_DIR}/install.conf" "${CONFIGS_DIR}/install.conf"
+        chmod 600 "${CONFIGS_DIR}/install.conf" 2>/dev/null || true
     fi
 }
 
@@ -962,9 +962,18 @@ execute_builder() {
         target_drive="$BLOCK_DEV"
     else
         target_drive="$TARGET_DEV"
-        # On Linux, unmount any active partitions on the target drive to prevent kernel write conflicts
-        if command -v umount >/dev/null 2>&1; then
-            umount "${target_drive}"* 2>/dev/null || true
+        # On Linux, strictly unmount only partitions belonging to this specific target device
+        if command -v lsblk >/dev/null 2>&1 && command -v umount >/dev/null 2>&1; then
+            while IFS= read -r mnt; do
+                [ -n "$mnt" ] && umount "$mnt" 2>/dev/null || true
+            done < <(lsblk -nro MOUNTPOINT "$target_drive" 2>/dev/null || true)
+        fi
+        if [ -b "$target_drive" ]; then
+            if [[ "$target_drive" =~ ^/dev/(sd[a-z]+|vd[a-z]+|xvd[a-z]+)$ ]]; then
+                umount "${target_drive}"[0-9]* 2>/dev/null || true
+            elif [[ "$target_drive" =~ ^/dev/(mmcblk[0-9]+|nvme[0-9]+n[0-9]+)$ ]]; then
+                umount "${target_drive}"p[0-9]* 2>/dev/null || true
+            fi
         fi
     fi
 
