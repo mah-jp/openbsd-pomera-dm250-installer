@@ -205,31 +205,96 @@ check_prerequisites() {
     fi
 }
 
+calc_sha256() {
+    local file="$1"
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum "$file" | awk '{print $1}'
+    elif command -v shasum >/dev/null 2>&1; then
+        shasum -a 256 "$file" | awk '{print $1}'
+    else
+        python3 -c "import hashlib, sys; print(hashlib.sha256(open(sys.argv[1], 'rb').read()).hexdigest())" "$file"
+    fi
+}
+
+get_expected_sha256() {
+    local filename="$1"
+    local hash_file="$2"
+    local url_name="${3:-}"
+    if [ -n "$hash_file" ] && [ -f "$hash_file" ]; then
+        local hash
+        hash=$(awk -v fn="$filename" '$2 == "(" fn ")" {print $4}' "$hash_file" 2>/dev/null)
+        if [ -z "$hash" ] && [ -n "$url_name" ]; then
+            hash=$(awk -v fn="$url_name" '$2 == "(" fn ")" {print $4}' "$hash_file" 2>/dev/null)
+        fi
+        echo "$hash"
+    fi
+}
+
 fetch_file() {
     local url="$1"
     local dest="$2"
     local fallback_url="${3:-}"
+    local hash_file="${4:-}"
+    local filename
+    filename="$(basename "$dest")"
+    local url_filename
+    url_filename="$(basename "$url")"
     
+    local expected_hash=""
+    if [ -n "$hash_file" ]; then
+        expected_hash="$(get_expected_sha256 "$filename" "$hash_file" "$url_filename" 2>/dev/null || true)"
+    fi
+
     if [ -f "$dest" ]; then
-        if head -n 1 "$dest" 2>/dev/null | grep -qi "<html"; then
-            echo "⚠️ Corrupted HTML download detected in $(basename "$dest"). Re-downloading..."
+        if [ ! -s "$dest" ]; then
+            echo "⚠️ Empty file detected in ${filename}. Removing..."
+            rm -f "$dest"
+        elif [ -n "$expected_hash" ]; then
+            local actual_hash
+            actual_hash="$(calc_sha256 "$dest")"
+            if [ "$actual_hash" != "$expected_hash" ]; then
+                echo "⚠️ SHA256 checksum mismatch for ${filename} (cached: ${actual_hash:0:8}..., expected: ${expected_hash:0:8}...). Removing corrupted cache..."
+                rm -f "$dest"
+            fi
+        elif head -n 1 "$dest" 2>/dev/null | grep -qi "<html"; then
+            echo "⚠️ Corrupted HTML download detected in ${filename}. Re-downloading..."
             rm -f "$dest"
         fi
     fi
 
     if [ ! -f "$dest" ] || [ ! -s "$dest" ]; then
-        echo "  -> Downloading $(basename "$dest")..."
-        if ! curl -f -L -C - "$url" -o "$dest"; then
-            if [ -n "$fallback_url" ]; then
-                echo "     Retrying from fallback mirror..."
-                curl -f -L -C - "$fallback_url" -o "$dest"
-            else
-                echo "❌ Failed to download $(basename "$dest")"
+        echo "  -> Downloading ${filename}..."
+        local download_success=false
+        if curl -f -L "$url" -o "$dest"; then
+            download_success=true
+        elif [ -n "$fallback_url" ]; then
+            echo "     Retrying from fallback mirror..."
+            if curl -f -L "$fallback_url" -o "$dest"; then
+                download_success=true
+            fi
+        fi
+
+        if [ "$download_success" = false ] || [ ! -f "$dest" ]; then
+            echo "❌ Failed to download ${filename}"
+            exit 1
+        fi
+
+        # Verify hash after download if expected hash is known
+        if [ -n "$expected_hash" ]; then
+            local downloaded_hash
+            downloaded_hash="$(calc_sha256 "$dest")"
+            if [ "$downloaded_hash" != "$expected_hash" ]; then
+                echo "❌ SHA256 verification failed for ${filename} (got ${downloaded_hash}, expected ${expected_hash})"
+                rm -f "$dest"
                 exit 1
             fi
         fi
     else
-        echo "  -> Cached: $(basename "$dest")"
+        if [ -n "$expected_hash" ]; then
+            echo "  -> Cached & Verified (SHA256): ${filename}"
+        else
+            echo "  -> Cached: ${filename}"
+        fi
     fi
 }
 
@@ -403,9 +468,13 @@ EOF
 fetch_all_artifacts() {
     echo "=== [1/3] Fetching Official OpenBSD & DM250 Artifacts ==="
 
+    # Fetch Official Checksums first for automated SHA256 integrity verification
+    fetch_file "${ARM64_MIRROR}/SHA256" "${WORK_DIR}/SHA256.arm64" "${ARM64_SNAP_MIRROR}/SHA256"
+    fetch_file "${ARMV7_MIRROR}/SHA256.sig" "${WORK_DIR}/SHA256.sig" "${ARMV7_SNAP_MIRROR}/SHA256.sig"
+
     # Lightweight OpenBSD arm64 miniroot Image (~43MB vs 630MB install image, saving 587MB)
     if [ ! -f "${WORK_DIR}/install79_arm64.img" ]; then
-        fetch_file "${ARM64_MIRROR}/miniroot${OPENBSD_VER}.img" "${WORK_DIR}/miniroot79.img" "${ARM64_SNAP_MIRROR}/miniroot${OPENBSD_VER}.img"
+        fetch_file "${ARM64_MIRROR}/miniroot${OPENBSD_VER}.img" "${WORK_DIR}/miniroot79.img" "${ARM64_SNAP_MIRROR}/miniroot${OPENBSD_VER}.img" "${WORK_DIR}/SHA256.arm64"
     fi
 
     # Rockchip BootROM Binaries
@@ -413,8 +482,8 @@ fetch_all_artifacts() {
     fetch_file "${RKBIN_MIRROR}/rk312x_miniloader_v2.63.bin" "${WORK_DIR}/rk312x_miniloader.bin"
 
     # EFI & DM250 Binaries
-    fetch_file "${ARMV7_MIRROR}/BOOTARM.EFI" "${WORK_DIR}/BOOTARM.EFI" "${ARMV7_SNAP_MIRROR}/BOOTARM.EFI"
-    fetch_file "${ARMV7_MIRROR}/bsd.rd" "${WORK_DIR}/bsd.rd" "${ARMV7_SNAP_MIRROR}/bsd.rd"
+    fetch_file "${ARMV7_MIRROR}/BOOTARM.EFI" "${WORK_DIR}/BOOTARM.EFI" "${ARMV7_SNAP_MIRROR}/BOOTARM.EFI" "${WORK_DIR}/SHA256.sig"
+    fetch_file "${ARMV7_MIRROR}/bsd.rd" "${WORK_DIR}/bsd.rd" "${ARMV7_SNAP_MIRROR}/bsd.rd" "${WORK_DIR}/SHA256.sig"
     
     # Auto-Boot U-Boot image (Ensures hands-free auto-booting OpenBSD payload)
     local uboot_target="${WORK_DIR}/uboot.img"
@@ -471,9 +540,8 @@ EOF
     )
 
     for bset in "${base_sets[@]}"; do
-        fetch_file "${ARMV7_MIRROR}/${bset}" "${WORK_DIR}/${bset}" "${ARMV7_SNAP_MIRROR}/${bset}"
+        fetch_file "${ARMV7_MIRROR}/${bset}" "${WORK_DIR}/${bset}" "${ARMV7_SNAP_MIRROR}/${bset}" "${WORK_DIR}/SHA256.sig"
     done
-    fetch_file "${ARMV7_MIRROR}/SHA256.sig" "${WORK_DIR}/SHA256.sig" "${ARMV7_SNAP_MIRROR}/SHA256.sig"
     fetch_file "${FIRMWARE_MIRROR}/bwfm-firmware-20200316.1.3p5.tgz" "${WORK_DIR}/bwfm-firmware-20200316.1.3p5.tgz" "${FIRMWARE_SNAP_MIRROR}/bwfm-firmware-20200316.1.3p5.tgz"
 
     # Pre-fetch offline workspace packages if requested (saves 10-15m on device)
@@ -564,8 +632,12 @@ EOF
             fi
 
             if [ "$need_compile" = "true" ]; then
-                echo "=== [Kernel Builder] Compiling Custom Kernel via QEMU (Config: ${target_kconfig}) ==="
-                fetch_file "${ARMV7_MIRROR}/bsd" "${WORK_DIR}/bsd_generic" "${ARMV7_SNAP_MIRROR}/bsd"
+                if [ "$DOWNLOAD_ONLY" = true ]; then
+                    echo ">> [--download-only] Skipping kernel compilation. Fetching generic base bsd for cache..."
+                    fetch_file "${ARMV7_MIRROR}/bsd" "${WORK_DIR}/bsd_generic" "${ARMV7_SNAP_MIRROR}/bsd" "${WORK_DIR}/SHA256.sig"
+                else
+                    echo "=== [Kernel Builder] Compiling Custom Kernel via QEMU (Config: ${target_kconfig}) ==="
+                    fetch_file "${ARMV7_MIRROR}/bsd" "${WORK_DIR}/bsd_generic" "${ARMV7_SNAP_MIRROR}/bsd" "${WORK_DIR}/SHA256.sig"
                 local build_args=("--config" "${target_kconfig}")
                 if [ "$POMERA_PATCH_USB_HUB" = "yes" ]; then
                     build_args+=("--patch-usb")
@@ -588,10 +660,11 @@ EOF
                     build_args+=("--no-patch-bt")
                 fi
 
-                python3 "${SCRIPT_DIR}/scripts/build_kernel_qemu.py" "${build_args[@]}"
-                if [ -f "${WORK_DIR}/bsd.patched" ]; then
-                    cp -f "${WORK_DIR}/bsd.patched" "${WORK_DIR}/bsd"
-                    echo "$current_kernel_sig" > "$tag_file"
+                    python3 "${SCRIPT_DIR}/scripts/build_kernel_qemu.py" "${build_args[@]}"
+                    if [ -f "${WORK_DIR}/bsd.patched" ]; then
+                        cp -f "${WORK_DIR}/bsd.patched" "${WORK_DIR}/bsd"
+                        echo "$current_kernel_sig" > "$tag_file"
+                    fi
                 fi
             fi
         fi
